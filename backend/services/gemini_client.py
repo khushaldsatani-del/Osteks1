@@ -43,7 +43,14 @@ def _is_retryable_error(error: Exception) -> bool:
     return False
 
 
-async def _with_retry(fn, retries: int = 3, base_delay_ms: int = 1500):
+# retries=1 (not 3) deliberately trades some resilience against brief blips
+# for a much shorter worst case: 3 retries across both extraction stages
+# measured at ~108s total against a genuinely overloaded Gemini (2026-08-20
+# live test) before finally surfacing the "overloaded" error to the user —
+# unacceptably long for someone staring at an upload button. 1 retry cuts
+# that to roughly half while still giving every request one real second
+# chance before giving up.
+async def _with_retry(fn, retries: int = 1, base_delay_ms: int = 1500):
     attempt = 0
     while True:
         try:
