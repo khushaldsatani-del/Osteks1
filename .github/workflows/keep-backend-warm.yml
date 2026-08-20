@@ -1,0 +1,19 @@
+name: Keep backend warm
+
+# Render's free tier spins the backend down after ~15 min of no traffic,
+# and the next real request pays a 30-100s cold-start penalty (and can
+# even fail outright, since Render's own error page during boot lacks
+# CORS headers, which the browser reports as a generic network error).
+# Pinging the health endpoint well inside that 15-minute window keeps it
+# from ever fully sleeping.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: curl -sf --max-time 30 https://osteks.onrender.com/api/health
