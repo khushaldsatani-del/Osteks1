@@ -1,0 +1,14 @@
+# Virtual environment
+.venv/
+
+# Secrets — never commit an API key or database URL
+.env
+
+# Python bytecode/cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Test/tooling caches
+.pytest_cache/
+*.egg-info/
