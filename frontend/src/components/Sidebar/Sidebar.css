@@ -1,0 +1,331 @@
+/* =========================================================
+   SIDEBAR
+========================================================= */
+.sidebar {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 252px;
+  height: 100vh;
+
+  background: #ffffff;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 46px 14px 18px;
+
+  box-sizing: border-box;
+
+  /* Curves only on the right side */
+  border-top-right-radius: 30px;
+  border-bottom-right-radius: 30px;
+
+  /* Clean subtle separation */
+  border-right: 1px solid #e3e7ef;
+
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+
+  z-index: 1000;
+
+  overflow: hidden;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+.sidebar-menu {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+
+/* =========================================================
+   MENU ITEM
+========================================================= */
+
+.sidebar-menu-item {
+  width: 100%;
+  height: 54px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 18px;
+
+  border: none;
+  outline: none;
+
+  border-radius: 12px;
+
+  background: transparent;
+
+  color: #34425d;
+
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-size: 15.5px;
+
+  font-weight: 400;
+
+  line-height: 1;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+
+/* =========================================================
+   ICON
+========================================================= */
+
+.menu-icon {
+  width: 22px;
+  height: 22px;
+
+  flex-shrink: 0;
+
+  margin-right: 21px;
+
+  color: #52627d;
+
+  stroke-width: 1.8;
+
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+
+/* =========================================================
+   TEXT
+========================================================= */
+
+.menu-label {
+  white-space: nowrap;
+
+  transform: translateY(0.5px);
+}
+
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+.sidebar-menu-item:hover {
+  background: #effbf8;
+
+  color: #0f8a7c;
+}
+
+.sidebar-menu-item:hover .menu-icon {
+  color: #0f8a7c;
+}
+
+
+/* =========================================================
+   ACTIVE
+========================================================= */
+
+.sidebar-menu-item.active {
+  background: #d7f3ee;
+
+  color: #0f8a7c;
+
+  font-weight: 700;
+}
+
+.sidebar-menu-item.active .menu-icon {
+  color: #0f8a7c;
+
+  stroke-width: 2;
+}
+
+
+/* =========================================================
+   LANGUAGE CARD
+========================================================= */
+
+.language-card {
+  width: 100%;
+
+  height: 105px;
+
+  margin-top: auto;
+
+  padding: 16px 13px 12px;
+
+  box-sizing: border-box;
+
+  border-radius: 13px;
+
+  border: 1px solid #e3e8f1;
+
+  background: #fbfcfe;
+}
+
+
+/* =========================================================
+   LANGUAGE HEADER
+========================================================= */
+
+.language-top {
+  height: 27px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 2px;
+}
+
+
+.language-title {
+  color: #35445f;
+
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-size: 12px;
+
+  font-weight: 500;
+
+  line-height: 1;
+}
+
+
+.settings-icon {
+  width: 18px;
+  height: 18px;
+
+  color: #53627d;
+
+  stroke-width: 1.8;
+
+  cursor: pointer;
+
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+
+.settings-icon:hover {
+  color: #0f8a7c;
+
+  transform: rotate(20deg);
+}
+
+
+/* =========================================================
+   LANGUAGE SWITCH
+========================================================= */
+
+.language-switch {
+  width: 100%;
+  height: 39px;
+
+  margin-top: 3px;
+
+  padding: 3px;
+
+  display: flex;
+  align-items: center;
+
+  box-sizing: border-box;
+
+  border-radius: 21px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5eaf2;
+}
+
+
+/* =========================================================
+   LANGUAGE BUTTON
+========================================================= */
+
+.language-option {
+  flex: 1;
+
+  height: 31px;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+
+  border-radius: 17px;
+
+  background: transparent;
+
+  color: #53627d;
+
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-size: 13.5px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+
+/* =========================================================
+   ACTIVE LANGUAGE
+========================================================= */
+
+.language-option.active {
+  background: #14b8a6;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 3px 8px rgba(20, 184, 166, 0.28);
+}
+
+
+/* =========================================================
+   LANGUAGE HOVER
+========================================================= */
+
+.language-option:not(.active):hover {
+  color: #0f8a7c;
+}

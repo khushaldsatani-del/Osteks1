@@ -1,0 +1,217 @@
+import io
+import math
+
+import fitz  # PyMuPDF
+from PIL import Image, ImageOps
+
+# Pillow's default decompression-bomb guard (~179 megapixels) exists to stop
+# a tiny malicious file from claiming a huge pixel count and exhausting
+# memory on decode. It's tuned for arbitrary untrusted internet uploads —
+# a genuine high-DPI large-format engineering drawing scan (this app's
+# actual use case) can easily and legitimately exceed it, which is exactly
+# what happened here. The MAX_FILE_SIZE_BYTES cap in main.py (30 MB) is
+# this app's real bound on decode cost, so the pixel-count guard is raised
+# generously rather than disabled outright — still a real ceiling, just one
+# sized for real scans instead of arbitrary web uploads.
+Image.MAX_IMAGE_PIXELS = 400_000_000
+
+# Below this size on the longest edge, a page already reads fine as one
+# image — tiling would just add API calls for no benefit.
+TILE_THRESHOLD_PX = 1900
+
+# Target size of one tile's longest edge. Kept close to TILE_THRESHOLD_PX so
+# tiles stay near-native resolution instead of being squeezed down — this is
+# the fix for small title-block/BOM text being crushed into unreadable mush
+# when a large sheet was previously downscaled as a single 2200px image.
+TILE_TARGET_PX = 1600
+
+# Tiles overlap their neighbors so a value that straddles a tile boundary
+# (e.g. "T=3mm" split across two tiles) is never cut in half.
+TILE_OVERLAP_RATIO = 0.12
+
+# Hard caps so one drawing's image count (and API cost) stays bounded even
+# for very large sheets or multi-sheet PDFs.
+MAX_TILES_PER_PAGE = 4
+MAX_PAGES = 3
+
+# No tile/overview is ever upscaled past this — comfortably above
+# TILE_TARGET_PX, only relevant for unusually huge source scans.
+SAFETY_MAX_EDGE_PX = 3200
+
+# Higher-DPI PDF rendering than a plain viewer would use, so the raster we
+# tile from already has enough detail for small text before we even crop it.
+PDF_VIEWPORT_SCALE = 3.5
+
+_PDF_MIME_TYPES = {"application/pdf"}
+_TIFF_MIME_TYPES = {"image/tiff", "image/x-tiff"}
+_SUPPORTED_IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+
+
+def detect_file_kind(original_name: str, mimetype: str) -> str | None:
+    ext = (original_name.rsplit(".", 1)[-1] if "." in original_name else "").lower()
+
+    if mimetype in _PDF_MIME_TYPES or ext == "pdf":
+        return "pdf"
+    if mimetype in _TIFF_MIME_TYPES or ext in ("tif", "tiff"):
+        return "tiff"
+    if mimetype in _SUPPORTED_IMAGE_MIME_TYPES or ext in ("png", "jpg", "jpeg", "webp"):
+        return "image"
+    return None
+
+
+# Python's built-in round() uses banker's rounding (round-half-to-even —
+# round(2.5) == 2), but JS's Math.round() always rounds half up
+# (Math.round(2.5) === 3). The tile-grid math below is a direct port of
+# fileProcessing.js's Math.round() calls, so it needs this to actually
+# match — otherwise some image dimensions would produce a different tile
+# grid (and therefore different crop regions) than the Node backend did.
+def _js_round(value: float) -> int:
+    return math.floor(value + 0.5)
+
+
+def _to_png_bytes(image: Image.Image) -> bytes:
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def _resize_within(image: Image.Image, target_edge: int) -> Image.Image:
+    # Mirrors sharp's resize({fit:"inside", withoutEnlargement:true}) — only
+    # ever downscales, preserves aspect ratio, never upscales past the
+    # image's own native size.
+    longest = max(image.width, image.height)
+    if longest <= target_edge:
+        return image
+    scale = target_edge / longest
+    new_size = (max(1, _js_round(image.width * scale)), max(1, _js_round(image.height * scale)))
+    return image.resize(new_size, Image.LANCZOS)
+
+
+# Turns one raster page/drawing into a labeled overview + (for large
+# sheets) a grid of overlapping high-resolution crops, so the model can read
+# both the overall layout and the fine print in the title block / BOM at
+# close to native resolution. This is deliberately generic grid tiling, not
+# a template that assumes where information lives on the sheet.
+#
+# `max_images` (optional) caps the total images this page can produce
+# (overview + tiles combined) — some providers hard-cap images per request
+# (e.g. Groq's qwen/qwen3.6-27b rejects a request over 3 images, but the
+# default tiling below can produce up to 5: 1 overview + 4 tiles). Rather
+# than tiling normally and then discarding crops to fit — which would
+# silently drop coverage of whatever region the discarded tile held — the
+# grid itself is computed smaller so the *whole* drawing still gets covered,
+# just with fewer, larger tiles (some resolution traded for full coverage).
+def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[dict]:
+    with Image.open(io.BytesIO(original_bytes)) as raw:
+        # Normalize EXIF orientation once, up front, so every crop below
+        # operates on the same already-rotated image — tile coordinates
+        # always line up with what PIL reports as width/height.
+        base = ImageOps.exif_transpose(raw.convert("RGB"))
+
+    width, height = base.size
+    if not width or not height:
+        raise RuntimeError("Could not read the uploaded drawing's image dimensions.")
+
+    images: list[dict] = []
+
+    # Overview first: whole drawing, only modestly downscaled, so the model
+    # has global context (layout, where the BOM/title block sit relative to
+    # each other) before it looks at any close-up tile.
+    overview_edge = min(max(width, height), 2048)
+    images.append({"label": "Full drawing (overview)", "data": _to_png_bytes(_resize_within(base, overview_edge))})
+
+    # Reserve one slot for the overview already added above; the rest of
+    # the budget is what the tile grid is allowed to use. None means no
+    # provider-imposed cap — use the normal default.
+    max_tiles = MAX_TILES_PER_PAGE if max_images is None else max(0, max_images - 1)
+
+    longest_edge = max(width, height)
+    if longest_edge <= TILE_THRESHOLD_PX or max_tiles == 0:
+        # Either already small enough that the overview above kept full
+        # native detail (no downscale happened), or the image budget has no
+        # room left for tiles at all — either way, no tiles needed/possible.
+        return images
+
+    cols = max(1, _js_round(width / TILE_TARGET_PX))
+    rows = max(1, _js_round(height / TILE_TARGET_PX))
+    while cols * rows > max_tiles:
+        if cols >= rows:
+            cols -= 1
+        else:
+            rows -= 1
+        cols = max(1, cols)
+        rows = max(1, rows)
+
+    tile_width = math.ceil(width / cols)
+    tile_height = math.ceil(height / rows)
+    overlap_x = _js_round(tile_width * TILE_OVERLAP_RATIO)
+    overlap_y = _js_round(tile_height * TILE_OVERLAP_RATIO)
+
+    for row in range(rows):
+        for col in range(cols):
+            left = max(0, col * tile_width - overlap_x)
+            top = max(0, row * tile_height - overlap_y)
+            right = min(width, (col + 1) * tile_width + overlap_x)
+            bottom = min(height, (row + 1) * tile_height + overlap_y)
+
+            extract_width = right - left
+            extract_height = bottom - top
+            if extract_width <= 0 or extract_height <= 0:
+                continue
+
+            tile_edge = min(max(extract_width, extract_height), SAFETY_MAX_EDGE_PX)
+            crop = base.crop((left, top, right, bottom))
+
+            images.append(
+                {
+                    "label": f"High-resolution region — row {row + 1}/{rows}, column {col + 1}/{cols}",
+                    "data": _to_png_bytes(_resize_within(crop, tile_edge)),
+                }
+            )
+
+    return images
+
+
+# Converts an uploaded drawing (PDF / TIFF / PNG / JPEG / WEBP) into a flat,
+# labeled list of PNG images ready to send to the vision model: one
+# overview (+ high-res tiles if the sheet is large) per page. A PDF may
+# contain several sheets of the same drawing, so every page up to
+# MAX_PAGES is included so the model can cross-reference a value on one
+# page (e.g. a title block) against another (e.g. a BOM).
+#
+# `max_images` (optional): a hard per-request image cap some providers
+# enforce (see ai_client.max_images_per_request()) — None means no cap
+# (e.g. Gemini, which this app has always sent up to ~15 images to per
+# multi-page PDF without issue). When set, the budget is split evenly
+# across pages (every page still gets at least its own overview) and each
+# page's own tile grid is sized down to fit within its share — see
+# _tile_image's docstring for why that's better than tiling normally and
+# discarding crops afterward.
+def convert_to_image_pages(buffer: bytes, kind: str, max_images: int | None = None) -> list[dict]:
+    if kind == "pdf":
+        doc = fitz.open(stream=buffer, filetype="pdf")
+        try:
+            page_count = min(len(doc), MAX_PAGES)
+            if page_count == 0:
+                raise RuntimeError("Could not render any pages from the uploaded PDF.")
+
+            per_page_budget = max(1, max_images // page_count) if max_images else None
+
+            matrix = fitz.Matrix(PDF_VIEWPORT_SCALE, PDF_VIEWPORT_SCALE)
+            images: list[dict] = []
+            for page_index in range(page_count):
+                page = doc[page_index]
+                pixmap = page.get_pixmap(matrix=matrix)
+                page_png_bytes = pixmap.tobytes("png")
+
+                page_images = _tile_image(page_png_bytes, max_images=per_page_budget)
+                prefix = f"Page {page_index + 1} — " if page_count > 1 else ""
+                for image in page_images:
+                    images.append({"label": f"{prefix}{image['label']}", "data": image["data"]})
+            return images
+        finally:
+            doc.close()
+
+    # TIFF and standard raster images both go through the same tiling
+    # pipeline — Pillow reads TIFF natively, same as PNG/JPEG/WEBP.
+    return _tile_image(buffer, max_images=max_images)

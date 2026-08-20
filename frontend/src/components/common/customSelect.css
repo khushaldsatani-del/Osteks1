@@ -1,0 +1,138 @@
+/* =========================================
+   CUSTOM SELECT
+   Matches the theme's input styling on the
+   trigger and its own hover/selected colors
+   on the popup list (a native <select>'s
+   popup can't be restyled — it always uses
+   the OS/browser's own accent color).
+========================================= */
+
+.custom-select {
+  position: relative;
+
+  width: 100%;
+}
+
+
+.custom-select-trigger {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 8px;
+
+  width: 100%;
+
+  height: 36px;
+
+  padding: 0 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+
+  font-family: inherit;
+
+  color: #262e3d;
+
+  background: #ffffff;
+
+  cursor: pointer;
+
+  outline: none;
+
+  box-sizing: border-box;
+
+  text-align: left;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.custom-select-trigger:focus,
+.custom-select-trigger[aria-expanded="true"] {
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+.custom-select-placeholder {
+  color: #a4abb9;
+}
+
+
+.custom-select-chevron {
+  color: #8992a1;
+
+  flex-shrink: 0;
+
+  transition: transform 0.15s ease;
+}
+
+
+.custom-select-trigger[aria-expanded="true"] .custom-select-chevron {
+  transform: rotate(180deg);
+}
+
+
+.custom-select-list {
+  position: absolute;
+
+  top: calc(100% + 6px);
+
+  left: 0;
+
+  right: 0;
+
+  z-index: 50;
+
+  margin: 0;
+
+  padding: 6px;
+
+  list-style: none;
+
+  background: #ffffff;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 10px;
+
+  box-shadow: 0 10px 26px rgba(20, 30, 55, 0.14);
+
+  max-height: 220px;
+
+  overflow-y: auto;
+}
+
+
+.custom-select-option {
+  padding: 8px 10px;
+
+  border-radius: 7px;
+
+  font-size: 12px;
+
+  color: #262e3d;
+
+  cursor: pointer;
+}
+
+
+.custom-select-option.highlighted {
+  background: #e1f7f3;
+}
+
+
+.custom-select-option.selected {
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+
+  font-weight: 600;
+}

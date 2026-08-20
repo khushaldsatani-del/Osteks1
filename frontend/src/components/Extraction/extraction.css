@@ -1,0 +1,177 @@
+/* =========================================
+   EXTRACTION PREVIEW (temporary section)
+   Styled to match the rest of the app's cards.
+========================================= */
+
+.extraction-card {
+  width: 100%;
+
+  margin-top: 22px;
+
+  background: #ffffff;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+
+  box-sizing: border-box;
+
+  padding: 18px 20px 20px;
+}
+
+
+.extraction-card-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 14px;
+}
+
+
+.extraction-card-icon {
+  width: 26px;
+
+  height: 26px;
+
+  border-radius: 8px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+}
+
+
+.extraction-card-title {
+  font-size: 13.5px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0;
+}
+
+
+.extraction-file-name {
+  margin-left: auto;
+
+  font-size: 10.5px;
+
+  font-weight: 600;
+
+  color: #8992a1;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  max-width: 40%;
+}
+
+
+/* =========================================
+   BODY
+========================================= */
+
+.extraction-body {
+  border: 1px solid #e1e5ec;
+
+  border-radius: 10px;
+
+  background: #f9fafc;
+}
+
+
+.extraction-placeholder {
+  padding: 22px 16px;
+
+  font-size: 12px;
+
+  color: #8992a1;
+
+  text-align: center;
+
+  line-height: 1.5;
+}
+
+
+.extraction-loading {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  color: #0f8a7c;
+}
+
+
+.extraction-spinner {
+  animation: extraction-spin 0.9s linear infinite;
+}
+
+
+@keyframes extraction-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.extraction-error {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  color: #b3412f;
+}
+
+
+.extraction-text {
+  margin: 0;
+
+  padding: 16px 18px;
+
+  max-height: 320px;
+
+  overflow-y: auto;
+
+  white-space: pre-wrap;
+
+  word-break: break-word;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  line-height: 1.65;
+
+  color: #262e3d;
+}

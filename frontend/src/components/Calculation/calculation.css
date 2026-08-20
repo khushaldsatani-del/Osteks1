@@ -1,0 +1,860 @@
+/* =========================================
+   CALCULATION SECTION — GRID LAYOUT
+   Left column (Firma Info + Extracted Details)
+   Right column (Revenue + Pricing + Info)
+   Grid stretches both columns to the same
+   height automatically (align-items: stretch,
+   which is the CSS Grid default), then the
+   last card on the left grows to fill any
+   leftover space so both columns finish flush.
+========================================= */
+
+.calculation-section {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+  gap: 22px;
+
+  margin-top: 22px;
+
+  align-items: stretch;
+}
+
+
+.calc-column {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 20px;
+
+  min-width: 0;
+
+  height: 100%;
+}
+
+
+.calc-card--grow {
+  flex: 1;
+}
+
+
+/* =========================================
+   CARD
+========================================= */
+
+.calc-card {
+  background: #ffffff;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+
+  box-sizing: border-box;
+
+  padding: 18px 20px 20px;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+
+.calc-card-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 16px;
+}
+
+
+.calc-card-icon {
+  width: 26px;
+
+  height: 26px;
+
+  border-radius: 8px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+
+.calc-card-icon--blue {
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+}
+
+
+.calc-card-icon--green {
+  background: #e7f8ee;
+
+  color: #1fa056;
+}
+
+
+.calc-card-icon--purple {
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+}
+
+
+.calc-card-icon--blue-soft {
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+}
+
+
+.calc-card-title {
+  font-size: 13.5px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0;
+}
+
+
+/* =========================================
+   FORM GRID (Firma Information / Extracted Details)
+========================================= */
+
+.calc-form-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 14px 16px;
+}
+
+
+.calc-field {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  min-width: 0;
+}
+
+
+.calc-field--full {
+  grid-column: 1 / -1;
+}
+
+
+.calc-field label {
+  font-size: 11px;
+
+  font-weight: 600;
+
+  color: #626b7c;
+}
+
+
+.calc-field input,
+.calc-field select {
+  height: 36px;
+
+  padding: 0 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+
+  color: #262e3d;
+
+  background: #ffffff;
+
+  outline: none;
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.calc-field input::placeholder,
+.calc-field textarea::placeholder {
+  color: #a4abb9;
+}
+
+
+.calc-field input:focus,
+.calc-field select:focus,
+.calc-field textarea:focus {
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+.calc-field textarea {
+  height: 36px;
+
+  min-height: 36px;
+
+  padding: 8px 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+
+  font-family: inherit;
+
+  color: #262e3d;
+
+  background: #ffffff;
+
+  outline: none;
+
+  width: 100%;
+
+  resize: vertical;
+
+  box-sizing: border-box;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.calc-field input.calc-readonly {
+  background: #f6f7fa;
+
+  color: #4a5262;
+
+  cursor: default;
+}
+
+
+.calc-input-unit {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+}
+
+
+.calc-input-unit input {
+  padding-right: 34px;
+}
+
+
+.calc-input-unit span {
+  position: absolute;
+
+  right: 12px;
+
+  font-size: 10.5px;
+
+  color: #8992a1;
+
+  pointer-events: none;
+}
+
+
+/* Extracted Details keeps growing to match the
+   right column's height; push nothing — the
+   grid gap already distributes evenly. */
+
+.calc-card--grow .calc-form-grid {
+  align-content: start;
+}
+
+
+/* =========================================
+   OFFER DETAILS (nested panel inside Extracted
+   Details, fills the leftover grow space)
+========================================= */
+
+.calc-offer-details {
+  margin-top: 18px;
+
+  padding: 16px 18px 18px;
+
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  border: 1px solid #edf0f5;
+
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.04),
+    0 6px 16px rgba(20, 30, 55, 0.04);
+}
+
+
+.calc-offer-details-title {
+  font-size: 12.5px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0 0 14px;
+}
+
+
+.calc-offer-details .calc-notes {
+  margin-top: 0;
+
+  min-height: 44px;
+}
+
+
+.calc-offer-details-pagination {
+  margin-top: 14px;
+}
+
+
+/* =========================================
+   METRIC LIST (Revenue Metrics — green pills)
+========================================= */
+
+.calc-metric-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+
+.calc-metric-row {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  padding: 11px 14px;
+
+  border-radius: 10px;
+
+  background: #eaf9f0;
+}
+
+
+.calc-metric-row span {
+  font-size: 11.5px;
+
+  font-weight: 600;
+
+  color: #1f7a45;
+}
+
+
+.calc-metric-row strong {
+  font-size: 12.5px;
+
+  font-weight: 700;
+
+  color: #17643a;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================
+   PRICING LIST (Pricing Analysis & Machine Loading)
+========================================= */
+
+.calc-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+}
+
+
+.calc-list-row {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 7px 12px;
+
+  border-radius: 9px;
+
+  background: #e1f7f3;
+
+  font-size: 11.5px;
+}
+
+
+.calc-list-row > span {
+  color: #5b6373;
+
+  font-weight: 500;
+}
+
+
+.calc-list-row > strong {
+  color: #232a38;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+.calc-list-row--highlight {
+  margin: 4px 0;
+
+  padding: 7px 12px;
+
+  border: 1.5px solid #14b8a6;
+
+  border-radius: 10px;
+
+  background: #e1f7f3;
+}
+
+
+.calc-list-row--highlight > span {
+  color: #0f8a7c;
+
+  font-weight: 700;
+}
+
+
+.calc-list-row--highlight > strong,
+.calc-list-row--highlight .calc-inline-input input,
+.calc-list-row--highlight .calc-inline-input span {
+  color: #0f8a7c;
+}
+
+
+.calc-list-row--warning {
+  background: #fdecea;
+}
+
+
+.calc-list-row--warning > span,
+.calc-list-row--warning > strong,
+.calc-list-row--warning .calc-inline-input input,
+.calc-list-row--warning .calc-inline-input span {
+  color: #b3261e;
+}
+
+
+.calc-list-row--solid {
+  margin-top: 6px;
+
+  padding: 9px 14px;
+
+  border-radius: 10px;
+
+  background: #14b8a6;
+
+  border-bottom: none;
+}
+
+
+.calc-list-row--solid > span {
+  color: #ffffff;
+
+  font-size: 12.5px;
+  letter-spacing: 0.8px;
+  font-weight: 800;
+}
+
+
+.calc-inline-input {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+}
+
+
+.calc-inline-input input {
+  width: 94px;
+
+  height: 26px;
+
+  padding: 0 26px 0 8px;
+
+  border: 1px solid transparent;
+
+  border-radius: 7px;
+
+  font-size: 11.5px;
+
+  font-weight: 700;
+
+  color: #232a38;
+
+  text-align: right;
+
+  outline: none;
+
+  background: transparent;
+
+  /* Hide the native number-input spinner while editing. */
+  -moz-appearance: textfield;
+
+  box-sizing: border-box;
+
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+
+.calc-inline-input input::-webkit-outer-spin-button,
+.calc-inline-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+
+  margin: 0;
+}
+
+
+.calc-inline-input input:hover {
+  background: rgba(20, 184, 166, 0.14);
+}
+
+
+.calc-inline-input input:focus {
+  background: #ffffff;
+
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+.calc-inline-input span {
+  position: absolute;
+
+  right: 8px;
+
+  font-size: 9.5px;
+
+  color: #8992a1;
+
+  pointer-events: none;
+}
+
+
+.calc-inline-input--solid input {
+  width: 104px;
+
+  height: 30px;
+
+  font-size: 13.5px;
+
+  border-color: transparent;
+
+  background: transparent;
+
+  color: #ffffff;
+}
+
+
+.calc-inline-input--solid input:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+
+.calc-inline-input--solid input:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+
+  background: rgba(255, 255, 255, 0.15);
+
+  box-shadow: none;
+}
+
+
+.calc-inline-input--solid span {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+
+/* =========================================
+   NOTES
+========================================= */
+
+.calc-notes {
+  margin-top: 14px;
+
+  min-height: 54px;
+
+  flex: 1;
+
+  resize: vertical;
+
+  padding: 10px 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 10px;
+
+  font-size: 11.5px;
+
+  font-family: inherit;
+
+  color: #333c4c;
+
+  outline: none;
+
+  box-sizing: border-box;
+}
+
+
+.calc-notes:focus {
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+.calc-notes::placeholder {
+  color: #a4abb9;
+}
+
+
+/* =========================================
+   FOR INFORMATION (blue text list)
+========================================= */
+
+.calc-info-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+}
+
+
+.calc-info-row {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  padding: 10px 12px;
+
+  border-radius: 9px;
+
+  background: #e1f7f3;
+
+  font-size: 11.5px;
+}
+
+
+.calc-info-row span,
+.calc-info-row strong {
+  color: #0f8a7c;
+
+  font-weight: 600;
+}
+
+
+/* =========================================
+   ACTION BUTTONS
+========================================= */
+
+.calc-actions {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+
+.calc-pagination {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+}
+
+
+.calc-pagination-arrow,
+.calc-pagination-number {
+  width: 30px;
+
+  height: 30px;
+
+  border-radius: 7px;
+
+  border: 1px solid #e1e5eb;
+
+  background: #ffffff;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 11px;
+
+  cursor: pointer;
+
+  color: #525b6a;
+
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+
+.calc-pagination-arrow {
+  color: #566070;
+
+  font-size: 15px !important;
+}
+
+
+.calc-pagination-number:hover {
+  border-color: #14b8a6;
+
+  color: #0f8a7c;
+}
+
+
+.calc-pagination-number.active {
+  background: #14b8a6;
+
+  border-color: #14b8a6;
+
+  color: #ffffff;
+}
+
+
+.calc-pagination-arrow:disabled,
+.calc-pagination-number:disabled {
+  opacity: 0.45;
+
+  cursor: default;
+}
+
+
+.calc-btn {
+  height: 40px;
+
+  padding: 0 18px;
+
+  border-radius: 10px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.calc-btn--solid {
+  background: #14b8a6;
+
+  border: none;
+
+  color: #ffffff;
+
+  box-shadow: 0 4px 10px rgba(20, 184, 166, 0.25);
+}
+
+
+.calc-btn--solid:hover {
+  background: #0f9c8c;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+  .calc-form-grid {
+    gap: 12px 14px;
+  }
+}
+
+
+@media (max-width: 900px) {
+  .calculation-section {
+    grid-template-columns: 1fr;
+  }
+
+  .calc-column {
+    height: auto;
+  }
+
+  .calc-column--left > .calc-card--grow {
+    flex: none;
+  }
+}
+
+
+@media (max-width: 600px) {
+  .calc-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calc-field--full {
+    grid-column: auto;
+  }
+
+  .calc-actions {
+    flex-direction: column-reverse;
+  }
+
+  .calc-btn {
+    width: 100%;
+
+    justify-content: center;
+  }
+}

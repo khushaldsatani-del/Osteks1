@@ -1,0 +1,10 @@
+fastapi>=0.141.1
+uvicorn[standard]>=0.52.3
+python-multipart>=0.0.32
+python-dotenv>=1.2.3
+Pillow>=12.3.0
+PyMuPDF>=1.28.2
+google-genai>=2.18.1
+asyncpg>=0.31.0
+extract-msg>=0.56.1
+html2text>=2025.4.15

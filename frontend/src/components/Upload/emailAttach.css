@@ -1,0 +1,242 @@
+/* =========================================
+   CARD
+========================================= */
+
+.email-attach-card {
+  width: 100%;
+
+  margin-top: 22px;
+
+  background: #ffffff;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+
+  box-sizing: border-box;
+
+  padding: 16px 18px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 18px;
+
+  flex-wrap: wrap;
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+.email-attach-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  flex: 1 1 260px;
+
+  min-width: 220px;
+}
+
+
+.email-attach-icon {
+  width: 26px;
+
+  height: 26px;
+
+  border-radius: 8px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+}
+
+
+.email-attach-title {
+  font-size: 12.5px;
+
+  font-weight: 700;
+
+  color: #202735;
+}
+
+
+.email-attach-subtitle {
+  font-size: 10px;
+
+  color: #8992a1;
+
+  margin-top: 2px;
+}
+
+
+/* =========================================
+   HINT (disabled state)
+========================================= */
+
+.email-attach-hint {
+  font-size: 11px;
+
+  color: #a4abb9;
+
+  font-style: italic;
+}
+
+
+/* =========================================
+   BROWSE BUTTON
+========================================= */
+
+.email-attach-browse {
+  height: 34px;
+
+  padding: 0 16px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  border: 1.5px dashed #aeb7c8;
+
+  border-radius: 9px;
+
+  background: #fafbfd;
+
+  color: #333c4c;
+
+  font-family: inherit;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+
+.email-attach-browse:hover:not(:disabled) {
+  border-color: #14b8a6;
+
+  background: #e1f7f3;
+}
+
+
+.email-attach-browse:disabled {
+  opacity: 0.6;
+
+  cursor: default;
+}
+
+
+.email-attach-spinner {
+  animation: email-attach-spin 0.7s linear infinite;
+}
+
+
+@keyframes email-attach-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================
+   ATTACHED PILL
+========================================= */
+
+.email-attach-pill {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  height: 34px;
+
+  padding: 0 12px;
+
+  border-radius: 9px;
+
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+
+  font-size: 11.5px;
+
+  font-weight: 600;
+
+  max-width: 320px;
+}
+
+
+.email-attach-pill-text {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.email-attach-remove {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 18px;
+
+  height: 18px;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: #0f8a7c;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+}
+
+
+.email-attach-remove:hover {
+  background: rgba(15, 138, 124, 0.15);
+}
+
+
+/* =========================================
+   ERROR
+========================================= */
+
+.email-attach-error {
+  width: 100%;
+
+  font-size: 11px;
+
+  color: #d64545;
+}
