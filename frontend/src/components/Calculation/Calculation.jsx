@@ -261,7 +261,11 @@ const Calculation = ({
 
   // Keeps Offer Details' mirrored fields (Schichtdicke, Jahresmenge, Preis
   // Beschichtung, Preis Maskierung) equal to their source fields here —
-  // Schichtdicke in µm, Quantity, Preis pro Teil, and Maskierung pro Teil.
+  // Schichtdicke in µm, Quantity, Kalkulierter Preis, and Maskierung pro
+  // Teil. Preis Beschichtung explicitly mirrors Kalkulierter Preis (the
+  // final marked-up price after Beizen/Maskierung/Gußzuschlag/ETZ), not
+  // Preis pro Teil (the base coating cost before those) — deliberate,
+  // per explicit request; see git history if this ever needs revisiting.
   // useLayoutEffect, not useEffect — this is the first hop of the chain
   // that ends at Document Preview (Calculation -> Documents ->
   // OfferDetails -> Documents -> DocPreview); firing synchronously before
@@ -273,13 +277,13 @@ const Calculation = ({
     onSyncOfferFields?.({
       schichtdicke: values.schichtdickeUm,
       jahresmenge: values.quantity,
-      preisBeschichtung: values.basePricePerPart,
+      preisBeschichtung: values.kalkulierterPreis,
       preisMaskierung: values.maskingCost,
     });
   }, [
     values.schichtdickeUm,
     values.quantity,
-    values.basePricePerPart,
+    values.kalkulierterPreis,
     values.maskingCost,
     onSyncOfferFields,
   ]);

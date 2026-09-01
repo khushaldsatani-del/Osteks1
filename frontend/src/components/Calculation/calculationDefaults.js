@@ -85,21 +85,22 @@ export function computeCalcResults(values, touched = {}) {
 }
 
 // The exact same 4-field mapping Calculation.jsx's own onSyncOfferFields
-// effect reports up to Offer Details (Schichtdicke in µm, Quantity, Preis
-// pro Teil, Maskierung pro Teil) — but callable directly from a slot's
-// stored calcState.values, for a slot that has no live Calculation instance
-// currently mounted to report it itself. Used by Documents.jsx both when
-// hydrating a reopened record (before any Calculation has mounted for any
-// slot yet) and when building Document Preview's data for every image slot
-// OTHER than the currently active one — see offerDetailsRows.js's own
-// comment for why a non-active slot can't just rely on its last-reported
-// (and possibly stale) syncedOfferFields snapshot.
+// effect reports up to Offer Details (Schichtdicke in µm, Quantity,
+// Kalkulierter Preis, Maskierung pro Teil) — but callable directly from a
+// slot's stored calcState.values, for a slot that has no live Calculation
+// instance currently mounted to report it itself. Used by Documents.jsx
+// both when hydrating a reopened record (before any Calculation has
+// mounted for any slot yet) and when building Document Preview's data for
+// every image slot OTHER than the currently active one — see
+// offerDetailsRows.js's own comment for why a non-active slot can't just
+// rely on its last-reported (and possibly stale) syncedOfferFields
+// snapshot.
 export function deriveSyncedOfferFields(calcValues) {
   if (!calcValues) return {};
   return {
     schichtdicke: calcValues.schichtdickeUm,
     jahresmenge: calcValues.quantity,
-    preisBeschichtung: calcValues.basePricePerPart,
+    preisBeschichtung: calcValues.kalkulierterPreis,
     preisMaskierung: calcValues.maskingCost,
   };
 }
