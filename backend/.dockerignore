@@ -1,0 +1,20 @@
+# Never let secrets into the built image, even if the build is triggered
+# from a local `gcloud run deploy --source .` (which uploads whatever's on
+# disk, not just what's committed to git) rather than a GitHub-connected
+# build.
+.env
+.env.*
+!.env.example
+
+# Local dev only — the container installs its own dependencies fresh.
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+.git/
+.gitignore
+.pytest_cache/
+*.egg-info/
+
+README.md
