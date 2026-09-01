@@ -36,21 +36,19 @@ TILE_OVERLAP_RATIO = 0.12
 # multi-part RFQ/quote-request PDF (a cover page + one page per
 # independently-quoted part), where a 4th+ page was being silently
 # dropped at render time with no error, before the model ever saw it.
-# Raised generously to 12; still bounded so a pathological huge PDF can't
-# run away with cost.
+# Raised generously; still bounded so a pathological huge PDF can't run
+# away with cost.
 #
-# TEMPORARILY lowered from that (12 pages / 4 tiles) to fit the current
-# free-tier hosting's 512MB memory cap — every page/tile is a large PNG
-# held in memory at once (see convert_to_image_pages), and a long
-# multi-page PDF at the higher caps was pushing past that limit and
-# getting the whole process OOM-killed mid-request. This does NOT affect
-# accuracy on a typical 1-6 page single/multi-part drawing (still fully
-# covered, same resolution) — it only trims how many pages of one unusually
-# long multi-part RFQ PDF get read, and how many tiles an unusually large
-# single sheet gets split into. Raise both back to 12 / 4 once hosting has
-# more memory (see backend/README.md's hosting notes).
-MAX_TILES_PER_PAGE = 3
-MAX_PAGES = 6
+# Briefly lowered to 6/3 to fit the old free-tier hosting's 512MB memory
+# cap (every page/tile is a large PNG held in memory at once — see
+# convert_to_image_pages — and a long multi-page PDF at the higher caps
+# was pushing past that limit and getting the whole process OOM-killed
+# mid-request). Restored to the full 12/4 now that hosting has moved to
+# Cloud Run with 2GB RAM; the explicit image-closing/gc.collect() cleanup
+# added alongside that fix stays regardless — it's a pure win with no
+# accuracy or resolution trade-off either way.
+MAX_TILES_PER_PAGE = 4
+MAX_PAGES = 12
 
 # No tile/overview is ever upscaled past this — comfortably above
 # TILE_TARGET_PX, only relevant for unusually huge source scans.
