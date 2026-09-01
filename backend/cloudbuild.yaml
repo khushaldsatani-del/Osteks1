@@ -39,3 +39,11 @@ steps:
 images:
   - gcr.io/$PROJECT_ID/osteks1:$COMMIT_SHA
 
+# Required whenever the trigger specifies a non-default service account
+# (ours does — see the trigger's "Service account" field): Cloud Build
+# needs to be told explicitly where build logs go. CLOUD_LOGGING_ONLY
+# skips provisioning a separate GCS logs bucket, which this project
+# doesn't have set up.
+options:
+  logging: CLOUD_LOGGING_ONLY
+
