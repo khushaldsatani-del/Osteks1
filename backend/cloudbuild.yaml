@@ -38,3 +38,4 @@ steps:
 
 images:
   - gcr.io/$PROJECT_ID/osteks1:$COMMIT_SHA
+
