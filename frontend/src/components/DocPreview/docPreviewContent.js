@@ -28,7 +28,6 @@ const CONTENT_DE = {
 
   CONTACT_ROWS: [
     ["Telefon", "037349 134-43"],
-    ["Telefax", "037349 134-10"],
     ["E-Mail", "scholz@osteks.de"],
     ["Internet", "www.osteks.de"],
   ],
@@ -124,7 +123,6 @@ const CONTENT_EN = {
 
   CONTACT_ROWS: [
     ["Phone", "037349 134-43"],
-    ["Fax", "037349 134-10"],
     ["Email", "scholz@osteks.de"],
     ["Website", "www.osteks.de"],
   ],
