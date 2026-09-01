@@ -67,10 +67,15 @@ const CONTENT_DE = {
   // Without Specification toggle actually changes (see DocPreview.jsx).
   // Everything else on that page, and the Coating/Pre-treatment/etc. field
   // list above, is now shown unconditionally regardless of the toggle.
+  // "Ohne Gewindemaskierung" (without thread masking) / "Mit Gewinde-
+  // maskierung" (with thread masking) — the toggle is still labeled With/
+  // Without Specification in the UI, but this is what that choice actually
+  // controls: whether the quoted price already includes covers/masking or
+  // not.
   WITHOUT_SPEC_NOTE:
     "Der Angebotspreis versteht sich ohne Abdeckungen und ohne Überprüfung von Gewindegängigkeiten/Passgenauigkeiten und Funktionsprüfungen. Für eventuell notwendige Abdeckungen fallen zusätzliche Kosten an.",
   WITH_SPEC_NOTE:
-    "Der Angebotspreis versteht sich einschließlich der in den übermittelten Unterlagen angegebenen Spezifikationen und Anforderungen des Bauteils. Die Ausführung und Bearbeitung des Bauteils erfolgt gemäß den vorliegenden Spezifikationsangaben.",
+    "Der Angebotspreis versteht sich inkl. Abdeckungen jedoch ohne Überprüfung von Gewindegängigkeiten/Passgenauigkeiten und Funktionsprüfungen. Für eventuell notwendige Prüfungen fallen zusätzliche Kosten an.",
 
   PAGE2_BOLD_PARAGRAPHS: [
     "Die Kalkulation basiert darauf, dass es sich um Teile ohne Sichtbereiche und ohne dekorative Merkmale handelt.",
@@ -153,10 +158,14 @@ const CONTENT_EN = {
   PAGE1_DISCLAIMER:
     "Please note that a KTL (cathodic dip) coating is not resistant to stone chipping or prolonged outdoor weathering. We can only determine the feasibility and achievable coating quality after receiving initial sample parts and conducting coating trials.",
 
+  // "Without thread masking" / "with thread masking" — the toggle is
+  // still labeled With/Without Specification in the UI, but this is what
+  // that choice actually controls: whether the quoted price already
+  // includes covers/masking or not.
   WITHOUT_SPEC_NOTE:
     "The quoted price does not include covers, the verification of thread engagement or fit, or functional testing. Additional costs apply for any covers that may be required.",
   WITH_SPEC_NOTE:
-    "The quoted price is based on the available technical specifications and details of the part. The part will be manufactured in accordance with the specified dimensions, tolerances, material and surface requirements, as well as any other specifications stated in the provided documents.",
+    "The quoted price includes covers/masking, but does not include the verification of thread engagement or fit, or functional testing. Additional costs apply for any testing that may be required.",
 
   PAGE2_BOLD_PARAGRAPHS: [
     "The calculation assumes the parts have no visible surfaces or decorative features.",
