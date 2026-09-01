@@ -6,28 +6,31 @@ import {
   Calendar,
   Download,
   ChevronDown,
-  EllipsisVertical,
+  FolderOpen,
+  Trash2,
   FileText,
   Box,
   Image as ImageIcon,
 } from "lucide-react";
 
 import CustomSelect from "../common/CustomSelect";
-import { formatEUR, formatIndianDigits } from "../Calculation/format";
+import { formatEUR, formatGermanDigits } from "../Calculation/format";
 import EmailDetailsModal from "./EmailDetailsModal";
+import SpecificationModal from "./SpecificationModal";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./allDocuments.css";
 
-const STATUS_OPTIONS = [
-  { value: "accepted", label: "Accepted" },
-  { value: "pending", label: "Pending" },
-  { value: "send", label: "Send" },
-];
-
-const SORT_FIELDS = [
-  { value: "totalPrice", label: "Total Price" },
-  { value: "annualQuantity", label: "Annual Quantity" },
-  { value: "pricePerStk", label: "Price per stk" },
-];
+// Short label for the Specification column cell — the code itself when the
+// detected norm resolved to one (e.g. "Ofl-x639"), otherwise the plain
+// document number (e.g. "TL 227") when only that resolved, otherwise "—"
+// (no norm detected on this record at all, or nothing in the Standards KB
+// matched it — both render identically here, matching how every other
+// "nothing found" field in this table already reads).
+function getSpecificationLabel(spec) {
+  if (!spec) return "—";
+  if (spec.code) return `Ofl-${spec.code}`;
+  return spec.documentNumber || "—";
+}
 
 function getSortValue(row, field) {
   if (field === "totalPrice") return row.pricePerStk * row.annualQuantity;
@@ -35,13 +38,6 @@ function getSortValue(row, field) {
   if (field === "pricePerStk") return row.pricePerStk;
   return 0;
 }
-
-const FILE_TABS = [
-  { id: "all", label: "All" },
-  { id: "pdf", label: "PDF" },
-  { id: "step", label: "STEP" },
-  { id: "image", label: "Image" },
-];
 
 const ROWS_PER_PAGE_OPTIONS = ["10", "15", "25", "50"].map((value) => ({ value, label: value }));
 
@@ -75,6 +71,27 @@ function getPageWindow(totalPages) {
 // everywhere this data is used. `onOpenWorkspace` switches the sidebar back
 // to Work Place (for the row action menu's "Open in Workspace" entry).
 const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace }) => {
+  const { t } = useTranslation();
+
+  const STATUS_OPTIONS = [
+    { value: "accepted", label: t("allDocuments.statusAccepted") },
+    { value: "pending", label: t("allDocuments.statusPending") },
+    { value: "send", label: t("allDocuments.statusSend") },
+  ];
+
+  const SORT_FIELDS = [
+    { value: "totalPrice", label: t("allDocuments.sortTotalPrice") },
+    { value: "annualQuantity", label: t("allDocuments.sortAnnualQuantity") },
+    { value: "pricePerStk", label: t("allDocuments.sortPricePerStk") },
+  ];
+
+  const FILE_TABS = [
+    { id: "all", label: t("allDocuments.tabAll") },
+    { id: "pdf", label: t("allDocuments.tabPdf") },
+    { id: "step", label: t("allDocuments.tabStep") },
+    { id: "image", label: t("allDocuments.tabImage") },
+  ];
+
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -87,8 +104,8 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
   const [dateOpen, setDateOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [openStatusId, setOpenStatusId] = useState(null);
-  const [openMenuId, setOpenMenuId] = useState(null);
   const [openEmailId, setOpenEmailId] = useState(null);
+  const [openSpecification, setOpenSpecification] = useState(null);
 
   // One delegated listener closes whichever popover/dropdown is open when
   // the user clicks anywhere outside it — same click-outside pattern
@@ -98,7 +115,6 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
       if (!event.target.closest(".alldocs-date-popover-wrap")) setDateOpen(false);
       if (!event.target.closest(".alldocs-filter-popover-wrap")) setFilterOpen(false);
       if (!event.target.closest(".alldocs-status-select")) setOpenStatusId(null);
-      if (!event.target.closest(".alldocs-row-menu")) setOpenMenuId(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -156,7 +172,6 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
 
   const deleteRow = (id) => {
     onDelete?.(id);
-    setOpenMenuId(null);
   };
 
   const toggleStatusFilter = (value) => {
@@ -165,16 +180,17 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
 
   const handleExport = () => {
     const header = [
-      "File Name",
-      "Norm",
-      "Customer Name",
-      "Customer Number",
-      "Price per stk",
-      "Annual Quantity",
-      "Total Price",
-      "Mail",
-      "Uploaded date",
-      "Status",
+      t("allDocuments.csvFileName"),
+      t("allDocuments.csvNorm"),
+      t("allDocuments.csvCustomerName"),
+      t("allDocuments.csvCustomerNumber"),
+      t("allDocuments.csvPricePerStk"),
+      t("allDocuments.csvAnnualQuantity"),
+      t("allDocuments.csvTotalPrice"),
+      t("allDocuments.csvSpecification"),
+      t("allDocuments.csvMail"),
+      t("allDocuments.csvUploadedDate"),
+      t("allDocuments.csvStatus"),
     ];
     const csvRows = sortedRows.map((row) => {
       const total = row.pricePerStk * row.annualQuantity;
@@ -186,6 +202,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
         row.pricePerStk.toFixed(2),
         row.annualQuantity,
         total.toFixed(2),
+        getSpecificationLabel(row.kbSpecification),
         row.mailSubject || "—",
         formatDMY(row.uploadedAt),
         STATUS_OPTIONS.find((option) => option.value === row.status)?.label ?? row.status,
@@ -199,7 +216,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "uploaded-files.csv";
+    link.download = t("allDocuments.csvFilename");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -207,7 +224,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
   };
 
   const dateRangeLabel =
-    dateFrom || dateTo ? `${dateFrom || "…"} → ${dateTo || "…"}` : "Select date range";
+    dateFrom || dateTo ? `${dateFrom || "…"} → ${dateTo || "…"}` : t("allDocuments.selectDateRange");
 
   return (
     <div className="alldocs-page">
@@ -216,7 +233,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
           <span className="alldocs-header-icon">
             <FolderPlus size={13} />
           </span>
-          <h2 className="alldocs-title">Uploaded Files</h2>
+          <h2 className="alldocs-title">{t("allDocuments.pageTitle")}</h2>
         </div>
 
         <div className="alldocs-toolbar">
@@ -224,7 +241,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
             <Search size={14} />
             <input
               type="text"
-              placeholder="Search by file name, customer or number..."
+              placeholder={t("allDocuments.searchPlaceholder")}
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
@@ -259,7 +276,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
             {dateOpen && (
               <div className="alldocs-popover">
                 <div className="alldocs-popover-row">
-                  <span className="alldocs-popover-label">From</span>
+                  <span className="alldocs-popover-label">{t("allDocuments.from")}</span>
                   <input
                     type="date"
                     value={dateFrom}
@@ -270,7 +287,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                   />
                 </div>
                 <div className="alldocs-popover-row">
-                  <span className="alldocs-popover-label">To</span>
+                  <span className="alldocs-popover-label">{t("allDocuments.to")}</span>
                   <input
                     type="date"
                     value={dateTo}
@@ -288,14 +305,14 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                     setDateTo("");
                   }}
                 >
-                  Clear
+                  {t("allDocuments.clear")}
                 </button>
               </div>
             )}
           </div>
 
           <div className="alldocs-rows-select">
-            <span>Rows:</span>
+            <span>{t("allDocuments.rows")}</span>
             <CustomSelect
               value={rowsPerPage}
               onChange={(value) => {
@@ -309,13 +326,13 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
           <div className="alldocs-popover-wrap alldocs-filter-popover-wrap">
             <button type="button" className="alldocs-btn" onClick={() => setFilterOpen((prev) => !prev)}>
               <ListFilter size={14} />
-              Filter
+              {t("allDocuments.filter")}
             </button>
 
             {filterOpen && (
               <div className="alldocs-popover alldocs-popover--wide">
                 <div className="alldocs-popover-row">
-                  <span className="alldocs-popover-label">Status</span>
+                  <span className="alldocs-popover-label">{t("allDocuments.status")}</span>
                   {STATUS_OPTIONS.map((option) => (
                     <label className="alldocs-checkbox-row" key={option.value}>
                       <input
@@ -332,7 +349,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                 </div>
 
                 <div className="alldocs-popover-row">
-                  <span className="alldocs-popover-label">Sort by</span>
+                  <span className="alldocs-popover-label">{t("allDocuments.sortBy")}</span>
                   {SORT_FIELDS.map((field) => (
                     <div className="alldocs-sort-row" key={field.value}>
                       <span>{field.label}</span>
@@ -342,14 +359,14 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                           className={sort.field === field.value && sort.direction === "desc" ? "active" : ""}
                           onClick={() => setSort({ field: field.value, direction: "desc" })}
                         >
-                          High → Low
+                          {t("allDocuments.highToLow")}
                         </button>
                         <button
                           type="button"
                           className={sort.field === field.value && sort.direction === "asc" ? "active" : ""}
                           onClick={() => setSort({ field: field.value, direction: "asc" })}
                         >
-                          Low → High
+                          {t("allDocuments.lowToHigh")}
                         </button>
                       </div>
                     </div>
@@ -364,7 +381,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                     setSort({ field: null, direction: null });
                   }}
                 >
-                  Clear filters
+                  {t("allDocuments.clearFilters")}
                 </button>
               </div>
             )}
@@ -372,7 +389,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
 
           <button type="button" className="alldocs-btn alldocs-btn--solid" onClick={handleExport}>
             <Download size={14} />
-            Export
+            {t("allDocuments.export")}
           </button>
         </div>
 
@@ -381,27 +398,28 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
             <thead>
               <tr>
                 <th className="alldocs-number-column">#</th>
-                <th>File Name</th>
-                <th>Norm</th>
-                <th>Customer Name</th>
-                <th>Customer Number</th>
-                <th>Price per stk</th>
-                <th>Annual Quantity</th>
-                <th>Total Price</th>
-                <th>Mail</th>
-                <th>Uploaded date</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>{t("allDocuments.colFileName")}</th>
+                <th>{t("allDocuments.colNorm")}</th>
+                <th>{t("allDocuments.colCustomerName")}</th>
+                <th>{t("allDocuments.colCustomerNumber")}</th>
+                <th>{t("allDocuments.colPricePerStk")}</th>
+                <th>{t("allDocuments.colAnnualQuantity")}</th>
+                <th>{t("allDocuments.colTotalPrice")}</th>
+                <th>{t("allDocuments.colSpecification")}</th>
+                <th>{t("allDocuments.colMail")}</th>
+                <th>{t("allDocuments.colUploadedDate")}</th>
+                <th>{t("allDocuments.colStatus")}</th>
+                <th>{t("allDocuments.colAction")}</th>
               </tr>
             </thead>
 
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="alldocs-table-empty">
+                  <td colSpan={13} className="alldocs-table-empty">
                     {records.length === 0
-                      ? "No documents saved yet — upload a drawing and click Save in Work Place to add one here."
-                      : "No documents match the current search/filters"}
+                      ? t("allDocuments.emptyNoDocuments")
+                      : t("allDocuments.emptyNoMatch")}
                   </td>
                 </tr>
               ) : (
@@ -422,17 +440,31 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                       <td>{row.customerName}</td>
                       <td>{row.customerNumber}</td>
                       <td>{formatEUR(row.pricePerStk)}</td>
-                      <td>{formatIndianDigits(String(row.annualQuantity))}</td>
+                      <td>{formatGermanDigits(String(row.annualQuantity))}</td>
                       <td>{formatEUR(total, 0)}</td>
+                      <td className="alldocs-specification-cell">
+                        {row.kbSpecification ? (
+                          <button
+                            type="button"
+                            className="alldocs-specification-link"
+                            onClick={() => setOpenSpecification(row.kbSpecification)}
+                            title={t("allDocuments.viewSpecification")}
+                          >
+                            {getSpecificationLabel(row.kbSpecification)}
+                          </button>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                       <td className="alldocs-mail-cell">
                         {row.mailEmailId ? (
                           <button
                             type="button"
                             className="alldocs-mail-link"
                             onClick={() => setOpenEmailId(row.mailEmailId)}
-                            title={row.mailSubject || "Email"}
+                            title={row.mailSubject || t("allDocuments.email")}
                           >
-                            ✉ {row.mailSubject || "Email"}
+                            ✉ {row.mailSubject || t("allDocuments.email")}
                           </button>
                         ) : (
                           "—"
@@ -467,34 +499,25 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                         </div>
                       </td>
                       <td>
-                        <div className="alldocs-row-menu">
+                        <div className="alldocs-row-actions">
                           <button
                             type="button"
-                            className="alldocs-row-menu-trigger"
-                            onClick={() => setOpenMenuId((prev) => (prev === row.id ? null : row.id))}
+                            className="alldocs-row-action-btn"
+                            onClick={() => onOpenWorkspace?.(row.id)}
+                            aria-label={t("allDocuments.openInWorkspace")}
+                            title={t("allDocuments.openInWorkspace")}
                           >
-                            <EllipsisVertical size={15} />
+                            <FolderOpen size={15} />
                           </button>
-
-                          {openMenuId === row.id && (
-                            <ul className="alldocs-row-menu-list">
-                              <li
-                                className="alldocs-row-menu-item"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  onOpenWorkspace?.();
-                                }}
-                              >
-                                Open in Workspace
-                              </li>
-                              <li
-                                className="alldocs-row-menu-item alldocs-row-menu-item--danger"
-                                onClick={() => deleteRow(row.id)}
-                              >
-                                Delete
-                              </li>
-                            </ul>
-                          )}
+                          <button
+                            type="button"
+                            className="alldocs-row-action-btn alldocs-row-action-btn--danger"
+                            onClick={() => deleteRow(row.id)}
+                            aria-label={t("allDocuments.delete")}
+                            title={t("allDocuments.delete")}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -510,7 +533,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                 length: Math.max(0, perPage - (pageRows.length === 0 ? 1 : pageRows.length)),
               }).map((_, index) => (
                 <tr key={`filler-${index}`} className="alldocs-table-filler-row">
-                  <td colSpan={12}>&nbsp;</td>
+                  <td colSpan={13}>&nbsp;</td>
                 </tr>
               ))}
             </tbody>
@@ -520,8 +543,12 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
         <div className="alldocs-footer">
           <span className="alldocs-showing">
             {sortedRows.length === 0
-              ? "Showing 0 files"
-              : `Showing ${pageStart + 1} to ${Math.min(pageStart + perPage, sortedRows.length)} of ${sortedRows.length} files`}
+              ? t("allDocuments.showingZero")
+              : t("allDocuments.showingRange", {
+                  from: pageStart + 1,
+                  to: Math.min(pageStart + perPage, sortedRows.length),
+                  total: sortedRows.length,
+                })}
           </span>
 
           <div className="alldocs-pagination">
@@ -568,6 +595,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
       </div>
 
       <EmailDetailsModal emailId={openEmailId} onClose={() => setOpenEmailId(null)} />
+      <SpecificationModal specification={openSpecification} onClose={() => setOpenSpecification(null)} />
     </div>
   );
 };

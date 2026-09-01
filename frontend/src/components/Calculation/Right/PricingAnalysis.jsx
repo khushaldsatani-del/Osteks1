@@ -1,12 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
 import { Grid2x2 } from "lucide-react";
-import { cleanNumericInput } from "../format";
+import { cleanNumericInput, formatGermanLive } from "../format";
+import { useTranslation } from "../../../i18n/LanguageContext";
 
 const WEIGHT_PER_CARRIER_LIMIT_KG = 695;
 
 const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => {
+  const { t } = useTranslation();
   const set = (field) => (event) => onChange(field, cleanNumericInput(event.target.value));
-  const blur = (field) => () => onBlur(field);
+
+  // German-formatted (1.234,56 style) whenever a field ISN'T the one being
+  // actively typed into — while focused, the raw stored digits show
+  // instead, so inserting a "." or "," grouping separator mid-typing never
+  // has a chance to shift the cursor and swallow/misplace a keystroke. Same
+  // pattern as ExtractedDetails.jsx / OfferDetails.jsx.
+  const [focusedField, setFocusedField] = useState(null);
+  const display = (field) => (focusedField === field ? values[field] : formatGermanLive(values[field]));
+  const focus = (field) => () => setFocusedField(field);
+  const blur = (field) => () => {
+    setFocusedField(null);
+    onBlur(field);
+  };
 
   const isOverWeightLimit = Number(values.weightPerCarrierKg) > WEIGHT_PER_CARRIER_LIMIT_KG;
 
@@ -16,18 +30,19 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         <span className="calc-card-icon calc-card-icon--purple">
           <Grid2x2 size={16} />
         </span>
-        <h3 className="calc-card-title">Pricing Analysis &amp; Machine Loading</h3>
+        <h3 className="calc-card-title">{t("pricingAnalysis.title")}</h3>
       </div>
 
       <div className="calc-list">
         <div className="calc-list-row">
-          <span>Oberfläche je Warenträger</span>
+          <span>{t("pricingAnalysis.surfacePerCarrier")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.carrierSurfaceM2}
+              value={display("carrierSurfaceM2")}
               onChange={set("carrierSurfaceM2")}
+              onFocus={focus("carrierSurfaceM2")}
               onBlur={blur("carrierSurfaceM2")}
             />
             <span>m²</span>
@@ -35,27 +50,29 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row">
-          <span>Stück pro Warenträger</span>
+          <span>{t("pricingAnalysis.partsPerCarrier")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.partsPerCarrier}
+              value={display("partsPerCarrier")}
               onChange={set("partsPerCarrier")}
+              onFocus={focus("partsPerCarrier")}
               onBlur={blur("partsPerCarrier")}
             />
-            <span>Stk</span>
+            <span>{t("common.unitPieces")}</span>
           </div>
         </div>
 
         <div className="calc-list-row">
-          <span>Preis pro Teil</span>
+          <span>{t("pricingAnalysis.pricePerPart")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.basePricePerPart}
+              value={display("basePricePerPart")}
               onChange={set("basePricePerPart")}
+              onFocus={focus("basePricePerPart")}
               onBlur={blur("basePricePerPart")}
             />
             <span>€</span>
@@ -63,13 +80,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row">
-          <span>Beizen (25c/m²)</span>
+          <span>{t("pricingAnalysis.pickling")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.picklingCost}
+              value={display("picklingCost")}
               onChange={set("picklingCost")}
+              onFocus={focus("picklingCost")}
               onBlur={blur("picklingCost")}
             />
             <span>€</span>
@@ -77,13 +95,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row">
-          <span>Maskierung pro Teil (0,10ct/Teil)</span>
+          <span>{t("pricingAnalysis.maskingPerPart")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.maskingCost}
+              value={display("maskingCost")}
               onChange={set("maskingCost")}
+              onFocus={focus("maskingCost")}
               onBlur={blur("maskingCost")}
             />
             <span>€</span>
@@ -91,13 +110,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row">
-          <span>Gußzuschlag</span>
+          <span>{t("pricingAnalysis.castingSurcharge")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.castingSurcharge}
+              value={display("castingSurcharge")}
               onChange={set("castingSurcharge")}
+              onFocus={focus("castingSurcharge")}
               onBlur={blur("castingSurcharge")}
             />
             <span>€</span>
@@ -105,13 +125,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row">
-          <span>Summe</span>
+          <span>{t("pricingAnalysis.total")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.totalPrice}
+              value={display("totalPrice")}
               onChange={set("totalPrice")}
+              onFocus={focus("totalPrice")}
               onBlur={blur("totalPrice")}
             />
             <span>€</span>
@@ -119,13 +140,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row">
-          <span>zzgl. ETZ</span>
+          <span>{t("pricingAnalysis.plusEtz")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.etzPercent}
+              value={display("etzPercent")}
               onChange={set("etzPercent")}
+              onFocus={focus("etzPercent")}
               onBlur={blur("etzPercent")}
             />
             <span>%</span>
@@ -133,13 +155,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row calc-list-row--highlight">
-          <span>Kalkulierter Preis</span>
+          <span>{t("pricingAnalysis.calculatedPrice")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.kalkulierterPreis}
+              value={display("kalkulierterPreis")}
               onChange={set("kalkulierterPreis")}
+              onFocus={focus("kalkulierterPreis")}
               onBlur={blur("kalkulierterPreis")}
             />
             <span>€</span>
@@ -147,13 +170,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className={`calc-list-row ${isOverWeightLimit ? "calc-list-row--warning" : ""}`}>
-          <span>Gewicht pro Warenträger in kg</span>
+          <span>{t("pricingAnalysis.weightPerCarrier")}</span>
           <div className="calc-inline-input">
             <input
               type="text"
               inputMode="decimal"
-              value={values.weightPerCarrierKg}
+              value={display("weightPerCarrierKg")}
               onChange={set("weightPerCarrierKg")}
+              onFocus={focus("weightPerCarrierKg")}
               onBlur={blur("weightPerCarrierKg")}
             />
             <span>kg</span>
@@ -161,13 +185,14 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
         </div>
 
         <div className="calc-list-row calc-list-row--solid">
-          <span>Angebotspreis</span>
+          <span>{t("pricingAnalysis.offerPrice")}</span>
           <div className="calc-inline-input calc-inline-input--solid">
             <input
               type="text"
               inputMode="decimal"
-              value={values.offerPrice}
+              value={display("offerPrice")}
               onChange={set("offerPrice")}
+              onFocus={focus("offerPrice")}
               onBlur={blur("offerPrice")}
             />
             <span>€</span>
@@ -177,7 +202,7 @@ const PricingAnalysis = ({ values, onChange, onBlur, notes, onNotesChange }) => 
 
       <textarea
         className="calc-notes"
-        placeholder="Notes..."
+        placeholder={t("pricingAnalysis.notesPlaceholder")}
         value={notes}
         onChange={(event) => onNotesChange(event.target.value)}
       />

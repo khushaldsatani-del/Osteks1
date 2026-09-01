@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Save } from "lucide-react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import FirmaInformation from "./Left/FirmaInformation";
 import ExtractedDetails from "./Left/ExtractedDetails";
@@ -7,80 +6,100 @@ import RevenueMetrics from "./Right/RevenueMetrics";
 import PricingAnalysis from "./Right/PricingAnalysis";
 import ForInformation from "./Right/ForInformation";
 
-import { runFullCalculation } from "./calculationEngine";
-import { parseExtractionSummary } from "./extractionParser";
+import { AUTO_SYNC_FIELDS, initialState, computeCalcResults } from "./calculationDefaults";
 import "./calculation.css";
 
-// Pricing Analysis fields that are normally computed but can be typed over
-// directly. Each auto-follows its calculated ("natural") value, at the
-// given decimal precision, until the user edits it themselves.
-const AUTO_SYNC_FIELDS = [
-  ["partsPerCarrier", "naturalPartsPerCarrier", 0],
-  ["basePricePerPart", "naturalBasePricePerPart", 4],
-  ["picklingCost", "naturalPicklingCost", 4],
-  ["maskingCost", "naturalMaskingCost", 2],
-  ["castingSurcharge", "naturalCastingSurcharge", 2],
-  ["totalPrice", "naturalTotalPrice", 4],
-  ["kalkulierterPreis", "naturalKalkulierterPreis", 4],
-  ["weightPerCarrierKg", "naturalWeightPerCarrierKg", 2],
-];
-
-// Everything starts at zero/unselected — nothing is calculated until the
-// user actually fills in the fields a given formula depends on.
-const initialState = {
-  companyName: "",
-  address: "",
-  offerNumber: "",
-  enquiryDate: "",
-
-  weightG: "0",
-  thicknessMm: "0",
-  densityGcm3: "",
-  schichtdickeUm: "",
-  quantity: "0",
-  beizenJN: "j",
-  gussteilJN: "",
-  gusszuschlagPercent: "30",
-  maskierungStueck: "0",
-
-  surfaceAreaMm2: "",
-  surfaceAreaM2: "",
-
-  carrierSurfaceM2: "45",
-  etzPercent: "25.5",
-  offerPrice: "0",
-
-  partsPerCarrier: "",
-  basePricePerPart: "",
-  picklingCost: "",
-  maskingCost: "",
-  castingSurcharge: "",
-  totalPrice: "",
-  kalkulierterPreis: "",
-  weightPerCarrierKg: "",
-};
-
-const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionSummary }) => {
-  const [values, setValues] = useState(initialState);
-  const [notes, setNotes] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 3;
+// Multiple images (one per document/slot) each need their own independent
+// instance of this component's state. Documents.jsx remounts Calculation
+// with a fresh `key` per active slot and seeds it from `initialCalcState`
+// (whatever was last reported via onCalcStateChange for that slot, or the
+// hydrated data when reopening a saved record) — this is what makes
+// switching slots restore exactly where that image's calculation was left,
+// instead of resetting to zero.
+//
+// No Save button here anymore — it now lives in Offer Details, beside the
+// slot-switching nav (see OfferDetails.jsx). This component still mirrors
+// its full state (values/notes/touched) up to Documents.jsx on every change
+// via onCalcStateChange below, so that button has always-current data to
+// save for every slot, active or not — see Documents.jsx's
+// handleCalculationSave.
+const Calculation = ({
+  onSyncOfferFields,
+  firmaValues,
+  onFirmaChange,
+  initialCalcState,
+  onCalcStateChange,
+  extractedCalcValues,
+}) => {
+  const [values, setValues] = useState(() => initialCalcState?.values ?? initialState);
+  const [notes, setNotes] = useState(() => initialCalcState?.notes ?? "");
 
   // Tracks whether the user has manually typed an Angebotspreis.
   // Until they do, it auto-follows the calculated price (rounded to 2dp),
   // exactly like the source Excel sheet where it starts equal to B39.
-  const offerPriceTouched = useRef(false);
+  // Seeded from initialCalcState so a slot switch (which remounts this
+  // component) doesn't forget a manual override was in effect.
+  const offerPriceTouched = useRef(initialCalcState?.touched?.offerPrice ?? false);
 
   // Same idea for the Surface Area fields: they auto-follow the value
   // derived from weight/thickness/density until the user edits either
   // field directly, at which point their typed value takes over.
-  const surfaceAreaTouched = useRef(false);
+  const surfaceAreaTouched = useRef(initialCalcState?.touched?.surfaceArea ?? false);
 
   // Same idea again, generalized, for every Pricing Analysis field in
   // AUTO_SYNC_FIELDS — each stops following its calculated value the
   // moment the user types into it directly.
-  const autoSyncTouched = useRef(new Set());
+  const autoSyncTouched = useRef(new Set(initialCalcState?.touched?.autoSync ?? []));
+
+  // Weight / Coating Thickness / Spec. Gewicht auto-fill from this slot's AI
+  // extraction. Usually already resolved by the time this mounts (folded
+  // into initialCalcState's seed above), but a slot's tab can become active
+  // — and this component mount — before its own extraction has actually
+  // finished (e.g. the auto-advance through tabs during a multi-image
+  // upload): in that case `extractedCalcValues` arrives later, after mount,
+  // as a normal prop update, so it needs this effect to actually reach the
+  // form. Only fills a field that's still at its untouched default — a
+  // value the user already typed (or a value auto-filled a moment ago from
+  // an earlier, still-loading state) is never overwritten.
+  useEffect(() => {
+    if (!extractedCalcValues) return;
+    // `_surfaceAreaExplicit`/surfaceAreaMm2/surfaceAreaM2 are handled in
+    // their own branch below, deliberately outside the generic per-field
+    // loop: unlike every other field here, surfaceAreaMm2/M2 get
+    // auto-synced away from their pristine "" default to a computed value
+    // (even "0" before weight/thickness exist) by the effect further down,
+    // almost immediately after mount — well before extraction data can
+    // arrive. So the generic `prev[key] === initialState[key]` guard the
+    // loop uses for every other field is already false for these two by
+    // the time real data shows up, even though the user never touched
+    // them, and the fill would be silently skipped. The correct guard for
+    // these two is the same one the auto-sync effect itself uses —
+    // `!surfaceAreaTouched.current` — which this also sets to true so that
+    // effect stops recomputing over the explicit value on the very next
+    // render (this was a real, reproduced bug: an explicit Surface Area
+    // from an extraction would flash in for a moment and then immediately
+    // get overwritten by a freshly recomputed weight/thickness/density
+    // value).
+    const { _surfaceAreaExplicit, surfaceAreaMm2: extractedMm2, surfaceAreaM2: extractedM2, ...extractedFields } =
+      extractedCalcValues;
+    setValues((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [key, val] of Object.entries(extractedFields)) {
+        if (prev[key] === initialState[key]) {
+          next[key] = val;
+          changed = true;
+        }
+      }
+      if (_surfaceAreaExplicit && !surfaceAreaTouched.current && extractedMm2 !== undefined) {
+        next.surfaceAreaMm2 = extractedMm2;
+        next.surfaceAreaM2 = extractedM2;
+        surfaceAreaTouched.current = true;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [extractedCalcValues]);
 
   // While the user is actively typing, an empty field just stays empty —
   // otherwise every backspace-to-empty would instantly snap back to the
@@ -90,7 +109,6 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
     if (field === "offerPrice") {
       offerPriceTouched.current = value !== "";
       setValues((prev) => ({ ...prev, offerPrice: value }));
-      setSaved(false);
       return;
     }
 
@@ -102,7 +120,6 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
         autoSyncTouched.current.add(field);
       }
       setValues((prev) => ({ ...prev, [field]: value }));
-      setSaved(false);
       return;
     }
 
@@ -113,7 +130,6 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
         // Blank both — a half-blank pair (mm² empty, m² still showing a
         // stale number) would be confusing while editing.
         setValues((prev) => ({ ...prev, surfaceAreaMm2: "", surfaceAreaM2: "" }));
-        setSaved(false);
         return;
       }
 
@@ -132,12 +148,10 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
           surfaceAreaMm2: Number.isFinite(m2) ? String(m2 * 1_000_000) : prev.surfaceAreaMm2,
         }));
       }
-      setSaved(false);
       return;
     }
 
     setValues((prev) => ({ ...prev, [field]: value }));
-    setSaved(false);
   };
 
   // Runs when a field loses focus. If it's still empty at that point, fall
@@ -182,25 +196,17 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
   };
 
   // The engine must only ever see an override for a field the user actually
-  // typed into. Auto-synced fields hold a *rounded, formatted* display
-  // string (e.g. "0.3201") — feeding that back in as if it were a real
-  // override would replace full-precision math with rounded math on every
-  // render, and the error compounds through the rest of the formula chain.
-  // So untouched auto-synced fields are blanked out here before the engine
-  // ever sees them; it then recomputes them naturally at full precision.
-  const results = useMemo(() => {
-    const engineInputs = { ...values };
-    if (!surfaceAreaTouched.current) {
-      engineInputs.surfaceAreaMm2 = "";
-      engineInputs.surfaceAreaM2 = "";
-    }
-    for (const [field] of AUTO_SYNC_FIELDS) {
-      if (!autoSyncTouched.current.has(field)) {
-        engineInputs[field] = "";
-      }
-    }
-    return runFullCalculation(engineInputs);
-  }, [values]);
+  // typed into — see computeCalcResults in calculationDefaults.js (shared
+  // with Documents.jsx, which needs the exact same computation to save a
+  // non-active slot's results when "Save" is clicked).
+  const results = useMemo(
+    () =>
+      computeCalcResults(values, {
+        surfaceArea: surfaceAreaTouched.current,
+        autoSync: Array.from(autoSyncTouched.current),
+      }),
+    [values]
+  );
 
   // Auto-sync the offer price to the calculated price until the
   // user overrides it themselves.
@@ -253,26 +259,17 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
     results.naturalWeightPerCarrierKg,
   ]);
 
-  // Auto-fills Weight / Coating Thickness / Spec. Gewicht from a fresh
-  // drawing extraction — each new successful extraction overwrites these
-  // three fields, same as the user retyping them by hand.
-  useEffect(() => {
-    if (!extractionSummary) return;
-    const parsed = parseExtractionSummary(extractionSummary);
-    if (Object.keys(parsed).length === 0) return;
-    setValues((prev) => ({ ...prev, ...parsed }));
-  }, [extractionSummary]);
-
-  const handleSave = () => {
-    setSaved(true);
-    onSave?.({ ...values, notes, ...results });
-    window.setTimeout(() => setSaved(false), 2000);
-  };
-
   // Keeps Offer Details' mirrored fields (Schichtdicke, Jahresmenge, Preis
   // Beschichtung, Preis Maskierung) equal to their source fields here —
   // Schichtdicke in µm, Quantity, Preis pro Teil, and Maskierung pro Teil.
-  useEffect(() => {
+  // useLayoutEffect, not useEffect — this is the first hop of the chain
+  // that ends at Document Preview (Calculation -> Documents ->
+  // OfferDetails -> Documents -> DocPreview); firing synchronously before
+  // paint instead of after lets that whole chain settle within the same
+  // commit far more often, instead of trailing your typing by a visible
+  // beat. Same values, same order, same everything else — only the timing
+  // relative to paint changed.
+  useLayoutEffect(() => {
     onSyncOfferFields?.({
       schichtdicke: values.schichtdickeUm,
       jahresmenge: values.quantity,
@@ -287,22 +284,29 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
     onSyncOfferFields,
   ]);
 
-  // Feeds Document Preview's Projekt / recipient address / Angebot Nr. —
-  // separate from the sync above since it's Document Preview's concern, not
-  // Offer Details'.
+  // Mirrors this slot's full calculation state (values/notes/touched flags)
+  // up to Documents.jsx on every change, so it can be restored verbatim the
+  // next time this slot becomes active (or the record is reopened later).
   useEffect(() => {
-    onFirmaInfoChange?.({
-      companyName: values.companyName,
-      address: values.address,
-      offerNumber: values.offerNumber,
+    onCalcStateChange?.({
+      values,
+      notes,
+      touched: {
+        offerPrice: offerPriceTouched.current,
+        surfaceArea: surfaceAreaTouched.current,
+        autoSync: Array.from(autoSyncTouched.current),
+      },
     });
-  }, [values.companyName, values.address, values.offerNumber, onFirmaInfoChange]);
+  }, [values, notes, onCalcStateChange]);
 
   return (
     <section className="calculation-section">
       {/* LEFT COLUMN — Firma Information + Extracted Details + For Information */}
       <div className="calc-column calc-column--left">
-        <FirmaInformation values={values} onChange={handleChange} />
+        <FirmaInformation
+          values={firmaValues}
+          onChange={(field, value) => onFirmaChange?.({ ...firmaValues, [field]: value })}
+        />
         <ExtractedDetails values={values} onChange={handleChange} onBlur={handleBlur} />
 
         <ForInformation
@@ -320,6 +324,12 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
           annualRevenue={results.annualRevenue}
         />
 
+        {/* PricingAnalysis is this column's `.calc-card--grow` (flex:1),
+            and its own Notes textarea is flex:1 again inside that — so with
+            the old Save button/nav row removed from below it, it just grows
+            a bit taller to fill the space, automatically keeping this
+            column's total height equal to the left column's (see the grid
+            comment at the top of calculation.css). Nothing to size by hand. */}
         <PricingAnalysis
           values={values}
           onChange={handleChange}
@@ -327,44 +337,6 @@ const Calculation = ({ onSave, onSyncOfferFields, onFirmaInfoChange, extractionS
           notes={notes}
           onNotesChange={setNotes}
         />
-
-        <div className="calc-actions">
-          <div className="calc-pagination">
-            <button
-              type="button"
-              className="calc-pagination-arrow"
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              ‹
-            </button>
-
-            {[1, 2, 3].map((page) => (
-              <button
-                type="button"
-                key={page}
-                className={`calc-pagination-number ${currentPage === page ? "active" : ""}`}
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              className="calc-pagination-arrow"
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              ›
-            </button>
-          </div>
-
-          <button type="button" className="calc-btn calc-btn--solid" onClick={handleSave}>
-            <Save size={15} />
-            {saved ? "Saved" : "Save"}
-          </button>
-        </div>
       </div>
     </section>
   );

@@ -6,6 +6,14 @@ name: Keep backend warm
 # CORS headers, which the browser reports as a generic network error).
 # Pinging the health endpoint well inside that 15-minute window keeps it
 # from ever fully sleeping.
+#
+# /api/health alone only checks env vars — it never touches the database —
+# so it does nothing to prevent Neon's own serverless Postgres compute from
+# independently suspending after its own idle period. That's a separate
+# cold start (typically 1-2s, not Render's 30-100s) and is exactly what
+# made "Open in Workspace" feel slow after a few idle minutes even though
+# the backend itself was already warm. /api/health/db runs one trivial
+# query, so pinging it too keeps Neon's compute warm the same way.
 on:
   schedule:
     - cron: "*/10 * * * *"
@@ -17,3 +25,5 @@ jobs:
     steps:
       - name: Ping backend health endpoint
         run: curl -sf --max-time 30 https://osteks.onrender.com/api/health
+      - name: Ping database health endpoint (keeps Neon's compute warm too)
+        run: curl -sf --max-time 30 https://osteks.onrender.com/api/health/db

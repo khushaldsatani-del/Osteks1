@@ -223,7 +223,7 @@
 
 
 /* =========================================
-   FOOTER — PAGINATION + UPLOAD BUTTON
+   FOOTER — PAGINATION + SAVE BUTTON
 ========================================= */
 
 .offer-footer {
@@ -310,7 +310,10 @@
 }
 
 
-.offer-btn {
+/* Moved here from Calculation.jsx's old .calc-btn/.calc-btn--solid —
+   same visual style, just under this component's own class name since
+   each component owns its own stylesheet in this codebase. */
+.offer-save-btn {
   height: 40px;
 
   padding: 0 18px;
@@ -339,11 +342,11 @@
 
   box-shadow: 0 4px 10px rgba(20, 184, 166, 0.25);
 
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 
-.offer-btn:hover {
+.offer-save-btn:hover {
   background: #0f9c8c;
 
   transform: translateY(-1px);
@@ -373,11 +376,13 @@
     align-items: stretch;
   }
 
-  .offer-btn {
-    width: 100%;
+  .offer-pagination {
+    justify-content: center;
   }
 
-  .offer-pagination {
+  .offer-save-btn {
+    width: 100%;
+
     justify-content: center;
   }
 }

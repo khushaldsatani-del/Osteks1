@@ -113,6 +113,15 @@
 
 
 .extraction-loading {
+  padding: 26px 20px;
+}
+
+
+/* Shown while "Open in Workspace" is fetching a saved record's data — see
+   Documents.jsx's `hydrating` state. Scoped to just this card, not the
+   ExtractionSteps animation above (that implies AI processing, which
+   isn't what's happening here — this is a plain data fetch). */
+.extraction-hydrating {
   display: flex;
 
   align-items: center;
@@ -121,23 +130,170 @@
 
   gap: 8px;
 
+  padding: 26px 20px;
+}
+
+
+.extraction-hydrating-spinner {
+  width: 14px;
+
+  height: 14px;
+
+  flex-shrink: 0;
+
+  border: 2px solid #d8dee7;
+
+  border-top-color: #14b8a6;
+
+  border-radius: 50%;
+
+  animation: extraction-hydrating-spin 0.7s linear infinite;
+}
+
+
+@keyframes extraction-hydrating-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================
+   6-STEP HORIZONTAL PROGRESS
+========================================= */
+
+.extraction-steps {
+  display: flex;
+
+  align-items: flex-start;
+
+  width: 100%;
+}
+
+
+.extraction-step {
+  position: relative;
+
+  flex: 1;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  text-align: center;
+}
+
+
+.extraction-step-marker {
+  width: 24px;
+
+  height: 24px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  background: #e8ebf0;
+
+  color: #8992a1;
+
+  font-size: 10.5px;
+
+  font-weight: 700;
+
+  border: 2px solid #ffffff;
+
+  box-shadow: 0 0 0 2px #e8ebf0;
+
+  z-index: 1;
+
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+
+.extraction-step--active .extraction-step-marker {
+  background: #14b8a6;
+
+  color: #ffffff;
+
+  box-shadow: 0 0 0 2px #14b8a6, 0 0 0 5px rgba(20, 184, 166, 0.2);
+
+  animation: extraction-step-pulse 1.4s ease-in-out infinite;
+}
+
+
+.extraction-step--done .extraction-step-marker {
+  background: #0f8a7c;
+
+  color: #ffffff;
+
+  box-shadow: 0 0 0 2px #0f8a7c;
+}
+
+
+@keyframes extraction-step-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #14b8a6, 0 0 0 5px rgba(20, 184, 166, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 0 2px #14b8a6, 0 0 0 8px rgba(20, 184, 166, 0.08);
+  }
+}
+
+
+.extraction-step-label {
+  margin-top: 8px;
+
+  font-size: 9.5px;
+
+  font-weight: 600;
+
+  color: #8992a1;
+
+  line-height: 1.35;
+
+  padding: 0 4px;
+}
+
+
+.extraction-step--active .extraction-step-label {
   color: #0f8a7c;
 }
 
 
-.extraction-spinner {
-  animation: extraction-spin 0.9s linear infinite;
+.extraction-step--done .extraction-step-label {
+  color: #52627d;
 }
 
 
-@keyframes extraction-spin {
-  from {
-    transform: rotate(0deg);
-  }
+.extraction-step-connector {
+  position: absolute;
 
-  to {
-    transform: rotate(360deg);
-  }
+  top: 12px;
+
+  left: calc(50% + 20px);
+
+  right: calc(-50% + 20px);
+
+  height: 2px;
+
+  background: #e8ebf0;
+
+  z-index: 0;
+}
+
+
+.extraction-step--done .extraction-step-connector {
+  background: #0f8a7c;
 }
 
 

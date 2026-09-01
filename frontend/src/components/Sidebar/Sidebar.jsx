@@ -1,29 +1,28 @@
-import { useState } from "react";
-
 import {
   House,
   FileText,
   Settings,
 } from "lucide-react";
 
+import { useLanguage, useTranslation } from "../../i18n/LanguageContext";
 import "./Sidebar.css";
 
 
 const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
 
-  // Selected language
-  const [language, setLanguage] = useState("EN");
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguage();
 
 
   const menuItems = [
     {
       id: "workplace",
-      label: "Work Place",
+      label: t("sidebar.workPlace"),
       icon: House,
     },
     {
       id: "documents",
-      label: "All Documents",
+      label: t("sidebar.allDocuments"),
       icon: FileText,
     },
   ];
@@ -79,7 +78,7 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
         <div className="language-top">
 
           <span className="language-title">
-            Language
+            {t("sidebar.language")}
           </span>
 
           <Settings className="settings-icon" />

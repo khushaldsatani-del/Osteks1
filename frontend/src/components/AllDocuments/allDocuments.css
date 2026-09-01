@@ -699,6 +699,49 @@
 }
 
 
+.alldocs-specification-cell {
+  color: #52627d;
+}
+
+
+.alldocs-specification-link {
+  display: inline-flex;
+
+  align-items: center;
+
+  max-width: 140px;
+
+  padding: 2px 8px;
+
+  border: none;
+
+  border-radius: 6px;
+
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+
+  font-family: inherit;
+
+  font-size: 10.5px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.alldocs-specification-link:hover {
+  background: #cdf0e9;
+}
+
+
 .alldocs-mail-link:hover {
   text-decoration: underline;
 }
@@ -832,17 +875,21 @@
 
 
 /* =========================================
-   ROW ACTION MENU
+   ROW ACTIONS — Open in Workspace / Delete, shown directly as two icons
+   (replaces the old three-dot dropdown menu) so both actions and their
+   names (via title/aria-label, on hover) are visible at a glance.
 ========================================= */
 
-.alldocs-row-menu {
-  position: relative;
+.alldocs-row-actions {
+  display: flex;
 
-  display: inline-block;
+  align-items: center;
+
+  gap: 6px;
 }
 
 
-.alldocs-row-menu-trigger {
+.alldocs-row-action-btn {
   width: 26px;
 
   height: 26px;
@@ -865,67 +912,17 @@
 }
 
 
-.alldocs-row-menu-trigger:hover {
+.alldocs-row-action-btn:hover {
   background: #f1f3f8;
 
   color: #333c4c;
 }
 
 
-.alldocs-row-menu-list {
-  position: absolute;
-
-  top: calc(100% + 4px);
-
-  right: 0;
-
-  z-index: 50;
-
-  min-width: 130px;
-
-  margin: 0;
-
-  padding: 6px;
-
-  list-style: none;
-
-  background: #ffffff;
-
-  border: 1px solid #e1e5ec;
-
-  border-radius: 10px;
-
-  box-shadow: 0 10px 26px rgba(20, 30, 55, 0.14);
-}
-
-
-.alldocs-row-menu-item {
-  padding: 8px 10px;
-
-  border-radius: 7px;
-
-  font-size: 12px;
-
-  font-weight: 500;
-
-  color: #333c4c;
-
-  cursor: pointer;
-}
-
-
-.alldocs-row-menu-item:hover {
-  background: #f1f3f8;
-}
-
-
-.alldocs-row-menu-item--danger {
-  color: #d64545;
-}
-
-
-.alldocs-row-menu-item--danger:hover {
+.alldocs-row-action-btn--danger:hover {
   background: #fdecea;
+
+  color: #d64545;
 }
 
 

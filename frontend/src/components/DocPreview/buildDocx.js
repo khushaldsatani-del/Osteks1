@@ -15,21 +15,7 @@ import {
   TableLayoutType,
   convertMillimetersToTwip,
 } from "docx";
-import {
-  LETTERHEAD,
-  RETURN_ADDRESS,
-  RECIPIENT_LINES,
-  CONTACT_ROWS,
-  getTodayDateLine,
-  HEADING_ROWS,
-  SALUTATION,
-  INTRO_LINES,
-  SPEC_FIELD_ROWS,
-  PAGE1_DISCLAIMER,
-  PAGE2_BOLD_PARAGRAPHS,
-  TERMS_ROWS,
-  CLOSING_LINE,
-} from "./docPreviewContent";
+import { getDocPreviewContent } from "./docPreviewContent";
 
 // A real .docx file (via the `docx` library) instead of the HTML-as-.doc
 // trick used before. A genuine OOXML section header/footer is part of the
@@ -125,8 +111,44 @@ function labelValueTable(rows, { labelWidthPt, bold = false, indentPt = 0, size 
 // the export — falls back to the static sample content when not provided.
 // `overrides.offerDetailsRows` is different on purpose: it has no fallback,
 // since an empty/partial Offer Details form should produce an empty/partial
-// block here, not static sample rows.
-export async function buildDocxBlob(specMode, overrides = {}) {
+// block here, not static sample rows. Labels in `offerDetailsRows` arrive
+// already translated (DocPreview.jsx resolves them from field keys at
+// export time), so this file itself never needs to know the language for
+// those — only for the rest of the letter content below.
+export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
+  const {
+    LETTERHEAD,
+    RETURN_ADDRESS,
+    RECIPIENT_LINES,
+    CONTACT_ROWS,
+    getTodayDateLine,
+    HEADING_ROWS,
+    SALUTATION,
+    INTRO_LINES,
+    SPEC_FIELD_ROWS,
+    PAGE1_DISCLAIMER,
+    WITHOUT_SPEC_NOTE,
+    WITH_SPEC_NOTE,
+    PAGE2_BOLD_PARAGRAPHS,
+    TERMS_ROWS,
+    PRICE_VALIDITY_LABEL,
+    getPriceValidityDateLine,
+    CLOSING_LINE,
+  } = getDocPreviewContent(language);
+
+  // The With/Without Specification toggle only changes this one paragraph
+  // now — the Coating/Pre-treatment/etc. field list below is always
+  // included, matching the on-screen preview.
+  const specNote = specMode === "with" ? WITH_SPEC_NOTE : WITHOUT_SPEC_NOTE;
+  const page2Paragraphs = [specNote, ...PAGE2_BOLD_PARAGRAPHS];
+
+  // Same live "Angebotsgültigkeit + 3 months" row DocPreview.jsx's own
+  // preview appends — see docPreviewContent.js's getPriceValidityDateLine.
+  // overrides.angebotsgueltigkeitDigits is DocPreview.jsx's own live value
+  // for whichever image is active, passed straight through here so the
+  // download always matches the preview exactly.
+  const termsRows = [...TERMS_ROWS, [PRICE_VALIDITY_LABEL, getPriceValidityDateLine(overrides.angebotsgueltigkeitDigits)]];
+
   const recipientLines = overrides.recipientLines ?? RECIPIENT_LINES;
   const headingRows = overrides.headingRows ?? HEADING_ROWS;
   const offerDetailsRows = overrides.offerDetailsRows ?? [];
@@ -186,7 +208,7 @@ export async function buildDocxBlob(specMode, overrides = {}) {
 
     linesParagraph(INTRO_LINES, { after: 16 }),
 
-    ...(specMode === "with" ? [labelValueTable(SPEC_FIELD_ROWS, { labelWidthPt: 118 })] : []),
+    labelValueTable(SPEC_FIELD_ROWS, { labelWidthPt: 118 }),
 
     ...(offerDetailsRows.length > 0
       ? [labelValueTable(offerDetailsRows, { labelWidthPt: 150, bold: true, indentPt: 24 })]
@@ -196,18 +218,20 @@ export async function buildDocxBlob(specMode, overrides = {}) {
       children: [run(PAGE1_DISCLAIMER, { bold: true })],
     }),
 
-    // Page 2 starts here — a manual page break on the first paragraph.
-    // Still the same section, so the header/footer above keeps repeating.
-    ...PAGE2_BOLD_PARAGRAPHS.map(
-      (text, i) =>
+    // No manual page break here anymore — Word's own layout engine flows
+    // this naturally onto whichever page has room, exactly like the on-
+    // screen preview's own real-height pagination now does (see
+    // DocPreview.jsx). Still the same section, so the header/footer above
+    // keeps repeating on every page regardless of how many there end up being.
+    ...page2Paragraphs.map(
+      (text) =>
         new Paragraph({
-          pageBreakBefore: i === 0,
           spacing: { after: twips(12) },
           children: [run(text, { bold: true })],
         })
     ),
 
-    labelValueTable(TERMS_ROWS, { labelWidthPt: 96 }),
+    labelValueTable(termsRows, { labelWidthPt: 96 }),
 
     new Paragraph({ children: [run(CLOSING_LINE)] }),
   ];

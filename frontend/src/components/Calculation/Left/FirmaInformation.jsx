@@ -1,7 +1,9 @@
 import React from "react";
 import { FileSpreadsheet } from "lucide-react";
+import { useTranslation } from "../../../i18n/LanguageContext";
 
 const FirmaInformation = ({ values, onChange }) => {
+  const { t } = useTranslation();
   const set = (field) => (event) => onChange(field, event.target.value);
 
   return (
@@ -10,45 +12,45 @@ const FirmaInformation = ({ values, onChange }) => {
         <span className="calc-card-icon calc-card-icon--blue">
           <FileSpreadsheet size={16} />
         </span>
-        <h3 className="calc-card-title">Firma Information</h3>
+        <h3 className="calc-card-title">{t("firmaInformation.title")}</h3>
       </div>
 
       <div className="calc-form-grid">
         <div className="calc-field">
-          <label htmlFor="companyName">Company Name</label>
+          <label htmlFor="companyName">{t("firmaInformation.companyName")}</label>
           <input
             id="companyName"
             type="text"
-            placeholder="Enter Company Name"
+            placeholder={t("firmaInformation.enterCompanyName")}
             value={values.companyName}
             onChange={set("companyName")}
           />
         </div>
 
         <div className="calc-field">
-          <label htmlFor="address">Address</label>
+          <label htmlFor="address">{t("firmaInformation.address")}</label>
           <textarea
             id="address"
             rows={1}
-            placeholder={"Enter Address of company\n(one line per address line)"}
+            placeholder={t("firmaInformation.enterAddress")}
             value={values.address}
             onChange={set("address")}
           />
         </div>
 
         <div className="calc-field">
-          <label htmlFor="offerNumber">Offer Number</label>
+          <label htmlFor="offerNumber">{t("firmaInformation.offerNumber")}</label>
           <input
             id="offerNumber"
             type="text"
-            placeholder="Enter Offer Number"
+            placeholder={t("firmaInformation.enterOfferNumber")}
             value={values.offerNumber}
             onChange={set("offerNumber")}
           />
         </div>
 
         <div className="calc-field">
-          <label htmlFor="enquiryDate">Enquiry Date</label>
+          <label htmlFor="enquiryDate">{t("firmaInformation.enquiryDate")}</label>
           <input
             id="enquiryDate"
             type="date"

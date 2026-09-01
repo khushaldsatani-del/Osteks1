@@ -8,9 +8,14 @@ import html2text
 # Storage-only: this module's only job is turning a raw .eml/.msg buffer
 # into structured fields + attachment bytes for the database. Nothing here
 # ever calls an AI model — see main.py's /api/emails/upload, which stores
-# whatever this returns and never passes it to services/gemini_client.py.
+# whatever this returns and never passes it to services/openai_client.py.
 
 _BARE_LINK_RE = re.compile(r"<https?://\S+?>")
+
+# See the comment inside parse_msg_buffer for why this exists: a hidden
+# .msg attachment below this size is treated as decorative (signature
+# logo/icon), at or above it as real embedded content worth keeping.
+_MIN_HIDDEN_ATTACHMENT_BYTES = 8 * 1024
 
 
 # Outlook's plain-text rendering of an HTML signature turns icon-only
@@ -108,16 +113,28 @@ def parse_msg_buffer(buffer: bytes) -> dict:
 
         attachments = []
         for attachment in msg.attachments:
-            # Outlook marks embedded/inline content (signature logos, social
-            # icons — referenced by the HTML body via cid:...) as hidden
-            # from the end user — skip those, they aren't real attachments.
-            if attachment.hidden:
-                continue
-
             data = attachment.data
             if not isinstance(data, (bytes, bytearray)):
                 # An embedded .msg-in-.msg (e.g. a forwarded email) — not a
                 # file, so nothing meaningful to store as one.
+                continue
+
+            # Outlook marks ALL embedded/inline content (referenced by the
+            # HTML body via cid:...) as "hidden" — this is NOT the same as
+            # "decorative." A genuine engineering Steckbrief/screenshot
+            # pasted or drag-dropped into the email body gets exactly the
+            # same hidden=True flag as a tiny signature logo or social
+            # icon; confirmed against a real customer email where a 913KB
+            # Steckbrief PNG and nine ~168B-6.4KB signature icons were all
+            # marked hidden identically, and the size-blind skip below used
+            # to drop all ten — including the one with the actual
+            # calculation data ("siehe Anhang" in the body, but zero
+            # attachments ever reached storage or the AI). Size is what
+            # actually distinguishes real content from decoration, not the
+            # hidden flag, so only small hidden attachments are skipped; a
+            # genuinely-attached (non-hidden) file is always kept
+            # regardless of size, since the user explicitly attached it.
+            if attachment.hidden and len(data) < _MIN_HIDDEN_ATTACHMENT_BYTES:
                 continue
 
             filename = attachment.getFilename() or "attachment"

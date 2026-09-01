@@ -8,6 +8,10 @@ import "./App.css";
 function App() {
   const [currentPage, setCurrentPage] = useState("workplace");
 
+  // Set when "Open in Workspace" is clicked from All Documents — tells
+  // Documents.jsx which saved record to hydrate instead of starting blank.
+  const [workspaceDocumentId, setWorkspaceDocumentId] = useState(null);
+
   // All Documents' saved-record list. Lives here (not in Documents.jsx)
   // because it must survive switching away from Work Place and back — App
   // itself never unmounts, only which page it renders changes. Backed by
@@ -55,10 +59,13 @@ function App() {
             records={documentRecords}
             onUpdateStatus={updateDocumentStatus}
             onDelete={deleteDocumentRecord}
-            onOpenWorkspace={() => setCurrentPage("workplace")}
+            onOpenWorkspace={(id) => {
+              setWorkspaceDocumentId(id);
+              setCurrentPage("workplace");
+            }}
           />
         ) : (
-          <Documents onDocumentsChanged={refreshDocuments} />
+          <Documents onDocumentsChanged={refreshDocuments} openDocumentId={workspaceDocumentId} />
         )}
       </main>
     </div>

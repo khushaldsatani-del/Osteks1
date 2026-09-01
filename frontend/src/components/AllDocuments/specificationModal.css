@@ -1,0 +1,156 @@
+/* Mirrors emailDetailsModal.css's visual language (same overlay/card/
+   header treatment) so the two modals feel like one system. */
+
+.spec-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(20, 24, 36, 0.45);
+  box-sizing: border-box;
+}
+
+.spec-modal-card {
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(20, 30, 55, 0.25);
+  box-sizing: border-box;
+}
+
+.spec-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid #edf0f4;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+
+.spec-modal-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.spec-modal-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: #f1f3f8;
+  color: #667085;
+  cursor: pointer;
+}
+
+.spec-modal-close:hover {
+  background: #e5e8ef;
+  color: #333c4c;
+}
+
+.spec-modal-body {
+  padding: 18px 20px 22px;
+}
+
+.spec-modal-meta {
+  border: 1px solid #e8ebf0;
+  border-radius: 12px;
+  padding: 4px 14px;
+  margin-bottom: 18px;
+}
+
+.spec-modal-meta-row {
+  display: flex;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f1f3f8;
+  font-size: 12px;
+}
+
+.spec-modal-meta-row:last-child {
+  border-bottom: none;
+}
+
+.spec-modal-meta-label {
+  width: 130px;
+  flex-shrink: 0;
+  color: #8992a1;
+  font-weight: 600;
+}
+
+.spec-modal-meta-value {
+  color: #333c4c;
+  word-break: break-word;
+}
+
+.spec-modal-meta-value--strong {
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.spec-modal-section {
+  margin-bottom: 4px;
+}
+
+.spec-modal-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #667085;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.spec-modal-facts-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e8ebf0;
+  border-radius: 10px;
+}
+
+.spec-modal-facts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.spec-modal-facts-table th {
+  text-align: left;
+  padding: 9px 12px;
+  background: #f8f9fc;
+  color: #667085;
+  font-weight: 700;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #e8ebf0;
+  white-space: nowrap;
+}
+
+.spec-modal-facts-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f3f8;
+  color: #333c4c;
+  vertical-align: top;
+}
+
+.spec-modal-facts-table tr:last-child td {
+  border-bottom: none;
+}
+
+.spec-modal-facts-detail {
+  color: #52627d;
+  min-width: 220px;
+}

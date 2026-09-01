@@ -220,7 +220,15 @@
 
   width: 794px;
 
-  min-height: 1123px;
+  /* Fixed, not min-height — each sheet is exactly one A4 page. Content
+     that doesn't fit is bucketed onto another .dp-page by DocPreview.jsx's
+     measure-then-paginate logic before this ever renders, so nothing
+     should actually reach the overflow:hidden below in practice; it's a
+     safety net against a sub-pixel measurement rounding error, not the
+     thing doing the real pagination. */
+  height: 1123px;
+
+  overflow: hidden;
 
   flex-shrink: 0;
 
@@ -241,6 +249,38 @@
   line-height: 1.55;
 
   color: #1a1a1a;
+}
+
+
+/* Offscreen measuring pass — same width/padding/typography as a real page
+   (so text wraps identically and heights measure true), but unbounded
+   height and pulled out of the visible layout entirely. Never seen by the
+   user; see DocPreview.jsx's pagination effect. */
+.dp-page.dp-page--measure {
+  position: absolute;
+
+  top: -99999px;
+
+  left: -99999px;
+
+  height: auto;
+
+  overflow: visible;
+
+  visibility: hidden;
+
+  pointer-events: none;
+
+  z-index: -1;
+
+  box-shadow: none;
+}
+
+
+/* Replaces the old "Document 1 / 2 / 3" label between each uploaded
+   image's pricing block — just breathing room between groups now. */
+.dp-group-spacer {
+  height: 20px;
 }
 
 

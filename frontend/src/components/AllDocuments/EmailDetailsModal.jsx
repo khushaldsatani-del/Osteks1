@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Paperclip, Download, Loader2 } from "lucide-react";
 import { BACKEND_URL } from "../../config";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./emailDetailsModal.css";
 
 function formatSize(bytes) {
@@ -19,6 +20,7 @@ function formatDateTime(iso) {
 // Everything shown here is fetched live from the backend/database — never
 // hardcoded — matching whatever .eml/.msg the user actually attached.
 const EmailDetailsModal = ({ emailId, onClose }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,11 +36,11 @@ const EmailDetailsModal = ({ emailId, onClose }) => {
     fetch(`${BACKEND_URL}/api/emails/${emailId}`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Could not load this email.");
+        if (!response.ok) throw new Error(data.error || t("emailModal.couldNotLoad"));
         if (!cancelled) setEmail(data);
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message || "Could not load this email.");
+        if (!cancelled) setError(err.message || t("emailModal.couldNotLoad"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -47,7 +49,7 @@ const EmailDetailsModal = ({ emailId, onClose }) => {
     return () => {
       cancelled = true;
     };
-  }, [emailId]);
+  }, [emailId, t]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -63,8 +65,8 @@ const EmailDetailsModal = ({ emailId, onClose }) => {
     <div className="email-modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
       <div className="email-modal-card">
         <div className="email-modal-header">
-          <h3 className="email-modal-title">Email Details</h3>
-          <button type="button" className="email-modal-close" onClick={onClose} aria-label="Close">
+          <h3 className="email-modal-title">{t("emailModal.title")}</h3>
+          <button type="button" className="email-modal-close" onClick={onClose} aria-label={t("common.close")}>
             <X size={16} />
           </button>
         </div>
@@ -72,7 +74,7 @@ const EmailDetailsModal = ({ emailId, onClose }) => {
         {loading && (
           <div className="email-modal-state">
             <Loader2 size={18} className="email-modal-spinner" />
-            Loading…
+            {t("emailModal.loading")}
           </div>
         )}
 
@@ -82,35 +84,37 @@ const EmailDetailsModal = ({ emailId, onClose }) => {
           <div className="email-modal-body">
             <div className="email-modal-meta">
               <div className="email-modal-meta-row">
-                <span className="email-modal-meta-label">From</span>
+                <span className="email-modal-meta-label">{t("emailModal.from")}</span>
                 <span className="email-modal-meta-value">{email.from || "—"}</span>
               </div>
               <div className="email-modal-meta-row">
-                <span className="email-modal-meta-label">To</span>
+                <span className="email-modal-meta-label">{t("emailModal.to")}</span>
                 <span className="email-modal-meta-value">{email.to || "—"}</span>
               </div>
               <div className="email-modal-meta-row">
-                <span className="email-modal-meta-label">CC</span>
+                <span className="email-modal-meta-label">{t("emailModal.cc")}</span>
                 <span className="email-modal-meta-value">{email.cc || "—"}</span>
               </div>
               <div className="email-modal-meta-row">
-                <span className="email-modal-meta-label">Date</span>
+                <span className="email-modal-meta-label">{t("emailModal.date")}</span>
                 <span className="email-modal-meta-value">{formatDateTime(email.date)}</span>
               </div>
               <div className="email-modal-meta-row">
-                <span className="email-modal-meta-label">Subject</span>
+                <span className="email-modal-meta-label">{t("emailModal.subject")}</span>
                 <span className="email-modal-meta-value email-modal-meta-value--strong">{email.subject || "—"}</span>
               </div>
             </div>
 
             <div className="email-modal-section">
-              <div className="email-modal-section-title">Body</div>
-              <div className="email-modal-body-text">{email.bodyText || "(empty)"}</div>
+              <div className="email-modal-section-title">{t("emailModal.body")}</div>
+              <div className="email-modal-body-text">{email.bodyText || t("emailModal.emptyBody")}</div>
             </div>
 
             {email.attachments && email.attachments.length > 0 && (
               <div className="email-modal-section">
-                <div className="email-modal-section-title">Attachments ({email.attachments.length})</div>
+                <div className="email-modal-section-title">
+                  {t("emailModal.attachments", { count: email.attachments.length })}
+                </div>
                 <div className="email-modal-attachments">
                   {email.attachments.map((attachment) => (
                     <div className="email-modal-attachment-row" key={attachment.id}>
@@ -122,7 +126,7 @@ const EmailDetailsModal = ({ emailId, onClose }) => {
                       <a
                         className="email-modal-download-btn"
                         href={`${BACKEND_URL}/api/emails/attachments/${attachment.id}/download`}
-                        title={`Download ${attachment.fileName}`}
+                        title={t("emailModal.downloadAttachment", { fileName: attachment.fileName })}
                       >
                         <Download size={13} />
                       </a>
@@ -134,7 +138,7 @@ const EmailDetailsModal = ({ emailId, onClose }) => {
 
             <a className="email-modal-download-original" href={`${BACKEND_URL}/api/emails/${email.id}/download`}>
               <Download size={14} />
-              Download Original Email ({email.fileName})
+              {t("emailModal.downloadOriginalEmail", { fileName: email.fileName })}
             </a>
           </div>
         )}

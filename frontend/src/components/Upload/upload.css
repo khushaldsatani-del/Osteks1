@@ -41,6 +41,8 @@
 ========================================= */
 
 .upload-file-card {
+  position: relative;
+
   padding: 14px;
 
   min-height: 305px;
@@ -48,6 +50,34 @@
   display: flex;
 
   flex-direction: column;
+
+  /* .upload-section's grid (align-items: stretch, the default) already
+     sizes this card's own box to match Uploaded Files' table — the actual
+     bug was that extra content (confirm panel + staged email, both
+     stacked at once) simply overflowed past that already-correct box
+     instead of being contained by it, since nothing here constrained
+     overflow before. This is what makes .upload-file-scroll-area below
+     actually clip/scroll within the box's real height instead of letting
+     content spill out past the card's rounded border. */
+  overflow: hidden;
+}
+
+
+/* Everything below the title — drop zone, confirm panel, processing
+   preview, staged email — lives in here so it can never push the card
+   itself taller than Uploaded Files' table: this area grows to fill
+   whatever height is left in the card, then scrolls internally once its
+   own content doesn't fit, instead of the card growing without bound. */
+.upload-file-scroll-area {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  overflow-y: auto;
 }
 
 
@@ -86,6 +116,54 @@
   background: #e1f7f3;
 
   color: #0f8a7c;
+}
+
+
+/* =========================================
+   INFO TRIGGER (opens "How Upload Works")
+   Fixed to the card's top-right corner rather than sitting inline next
+   to the title, where it read as barely-visible clutter.
+========================================= */
+
+.upload-info-trigger {
+  position: absolute;
+
+  top: 14px;
+
+  right: 14px;
+
+  z-index: 2;
+
+  width: 26px;
+
+  height: 26px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: 1.5px solid #cdeee8;
+
+  border-radius: 50%;
+
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+}
+
+
+.upload-info-trigger:hover {
+  background: #14b8a6;
+
+  border-color: #14b8a6;
+
+  color: #ffffff;
 }
 
 
@@ -148,6 +226,45 @@
 }
 
 
+/* Compact — once there's a pending confirmation, an active/finished
+   drawing, or a staged email to show below it, the big prompt (icon,
+   description, Browse button) collapses to this slim bar, freeing up the
+   room that content needs. Still a full drop target either way. */
+
+.upload-drop-zone--compact {
+  height: 80px;
+
+  flex-shrink: 0;
+}
+
+
+.upload-add-more-btn {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  width: 100%;
+
+  height: 100%;
+
+  border: none;
+
+  background: transparent;
+
+  color: #566070;
+
+  font-size: 10.5px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
 /* =========================================
    CLOUD ICON
 ========================================= */
@@ -183,13 +300,17 @@
 
 
 .upload-description {
-  font-size: 10px;
+  font-size: 10.5px;
 
-  line-height: 15px;
+  line-height: 16px;
 
   color: #7d8798;
 
   margin-bottom: 12px;
+
+  padding: 0 16px;
+
+  max-width: 260px;
 }
 
 
@@ -233,6 +354,170 @@
 
   box-shadow:
     0 6px 14px rgba(20, 184, 166, 0.3);
+}
+
+
+/* =========================================
+   CONFIRM PANEL — shown after picking/dropping files, before anything is
+   sent to the AI; disappears once Confirm (or Cancel) is clicked.
+========================================= */
+
+.upload-confirm-panel {
+  margin-top: 12px;
+
+  padding: 12px;
+
+  box-sizing: border-box;
+
+  background: #f8f9fb;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 11px;
+}
+
+
+.upload-confirm-title {
+  font-size: 11px;
+
+  font-weight: 700;
+
+  color: #202735;
+
+  margin-bottom: 8px;
+}
+
+
+.upload-confirm-file-list {
+  list-style: none;
+
+  margin: 0 0 10px;
+
+  padding: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  max-height: 90px;
+
+  overflow-y: auto;
+}
+
+
+.upload-confirm-file-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+}
+
+
+.upload-confirm-file-name {
+  flex: 1;
+
+  min-width: 0;
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  color: #313949;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+
+.upload-confirm-file-size {
+  font-size: 8.5px;
+
+  color: #8992a1;
+
+  flex-shrink: 0;
+}
+
+
+.upload-confirm-actions {
+  display: flex;
+
+  gap: 8px;
+
+  margin-top: 10px;
+
+  flex-shrink: 0;
+}
+
+
+.upload-confirm-actions .upload-confirm-cancel {
+  flex: 35;
+}
+
+
+.upload-confirm-actions .upload-confirm-btn {
+  flex: 65;
+}
+
+
+.upload-confirm-cancel {
+  height: 32px;
+
+  padding: 0 16px;
+
+  border: 1px solid #e1e5eb;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #525b6a;
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.upload-confirm-cancel:hover {
+  border-color: #c7cede;
+}
+
+
+.upload-confirm-btn {
+  height: 32px;
+
+  padding: 0 18px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: #14b8a6;
+
+  color: #ffffff;
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow: 0 4px 10px rgba(20, 184, 166, 0.25);
+
+  transition: background 0.2s ease;
+}
+
+
+.upload-confirm-btn:hover {
+  background: #0f9c8c;
 }
 
 
@@ -399,6 +684,123 @@
 
 
 /* =========================================
+   RELATED EMAIL SECTION (inside Upload File card)
+========================================= */
+
+.upload-email-section {
+  margin-top: 12px;
+
+  padding-top: 12px;
+
+  border-top: 1px dashed #e1e5ec;
+}
+
+
+.upload-email-pill {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  height: 32px;
+
+  padding: 0 10px;
+
+  border-radius: 9px;
+
+  background: #f1f3f8;
+
+  color: #52627d;
+
+  font-size: 10.5px;
+
+  font-weight: 600;
+}
+
+
+.upload-email-pill--linked {
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+}
+
+
+.upload-email-pill--error {
+  background: #fdecea;
+
+  color: #b3412f;
+}
+
+
+.upload-email-pill-text {
+  flex: 1;
+
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.upload-email-pill-status {
+  flex-shrink: 0;
+
+  font-size: 9px;
+
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.03em;
+
+  opacity: 0.8;
+}
+
+
+.upload-email-remove {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 16px;
+
+  height: 16px;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: inherit;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+}
+
+
+.upload-email-remove:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+
+.upload-email-error {
+  margin-top: 6px;
+
+  font-size: 10px;
+
+  color: #d64545;
+}
+
+
+/* =========================================
    TABLE CARD
 ========================================= */
 
@@ -408,6 +810,13 @@
   padding: 16px 18px 12px;
 
   box-sizing: border-box;
+
+  /* Matches Upload File's height via .upload-section's align-items:
+     stretch (the default — no override needed here). Stable now that the
+     table body always renders PER_PAGE (6) row slots via filler rows, so
+     it no longer shrinks with fewer real records — this is also what
+     gives Upload File's card enough stretched height to fit its confirm
+     panel without a hardcoded height anywhere. */
 }
 
 
@@ -471,31 +880,37 @@
 
 .uploaded-table th:nth-child(1),
 .uploaded-table td:nth-child(1) {
-  width: 42px;
+  width: 36px;
 }
 
 
 .uploaded-table th:nth-child(2),
 .uploaded-table td:nth-child(2) {
-  width: 25%;
+  width: 23%;
 }
 
 
 .uploaded-table th:nth-child(3),
 .uploaded-table td:nth-child(3) {
-  width: 20%;
+  width: 19%;
 }
 
 
 .uploaded-table th:nth-child(4),
 .uploaded-table td:nth-child(4) {
-  width: 24%;
+  width: 22%;
 }
 
 
 .uploaded-table th:nth-child(5),
 .uploaded-table td:nth-child(5) {
-  width: 21%;
+  width: 19%;
+}
+
+
+.uploaded-table th:nth-child(6),
+.uploaded-table td:nth-child(6) {
+  width: 48px;
 }
 
 
@@ -559,6 +974,11 @@
 }
 
 
+.uploaded-table-filler-row:hover {
+  background: transparent;
+}
+
+
 .file-name-cell {
   color: #263044;
 
@@ -574,6 +994,112 @@
   color: #8992a1;
 
   white-space: nowrap;
+}
+
+
+/* =========================================
+   TABLE LOADING STATE
+
+   Same visual language as ExtractionPreview's
+   `.extraction-hydrating` (see extraction.css)
+   — shown for this table's own brief initial
+   fetch (see Documents.jsx's `documentsLoading`),
+   not tied to that other component's state.
+========================================= */
+
+.uploaded-table-loading {
+  height: 48px;
+
+  text-align: center;
+
+  white-space: nowrap;
+
+  color: #8992a1;
+
+  font-size: 11px;
+}
+
+
+.uploaded-table-loading-spinner {
+  display: inline-block;
+
+  width: 12px;
+
+  height: 12px;
+
+  margin-right: 7px;
+
+  vertical-align: -2px;
+
+  border: 2px solid #d8dee7;
+
+  border-top-color: #14b8a6;
+
+  border-radius: 50%;
+
+  animation: uploaded-table-loading-spin 0.7s linear infinite;
+}
+
+
+@keyframes uploaded-table-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================
+   ACTION COLUMN (delete)
+========================================= */
+
+.uploaded-action-column {
+  width: 56px;
+
+  text-align: center;
+
+  padding-right: 18px;
+}
+
+
+.uploaded-table td:last-child {
+  text-align: center;
+
+  /* Overrides the generic .uploaded-table td rule above — this cell holds
+     a button, not overflowing text, so clipping/ellipsis here just cuts
+     the delete icon off and shows "..." instead of it. */
+  overflow: visible;
+
+  text-overflow: unset;
+}
+
+
+.uploaded-delete-btn {
+  width: 26px;
+
+  height: 26px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #8992a1;
+
+  cursor: pointer;
+}
+
+
+.uploaded-delete-btn:hover {
+  background: #fdecea;
+
+  color: #d64545;
 }
 
 
@@ -647,6 +1173,15 @@
   color: #566070;
 
   font-size: 14px !important;
+}
+
+
+.pagination-ellipsis {
+  color: #a4abb9;
+
+  font-size: 11px;
+
+  padding: 0 2px;
 }
 
 

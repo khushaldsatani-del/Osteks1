@@ -30,13 +30,34 @@ TILE_TARGET_PX = 1600
 TILE_OVERLAP_RATIO = 0.12
 
 # Hard caps so one drawing's image count (and API cost) stays bounded even
-# for very large sheets or multi-sheet PDFs.
+# for very large sheets or multi-page PDFs. MAX_PAGES was originally 3,
+# sized for "several sheets of one drawing" — too low for a real
+# multi-part RFQ/quote-request PDF (a cover page + one page per
+# independently-quoted part), where a 4th+ page was being silently
+# dropped at render time with no error, before the model ever saw it.
+# Raised generously; still bounded so a pathological huge PDF can't run
+# away with cost.
 MAX_TILES_PER_PAGE = 4
-MAX_PAGES = 3
+MAX_PAGES = 12
 
 # No tile/overview is ever upscaled past this — comfortably above
 # TILE_TARGET_PX, only relevant for unusually huge source scans.
 SAFETY_MAX_EDGE_PX = 3200
+
+# A dedicated, near-native-resolution crop of the bottom-right corner —
+# where this app's real drawings (VW/EDAG-style, and DIN/ISO title-block
+# convention generally) put the title block. Added on top of the regular
+# grid tiles rather than folded into them: a generic grid tile covering
+# that quadrant is still shared with a lot of empty drawing-view space,
+# diluting the resolution actually available to the small, dense
+# title-block text within it. Confirmed live on a realistic large test
+# drawing: a 2x2-grid bottom-right tile (~3200px) still produced a
+# digit-level OCR error (13268 misread as 13208) and a dropped character
+# in the part number — this crop is sized to the corner alone, so it stays
+# much closer to native pixel density for the same edge-length cap.
+TITLE_BLOCK_CROP_WIDTH_FRACTION = 0.32
+TITLE_BLOCK_CROP_HEIGHT_FRACTION = 0.28
+TITLE_BLOCK_CROP_MAX_EDGE_PX = 3200
 
 # Higher-DPI PDF rendering than a plain viewer would use, so the raster we
 # tile from already has enough detail for small text before we even crop it.
@@ -169,6 +190,24 @@ def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[di
                 }
             )
 
+    # Dedicated bottom-right title-block crop — see TITLE_BLOCK_CROP_*
+    # above for why this exists on top of the grid tiles. Only added when
+    # there's budget for it under a provider's per-request image cap, if
+    # one is set (max_images is None — the normal/current case — always
+    # has room).
+    tiles_used = cols * rows
+    if max_images is None or (1 + tiles_used) < max_images:
+        crop_left = max(0, width - _js_round(width * TITLE_BLOCK_CROP_WIDTH_FRACTION))
+        crop_top = max(0, height - _js_round(height * TITLE_BLOCK_CROP_HEIGHT_FRACTION))
+        title_block_crop = base.crop((crop_left, crop_top, width, height))
+        crop_edge = min(max(title_block_crop.width, title_block_crop.height), TITLE_BLOCK_CROP_MAX_EDGE_PX)
+        images.append(
+            {
+                "label": "High-resolution title block region (bottom-right corner)",
+                "data": _to_png_bytes(_resize_within(title_block_crop, crop_edge)),
+            }
+        )
+
     return images
 
 
@@ -179,14 +218,15 @@ def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[di
 # MAX_PAGES is included so the model can cross-reference a value on one
 # page (e.g. a title block) against another (e.g. a BOM).
 #
-# `max_images` (optional): a hard per-request image cap some providers
-# enforce (see ai_client.max_images_per_request()) — None means no cap
-# (e.g. Gemini, which this app has always sent up to ~15 images to per
-# multi-page PDF without issue). When set, the budget is split evenly
-# across pages (every page still gets at least its own overview) and each
-# page's own tile grid is sized down to fit within its share — see
-# _tile_image's docstring for why that's better than tiling normally and
-# discarding crops afterward.
+# `max_images` (optional): a hard per-request image cap, for a provider
+# that enforces one — no caller currently sets this (OpenAI has no such
+# cap; this app has always sent up to ~15 images per multi-page PDF
+# without issue), but the mechanism is kept since a future provider swap
+# may need it again. When set, the budget is split evenly across pages
+# (every page still gets at least its own overview) and each page's own
+# tile grid is sized down to fit within its share — see _tile_image's
+# docstring for why that's better than tiling normally and discarding
+# crops afterward.
 def convert_to_image_pages(buffer: bytes, kind: str, max_images: int | None = None) -> list[dict]:
     if kind == "pdf":
         doc = fitz.open(stream=buffer, filetype="pdf")
