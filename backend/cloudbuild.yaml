@@ -1,0 +1,40 @@
+# Explicit build -> push -> deploy pipeline, used because the Cloud Run
+# console's auto-generated trigger kept losing its push/deploy steps after
+# being hand-edited (it only ever ran the "docker build" step, never
+# pushed or deployed). This file makes exactly what happens on every push
+# to main fully explicit and version-controlled instead of depending on
+# GCP's auto-managed trigger behavior.
+#
+# Uses the same gcr.io/$PROJECT_ID image path and "osteks1" / "europe-
+# west1" service the Cloud Run console setup already created, and the same
+# service account already granted Artifact Registry Writer, Artifact
+# Registry Create-on-Push Writer, Cloud Run Admin, and Service Account
+# User — no new permissions needed beyond what's already set up.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    dir: backend
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/osteks1:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - gcr.io/$PROJECT_ID/osteks1:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - osteks1
+      - --image=gcr.io/$PROJECT_ID/osteks1:$COMMIT_SHA
+      - --region=europe-west1
+      - --platform=managed
+      - --allow-unauthenticated
+      - --quiet
+
+images:
+  - gcr.io/$PROJECT_ID/osteks1:$COMMIT_SHA
