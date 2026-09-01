@@ -1,3 +1,4 @@
+import gc
 import io
 import math
 
@@ -35,10 +36,21 @@ TILE_OVERLAP_RATIO = 0.12
 # multi-part RFQ/quote-request PDF (a cover page + one page per
 # independently-quoted part), where a 4th+ page was being silently
 # dropped at render time with no error, before the model ever saw it.
-# Raised generously; still bounded so a pathological huge PDF can't run
-# away with cost.
-MAX_TILES_PER_PAGE = 4
-MAX_PAGES = 12
+# Raised generously to 12; still bounded so a pathological huge PDF can't
+# run away with cost.
+#
+# TEMPORARILY lowered from that (12 pages / 4 tiles) to fit the current
+# free-tier hosting's 512MB memory cap — every page/tile is a large PNG
+# held in memory at once (see convert_to_image_pages), and a long
+# multi-page PDF at the higher caps was pushing past that limit and
+# getting the whole process OOM-killed mid-request. This does NOT affect
+# accuracy on a typical 1-6 page single/multi-part drawing (still fully
+# covered, same resolution) — it only trims how many pages of one unusually
+# long multi-part RFQ PDF get read, and how many tiles an unusually large
+# single sheet gets split into. Raise both back to 12 / 4 once hosting has
+# more memory (see backend/README.md's hosting notes).
+MAX_TILES_PER_PAGE = 3
+MAX_PAGES = 6
 
 # No tile/overview is ever upscaled past this — comfortably above
 # TILE_TARGET_PX, only relevant for unusually huge source scans.
@@ -129,86 +141,109 @@ def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[di
         # always line up with what PIL reports as width/height.
         base = ImageOps.exif_transpose(raw.convert("RGB"))
 
-    width, height = base.size
-    if not width or not height:
-        raise RuntimeError("Could not read the uploaded drawing's image dimensions.")
+    # Everything from here on explicitly closes each PIL Image as soon as
+    # its bytes are extracted (rather than waiting on Python's own garbage
+    # collector), and the whole thing is wrapped in try/finally so `base`
+    # itself is always released no matter which path returns below —
+    # meaningful on the free-tier hosting's 512MB memory cap, where a large
+    # scan's full-resolution pixel buffer is the single biggest thing this
+    # function holds. Doesn't change what gets extracted or at what
+    # resolution, purely how promptly the memory for it is freed.
+    try:
+        width, height = base.size
+        if not width or not height:
+            raise RuntimeError("Could not read the uploaded drawing's image dimensions.")
 
-    images: list[dict] = []
+        images: list[dict] = []
 
-    # Overview first: whole drawing, only modestly downscaled, so the model
-    # has global context (layout, where the BOM/title block sit relative to
-    # each other) before it looks at any close-up tile.
-    overview_edge = min(max(width, height), 2048)
-    images.append({"label": "Full drawing (overview)", "data": _to_png_bytes(_resize_within(base, overview_edge))})
+        # Overview first: whole drawing, only modestly downscaled, so the model
+        # has global context (layout, where the BOM/title block sit relative to
+        # each other) before it looks at any close-up tile.
+        overview_edge = min(max(width, height), 2048)
+        overview = _resize_within(base, overview_edge)
+        images.append({"label": "Full drawing (overview)", "data": _to_png_bytes(overview)})
+        if overview is not base:
+            overview.close()
 
-    # Reserve one slot for the overview already added above; the rest of
-    # the budget is what the tile grid is allowed to use. None means no
-    # provider-imposed cap — use the normal default.
-    max_tiles = MAX_TILES_PER_PAGE if max_images is None else max(0, max_images - 1)
+        # Reserve one slot for the overview already added above; the rest of
+        # the budget is what the tile grid is allowed to use. None means no
+        # provider-imposed cap — use the normal default.
+        max_tiles = MAX_TILES_PER_PAGE if max_images is None else max(0, max_images - 1)
 
-    longest_edge = max(width, height)
-    if longest_edge <= TILE_THRESHOLD_PX or max_tiles == 0:
-        # Either already small enough that the overview above kept full
-        # native detail (no downscale happened), or the image budget has no
-        # room left for tiles at all — either way, no tiles needed/possible.
-        return images
+        longest_edge = max(width, height)
+        if longest_edge <= TILE_THRESHOLD_PX or max_tiles == 0:
+            # Either already small enough that the overview above kept full
+            # native detail (no downscale happened), or the image budget has no
+            # room left for tiles at all — either way, no tiles needed/possible.
+            return images
 
-    cols = max(1, _js_round(width / TILE_TARGET_PX))
-    rows = max(1, _js_round(height / TILE_TARGET_PX))
-    while cols * rows > max_tiles:
-        if cols >= rows:
-            cols -= 1
-        else:
-            rows -= 1
-        cols = max(1, cols)
-        rows = max(1, rows)
+        cols = max(1, _js_round(width / TILE_TARGET_PX))
+        rows = max(1, _js_round(height / TILE_TARGET_PX))
+        while cols * rows > max_tiles:
+            if cols >= rows:
+                cols -= 1
+            else:
+                rows -= 1
+            cols = max(1, cols)
+            rows = max(1, rows)
 
-    tile_width = math.ceil(width / cols)
-    tile_height = math.ceil(height / rows)
-    overlap_x = _js_round(tile_width * TILE_OVERLAP_RATIO)
-    overlap_y = _js_round(tile_height * TILE_OVERLAP_RATIO)
+        tile_width = math.ceil(width / cols)
+        tile_height = math.ceil(height / rows)
+        overlap_x = _js_round(tile_width * TILE_OVERLAP_RATIO)
+        overlap_y = _js_round(tile_height * TILE_OVERLAP_RATIO)
 
-    for row in range(rows):
-        for col in range(cols):
-            left = max(0, col * tile_width - overlap_x)
-            top = max(0, row * tile_height - overlap_y)
-            right = min(width, (col + 1) * tile_width + overlap_x)
-            bottom = min(height, (row + 1) * tile_height + overlap_y)
+        for row in range(rows):
+            for col in range(cols):
+                left = max(0, col * tile_width - overlap_x)
+                top = max(0, row * tile_height - overlap_y)
+                right = min(width, (col + 1) * tile_width + overlap_x)
+                bottom = min(height, (row + 1) * tile_height + overlap_y)
 
-            extract_width = right - left
-            extract_height = bottom - top
-            if extract_width <= 0 or extract_height <= 0:
-                continue
+                extract_width = right - left
+                extract_height = bottom - top
+                if extract_width <= 0 or extract_height <= 0:
+                    continue
 
-            tile_edge = min(max(extract_width, extract_height), SAFETY_MAX_EDGE_PX)
-            crop = base.crop((left, top, right, bottom))
+                tile_edge = min(max(extract_width, extract_height), SAFETY_MAX_EDGE_PX)
+                crop = base.crop((left, top, right, bottom))
+                resized = _resize_within(crop, tile_edge)
 
+                images.append(
+                    {
+                        "label": f"High-resolution region — row {row + 1}/{rows}, column {col + 1}/{cols}",
+                        "data": _to_png_bytes(resized),
+                    }
+                )
+                if resized is not crop:
+                    resized.close()
+                crop.close()
+
+        # Dedicated bottom-right title-block crop — see TITLE_BLOCK_CROP_*
+        # above for why this exists on top of the grid tiles. Only added when
+        # there's budget for it under a provider's per-request image cap, if
+        # one is set (max_images is None — the normal/current case — always
+        # has room).
+        tiles_used = cols * rows
+        if max_images is None or (1 + tiles_used) < max_images:
+            crop_left = max(0, width - _js_round(width * TITLE_BLOCK_CROP_WIDTH_FRACTION))
+            crop_top = max(0, height - _js_round(height * TITLE_BLOCK_CROP_HEIGHT_FRACTION))
+            title_block_crop = base.crop((crop_left, crop_top, width, height))
+            crop_edge = min(max(title_block_crop.width, title_block_crop.height), TITLE_BLOCK_CROP_MAX_EDGE_PX)
+            resized_title_block = _resize_within(title_block_crop, crop_edge)
             images.append(
                 {
-                    "label": f"High-resolution region — row {row + 1}/{rows}, column {col + 1}/{cols}",
-                    "data": _to_png_bytes(_resize_within(crop, tile_edge)),
+                    "label": "High-resolution title block region (bottom-right corner)",
+                    "data": _to_png_bytes(resized_title_block),
                 }
             )
+            if resized_title_block is not title_block_crop:
+                resized_title_block.close()
+            title_block_crop.close()
 
-    # Dedicated bottom-right title-block crop — see TITLE_BLOCK_CROP_*
-    # above for why this exists on top of the grid tiles. Only added when
-    # there's budget for it under a provider's per-request image cap, if
-    # one is set (max_images is None — the normal/current case — always
-    # has room).
-    tiles_used = cols * rows
-    if max_images is None or (1 + tiles_used) < max_images:
-        crop_left = max(0, width - _js_round(width * TITLE_BLOCK_CROP_WIDTH_FRACTION))
-        crop_top = max(0, height - _js_round(height * TITLE_BLOCK_CROP_HEIGHT_FRACTION))
-        title_block_crop = base.crop((crop_left, crop_top, width, height))
-        crop_edge = min(max(title_block_crop.width, title_block_crop.height), TITLE_BLOCK_CROP_MAX_EDGE_PX)
-        images.append(
-            {
-                "label": "High-resolution title block region (bottom-right corner)",
-                "data": _to_png_bytes(_resize_within(title_block_crop, crop_edge)),
-            }
-        )
-
-    return images
+        return images
+    finally:
+        base.close()
+        gc.collect()
 
 
 # Converts an uploaded drawing (PDF / TIFF / PNG / JPEG / WEBP) into a flat,
@@ -243,11 +278,19 @@ def convert_to_image_pages(buffer: bytes, kind: str, max_images: int | None = No
                 page = doc[page_index]
                 pixmap = page.get_pixmap(matrix=matrix)
                 page_png_bytes = pixmap.tobytes("png")
+                # PyMuPDF's own high-DPI raster buffer for this page — no
+                # longer needed once its PNG bytes are extracted above, and
+                # freeing it before _tile_image (which opens ANOTHER large
+                # in-memory copy from those bytes) keeps peak memory from
+                # stacking page-on-page across a multi-page PDF.
+                pixmap = None
 
                 page_images = _tile_image(page_png_bytes, max_images=per_page_budget)
                 prefix = f"Page {page_index + 1} — " if page_count > 1 else ""
                 for image in page_images:
                     images.append({"label": f"{prefix}{image['label']}", "data": image["data"]})
+                page_png_bytes = None
+                gc.collect()
             return images
         finally:
             doc.close()
