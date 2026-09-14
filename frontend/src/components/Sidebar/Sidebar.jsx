@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import {
   House,
   FileText,
+  ClipboardList,
+  ChevronDown,
   Settings,
 } from "lucide-react";
 
@@ -25,7 +28,41 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
       label: t("sidebar.allDocuments"),
       icon: FileText,
     },
+    {
+      id: "testReport",
+      label: t("sidebar.testReport"),
+      icon: ClipboardList,
+      // Nested pages — Overview (a searchable/paginated list of every
+      // created report) and Generate Report (the existing 5-step wizard,
+      // unchanged). The parent row itself never navigates anywhere; it
+      // only expands/collapses this list, matching a normal accordion.
+      children: [
+        { id: "testReportOverview", label: t("sidebar.testReportOverview") },
+        { id: "testReportGenerate", label: t("sidebar.testReportGenerate") },
+      ],
+    },
   ];
+
+  // Auto-expand "Test Report" if the page we're currently on is one of its
+  // own children (e.g. after a parent re-render triggered by navigating
+  // straight to a child elsewhere), so the submenu is never hidden while
+  // one of its own pages is what's actually showing.
+  const testReportItem = menuItems.find((item) => item.id === "testReport");
+  const isOnTestReportChild = testReportItem?.children?.some((child) => child.id === activeItem) ?? false;
+  const [testReportExpanded, setTestReportExpanded] = useState(isOnTestReportChild);
+  const expanded = testReportExpanded || isOnTestReportChild;
+
+  // Auto-close the submenu the moment navigation actually lands on a
+  // DIFFERENT top-level page (e.g. All Documents) — only reacts to
+  // activeItem changing, not to the manual toggle below, so opening the
+  // menu to look at it (without picking a child yet) is never immediately
+  // undone by this same effect.
+  useEffect(() => {
+    if (!isOnTestReportChild) {
+      setTestReportExpanded(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeItem]);
 
 
   return (
@@ -41,8 +78,46 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
 
           const Icon = item.icon;
 
-          const isActive = activeItem === item.id;
+          const hasChildren = !!item.children?.length;
 
+          // A parent with children is never itself "active" (it has no
+          // page of its own) — it just reads as expanded/collapsed;
+          // highlighting comes from whichever child page is actually shown.
+          const isActive = !hasChildren && activeItem === item.id;
+
+          if (hasChildren) {
+            return (
+              <div key={item.id} className="sidebar-menu-group">
+                <button
+                  type="button"
+                  className={`sidebar-menu-item sidebar-menu-item--parent ${isOnTestReportChild ? "active" : ""}`}
+                  onClick={() => setTestReportExpanded((open) => !open)}
+                  aria-expanded={expanded}
+                >
+                  <Icon className="menu-icon" />
+                  <span className="menu-label">{item.label}</span>
+                  <ChevronDown className={`menu-chevron ${expanded ? "expanded" : ""}`} />
+                </button>
+
+                {/* Always mounted (never conditionally rendered) so the
+                    expand/collapse is a real CSS transition — animating
+                    max-height/opacity — rather than the submenu just
+                    instantly appearing/disappearing. */}
+                <div className={`sidebar-submenu ${expanded ? "expanded" : ""}`}>
+                  {item.children.map((child) => (
+                    <button
+                      key={child.id}
+                      type="button"
+                      className={`sidebar-submenu-item ${activeItem === child.id ? "active" : ""}`}
+                      onClick={() => onSelectItem?.(child.id)}
+                    >
+                      <span className="menu-label">{child.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          }
 
           return (
             <button

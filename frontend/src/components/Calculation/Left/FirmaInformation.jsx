@@ -28,6 +28,17 @@ const FirmaInformation = ({ values, onChange }) => {
         </div>
 
         <div className="calc-field">
+          <label htmlFor="name">{t("firmaInformation.name")}</label>
+          <input
+            id="name"
+            type="text"
+            placeholder={t("firmaInformation.enterName")}
+            value={values.name}
+            onChange={set("name")}
+          />
+        </div>
+
+        <div className="calc-field">
           <label htmlFor="address">{t("firmaInformation.address")}</label>
           <textarea
             id="address"

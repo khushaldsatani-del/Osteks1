@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FileText, Download, FileType2 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -50,11 +50,52 @@ const SAFETY_BUFFER = 3;
 // content there actually is. Nothing above 2 pages' worth of the sample
 // content changes how it looks; it only kicks in once content is long enough
 // to need a 3rd+ page, which the old fixed layout couldn't do at all.
-const DocPreview = ({ firmaInfo = {}, offerDetailsRowsList = [[]], angebotsgueltigkeitDigits = "" }) => {
+// firmaInfo.enquiryDate is a native <input type="date"> value ("YYYY-MM-DD")
+// — formatted as plain dd.mm.yyyy with dots, matching the static sample text
+// it replaces ("16.07.2025"), same literal format in both languages (not
+// locale-varying, same reasoning as Preisgültigkeit's date).
+const formatEnquiryDateDots = (isoDate) => {
+  if (!isoDate) return null;
+  const d = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}.${d.getFullYear()}`;
+};
+
+const DocPreview = ({
+  firmaInfo = {},
+  offerDetailsRowsList = [[]],
+  angebotsgueltigkeitDigits = "",
+  onTestRequiredChange,
+  testRequired: testRequiredFromParent = false,
+}) => {
   const { t, language } = useTranslation();
   // Defaults to "Without Specification" on load — see the docpreview-spec-
   // toggle radios below.
   const [specMode, setSpecMode] = useState("without");
+  // Independent of the With/Without Specification radios — a document can
+  // be "with specification" AND need a test report, so this is its own
+  // checkbox, not a third mutually-exclusive radio option. Doesn't change
+  // anything about this document itself; checking/unchecking it tells the
+  // parent (via onTestRequiredChange) to create/delete a linked Test
+  // Report draft. Local state (not a fully-controlled checkbox) so a click
+  // feels instant while that create/delete round-trip is still in flight,
+  // but it's kept in sync with testRequiredFromParent — the actual known
+  // state of this document's linked report, which Documents.jsx resolves
+  // fresh whenever the active document changes — so reopening a document
+  // that already had a report shows the box checked, not reset to blank.
+  const [testRequired, setTestRequired] = useState(testRequiredFromParent);
+
+  useEffect(() => {
+    setTestRequired(testRequiredFromParent);
+  }, [testRequiredFromParent]);
+
+  const handleTestRequiredCheckbox = (event) => {
+    const checked = event.target.checked;
+    setTestRequired(checked);
+    onTestRequiredChange?.(checked);
+  };
   const [downloading, setDownloading] = useState(false);
   const [pages, setPages] = useState([]);
   const surfaceRef = useRef(null);
@@ -70,7 +111,10 @@ const DocPreview = ({ firmaInfo = {}, offerDetailsRowsList = [[]], angebotsguelt
     getTodayDateLine,
     HEADING_ROWS,
     SALUTATION,
+    SALUTATION_PREFIX_MASCULINE,
+    SALUTATION_PREFIX_FEMININE,
     INTRO_LINES,
+    INTRO_LINE1_PREFIX,
     SPEC_FIELD_ROWS,
     PAGE1_DISCLAIMER,
     WITHOUT_SPEC_NOTE,
@@ -85,12 +129,39 @@ const DocPreview = ({ firmaInfo = {}, offerDetailsRowsList = [[]], angebotsguelt
   // Address is entered as one line per line of the address (a textarea, not
   // a single-line input, specifically so this split is possible) — falls
   // back to the static sample recipient block until something's typed.
-  const recipientLines = firmaInfo.address?.trim()
+  const typedAddressLines = firmaInfo.address?.trim()
     ? firmaInfo.address
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean)
-    : RECIPIENT_LINES;
+    : null;
+
+  const typedName = firmaInfo.name?.trim() || "";
+
+  // Firma Information's "Name" field (e.g. "Herr Könsgen") supplies the
+  // recipient block's name line and the salutation. Kept fully backward
+  // compatible: when it's empty, both the recipient block and salutation
+  // render exactly as they did before this field existed — a custom-typed
+  // address is shown completely unchanged, and the static sample keeps its
+  // original "Herr Könsgen" line.
+  const recipientLines = typedAddressLines
+    ? typedName
+      ? [...typedAddressLines.slice(0, 2), typedName, ...typedAddressLines.slice(2)]
+      : typedAddressLines
+    : typedName
+      ? [...RECIPIENT_LINES.slice(0, 2), typedName, ...RECIPIENT_LINES.slice(3)]
+      : RECIPIENT_LINES;
+
+  // "Sehr geehrte" instead of "Sehr geehrter" when the typed name starts
+  // with "Frau" — English's "Dear" needs no such branching (both prefix
+  // keys are identical there, see docPreviewContent.js).
+  const salutationPrefix = /^frau\b/i.test(typedName) ? SALUTATION_PREFIX_FEMININE : SALUTATION_PREFIX_MASCULINE;
+  const salutation = typedName ? `${salutationPrefix} ${typedName},` : SALUTATION;
+
+  const enquiryDateFormatted = formatEnquiryDateDots(firmaInfo.enquiryDate);
+  const introLines = enquiryDateFormatted
+    ? [`${INTRO_LINE1_PREFIX}${enquiryDateFormatted}.`, INTRO_LINES[1]]
+    : INTRO_LINES;
 
   const headingRows = [
     [HEADING_ROWS[0][0], firmaInfo.companyName?.trim() ? firmaInfo.companyName : HEADING_ROWS[0][1]],
@@ -231,12 +302,12 @@ const DocPreview = ({ firmaInfo = {}, offerDetailsRowsList = [[]], angebotsguelt
           </>
         ),
       },
-      { key: "salutation", node: <p className="dp-salutation">{SALUTATION}</p> },
+      { key: "salutation", node: <p className="dp-salutation">{salutation}</p> },
       {
         key: "intro",
         node: (
           <p className="dp-para">
-            {INTRO_LINES.map((line, i) => (
+            {introLines.map((line, i) => (
               <React.Fragment key={line}>
                 {i > 0 && <br />}
                 {line}
@@ -321,7 +392,7 @@ const DocPreview = ({ firmaInfo = {}, offerDetailsRowsList = [[]], angebotsguelt
 
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, specMode, JSON.stringify(recipientLines), JSON.stringify(headingRows), dateLine, JSON.stringify(offerDetailsRowsList), angebotsgueltigkeitDigits]);
+  }, [language, specMode, JSON.stringify(recipientLines), JSON.stringify(headingRows), salutation, JSON.stringify(introLines), dateLine, JSON.stringify(offerDetailsRowsList), angebotsgueltigkeitDigits]);
 
   const continuationHeader = (
     <div className="dp-letterhead dp-letterhead--small">
@@ -428,7 +499,7 @@ const DocPreview = ({ firmaInfo = {}, offerDetailsRowsList = [[]], angebotsguelt
   const handleDownloadDoc = async () => {
     const blob = await buildDocxBlob(
       specMode,
-      { recipientLines, headingRows, offerDetailsRows: flatOfferDetailsRows, angebotsgueltigkeitDigits },
+      { recipientLines, headingRows, salutation, introLines, offerDetailsRows: flatOfferDetailsRows, angebotsgueltigkeitDigits },
       language
     );
     const url = URL.createObjectURL(blob);
@@ -486,6 +557,14 @@ const DocPreview = ({ firmaInfo = {}, offerDetailsRowsList = [[]], angebotsguelt
             onChange={() => setSpecMode("without")}
           />
           {t("docPreview.withoutSpecification")}
+        </label>
+
+        {/* Independent checkbox, not part of the radio group above — a
+            document can be "with specification" and still need a test
+            report, so this isn't mutually exclusive with either radio. */}
+        <label className="docpreview-radio">
+          <input type="checkbox" checked={testRequired} onChange={handleTestRequiredCheckbox} />
+          {t("docPreview.testRequired")}
         </label>
       </div>
 

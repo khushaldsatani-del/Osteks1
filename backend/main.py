@@ -11,13 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
-from services import documents_repo, emails_repo, kb_repo
+from services import documents_repo, emails_repo, gcs_storage, kb_repo, test_reports_repo
 from services.db import close_db, get_pool, init_db
 from services.email_extraction import extract_calculation_from_email
 from services.email_processing import detect_email_kind, parse_email_buffer
 from services.kb_db import init_kb_schema
 from services.openai_client import describe_extraction_error, extract_drawing_info
 from services.file_processing import convert_to_image_pages, detect_file_kind
+from services.test_reports_db import init_test_reports_schema
 
 MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024  # 30 MB, same cap as the Node backend's multer config
 MAX_IMAGE_SLOTS = 4  # keep in sync with frontend/src/pages/Documents.jsx's MAX_IMAGES
@@ -33,6 +34,9 @@ async def lifespan(app: FastAPI):
     # CLI that's since been removed along with the browsing page it
     # supported — never through HTTP either way.
     await init_kb_schema()
+    # Test Report records (see services/test_reports_db.py) — references
+    # documents(id), so this runs after init_db() has created that table.
+    await init_test_reports_schema()
     yield
     await close_db()
 
@@ -363,6 +367,140 @@ async def kb_lookup(q: str = ""):
         return {"matched": False}
     result = await kb_repo.lookup_specification(q.strip())
     return result or {"matched": False}
+
+
+# --- Test Reports (Neon-backed, images in Google Cloud Storage) ------------
+# See services/test_reports_db.py, test_reports_repo.py, gcs_storage.py.
+# A report row is created as a draft the moment "Test erforderlich" is
+# chosen in Document Preview (document_id set, prefilled wizardState from
+# whatever the Standards-KB lookup + drawing extraction already resolved)
+# — or from scratch via the sidebar's "Generate Report" (document_id None).
+# The wizard's Save button PATCHes the whole wizardState snapshot back;
+# Download stays a pure client-side export, untouched by any of this.
+
+
+class CreateTestReportBody(BaseModel):
+    documentId: int | None = None
+    reportNo: str = ""
+    testObject: str = ""
+    norm: str = ""
+    wizardState: dict = {}
+    testDate: str | None = None
+
+
+class UpdateTestReportBody(BaseModel):
+    reportNo: str | None = None
+    testObject: str | None = None
+    norm: str | None = None
+    wizardState: dict | None = None
+    testDate: str | None = None
+    status: str | None = None
+
+
+@app.get("/api/test-reports")
+async def list_test_reports():
+    return await test_reports_repo.list_reports()
+
+
+@app.get("/api/test-reports/{report_id}")
+async def get_test_report(report_id: int):
+    report = await test_reports_repo.get_report(report_id)
+    if report is None:
+        return JSONResponse(status_code=404, content={"error": "Test report not found."})
+    return report
+
+
+# Lets Document Preview's "Test erforderlich" checkbox reflect reality when
+# a document is reopened from All Documents, instead of always resetting to
+# unchecked — returns null (200, not 404) when no report is linked, since
+# "no report yet" is an entirely normal, expected answer here.
+@app.get("/api/test-reports/by-document/{document_id}")
+async def get_test_report_by_document(document_id: int):
+    return await test_reports_repo.get_report_by_document_id(document_id)
+
+
+@app.post("/api/test-reports")
+async def create_test_report(body: CreateTestReportBody):
+    if body.documentId is not None:
+        document = await documents_repo.get_document(body.documentId)
+        if document is None:
+            return JSONResponse(status_code=400, content={"error": "documentId must reference an existing document."})
+    return await test_reports_repo.create_report(
+        body.documentId, body.reportNo, body.testObject, body.norm, body.wizardState, body.testDate
+    )
+
+
+@app.patch("/api/test-reports/{report_id}")
+async def update_test_report(report_id: int, body: UpdateTestReportBody):
+    updated = await test_reports_repo.update_report(
+        report_id, body.reportNo, body.testObject, body.norm, body.wizardState, body.testDate, body.status
+    )
+    if updated is None:
+        return JSONResponse(status_code=404, content={"error": "Test report not found."})
+    return updated
+
+
+@app.delete("/api/test-reports/{report_id}")
+async def delete_test_report(report_id: int):
+    deleted = await test_reports_repo.delete_report(report_id)
+    if not deleted:
+        return JSONResponse(status_code=404, content={"error": "Test report not found."})
+    return {"ok": True}
+
+
+# One image per call — `slot` is a free-form key the wizard chooses for its
+# own bookkeeping (e.g. "cycle5.before", "crosscut.corrosion.after") so the
+# same generic endpoint covers every photo slot in the wizard without the
+# backend needing to know its shape. Returns the object path only, never a
+# URL — see gcs_storage.py's signed_url() for why reads are always signed
+# fresh rather than a stored link ever being reused.
+@app.post("/api/test-reports/{report_id}/images")
+async def upload_test_report_image(report_id: int, file: UploadFile = File(...), slot: str = Form(...)):
+    report = await test_reports_repo.get_report(report_id)
+    if report is None:
+        return JSONResponse(status_code=404, content={"error": "Test report not found."})
+
+    try:
+        data = await _read_and_check_size(file)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": f"Upload error: {error}"})
+
+    try:
+        upload_result = gcs_storage.upload_image(report_id, slot, data, file.content_type, file.filename)
+    except RuntimeError as error:
+        # GCS_BUCKET_NAME not configured yet — a setup problem, not a
+        # per-request one, so this is a 500 rather than a 400.
+        return JSONResponse(status_code=500, content={"error": str(error)})
+
+    return await test_reports_repo.record_image(report_id, slot, upload_result)
+
+
+# Proxies the image back through the backend rather than issuing a signed
+# URL — see gcs_storage.py's download_bytes() for why. Same downstream
+# shape as GET /api/emails/attachments/{id}/download, just backed by GCS
+# instead of a BYTEA column; the frontend treats it as a plain image URL
+# either way (an <img src=...> pointed at this endpoint works as-is).
+@app.get("/api/test-reports/{report_id}/images/{object_path:path}/url")
+async def get_test_report_image(report_id: int, object_path: str):
+    owns = await test_reports_repo.image_belongs_to_report(report_id, object_path)
+    if not owns:
+        return JSONResponse(status_code=404, content={"error": "Image not found on this report."})
+    try:
+        data, content_type = gcs_storage.download_bytes(object_path)
+    except RuntimeError as error:
+        return JSONResponse(status_code=500, content={"error": str(error)})
+    return Response(content=data, media_type=content_type)
+
+
+@app.delete("/api/test-reports/{report_id}/images/{object_path:path}")
+async def delete_test_report_image(report_id: int, object_path: str):
+    try:
+        deleted = await test_reports_repo.delete_image(report_id, object_path)
+    except RuntimeError as error:
+        return JSONResponse(status_code=500, content={"error": str(error)})
+    if not deleted:
+        return JSONResponse(status_code=404, content={"error": "Image not found on this report."})
+    return {"ok": True}
 
 
 @app.exception_handler(Exception)

@@ -38,11 +38,20 @@ const CONTENT_DE = {
   ],
 
   SALUTATION: "Sehr geehrter Herr Könsgen,",
+  // Used to build a live salutation from Firma Information's "Name" field
+  // (e.g. "Herr Könsgen" / "Frau Musterfrau") — "Sehr geehrte" instead of
+  // "Sehr geehrter" is used automatically when that name starts with "Frau".
+  SALUTATION_PREFIX_MASCULINE: "Sehr geehrter",
+  SALUTATION_PREFIX_FEMININE: "Sehr geehrte",
 
   INTRO_LINES: [
     "wir bedanken uns für Ihre Anfrage vom 16.07.2025.",
     "Nachstehend erhalten Sie unser Angebot, das wir nach Ihren Informationen erstellt haben.",
   ],
+  // Used to build a live first intro line from Firma Information's
+  // "Anfragedatum" field — falls back to INTRO_LINES[0] above unchanged
+  // when that field isn't filled in.
+  INTRO_LINE1_PREFIX: "wir bedanken uns für Ihre Anfrage vom ",
 
   // The "specification" block toggled by the With/Without Specification radios.
   SPEC_FIELD_ROWS: [
@@ -133,11 +142,17 @@ const CONTENT_EN = {
   ],
 
   SALUTATION: "Dear Mr. Könsgen,",
+  // English "Dear" has no masculine/feminine form, so both prefixes are the
+  // same — kept as two keys purely so DocPreview.jsx doesn't need to branch
+  // on language to pick which one to use.
+  SALUTATION_PREFIX_MASCULINE: "Dear",
+  SALUTATION_PREFIX_FEMININE: "Dear",
 
   INTRO_LINES: [
     "thank you for your inquiry dated 16.07.2025.",
     "Please find below our offer, prepared according to the information you provided.",
   ],
+  INTRO_LINE1_PREFIX: "thank you for your inquiry dated ",
 
   SPEC_FIELD_ROWS: [
     ["Coating:", ["Cathodic dip coating, black"]],

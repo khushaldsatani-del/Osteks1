@@ -1,0 +1,1106 @@
+/* =========================================
+   PRÜFBERICHT DOCUMENT PREVIEW (Step 5)
+   Deliberately NOT this app's teal card theme
+   — this simulates the actual printed report
+   page (white, black text, muted gray borders),
+   the same "look like the real export" role
+   DocPreview.jsx's own .dp-page already plays
+   for the coating-calculator side of this app.
+========================================= */
+
+.doc-preview-wrap {
+  width: 100%;
+}
+
+
+.doc-preview-toolbar {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 12px;
+
+  margin-bottom: 12px;
+}
+
+
+/* =========================================
+   PREVIEW SURFACE — scrollable "desk" the A4
+   sheets sit on, like a print preview. Same
+   role as DocPreview.jsx's .docpreview-surface.
+========================================= */
+
+.doc-preview-surface {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 24px;
+
+  padding: 28px 16px;
+
+  background: #eceef2;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 10px;
+
+  max-height: 900px;
+
+  overflow-y: auto;
+}
+
+
+/* =========================================
+   ONE A4 PAGE SHEET — fixed, not min-height,
+   so each sheet is exactly one page; content
+   that doesn't fit is bucketed onto another
+   .doc-page by TestReportPreview.jsx's real
+   measure-then-paginate logic (see PAGE_HEIGHT/
+   PAGE_PADDING_TOP/BOTTOM there, which this
+   must match exactly).
+========================================= */
+
+.doc-page {
+  position: relative;
+
+  width: 794px;
+
+  height: 1123px;
+
+  overflow: hidden;
+
+  flex-shrink: 0;
+
+  background: #ffffff;
+
+  box-shadow: 0 4px 18px rgba(20, 30, 55, 0.12);
+
+  border-radius: 4px;
+
+  padding: 44px 48px;
+
+  box-sizing: border-box;
+
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+
+  color: #1a1a1a;
+
+  /* Matches the Word export's body text — Word's own "10" font size — scaled
+     from the same visual proportion this page's font-size has always used
+     relative to the docx BODY_SIZE (14.5px was tuned to read as that
+     export's 11pt body; this keeps the identical ratio for 10pt). */
+  font-size: 13.2px;
+
+  line-height: 1.55;
+}
+
+
+/* Offscreen measuring pass — same width/padding/typography as a real page
+   (so text wraps identically and heights measure true), but unbounded
+   height and pulled out of the visible layout entirely. Never seen by the
+   user; see TestReportPreview.jsx's pagination effect. */
+.doc-page.doc-page--measure {
+  position: absolute;
+
+  top: -99999px;
+
+  left: -99999px;
+
+  height: auto;
+
+  overflow: visible;
+
+  visibility: hidden;
+
+  pointer-events: none;
+
+  z-index: -1;
+
+  box-shadow: none;
+}
+
+
+/* Three-column footer — "Erstellt durch" / "Erstellt am" / "Seite X von Y",
+   matching the real reference report's own footer layout. */
+.doc-page-footer {
+  position: absolute;
+
+  bottom: 16px;
+
+  left: 48px;
+
+  right: 48px;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  font-size: 10.5px;
+
+  color: #6b6b6b;
+}
+
+
+/* =========================================
+   LETTERHEAD (company name + tagline banner) —
+   rendered by TestReportPreview.jsx on EVERY
+   page, not just page 1 (the "Prüfbericht"
+   title itself still only appears once, as the
+   first flow block on page 1).
+========================================= */
+
+.doc-letterhead-company {
+  text-align: right;
+
+  color: #8a8a8a;
+
+  font-size: 15px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.4px;
+
+  margin-bottom: 10px;
+}
+
+
+.doc-letterhead-banner {
+  background: linear-gradient(to right, #8a8a8a, #d4d4d4);
+
+  color: #ffffff;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  letter-spacing: 1px;
+
+  padding: 14px 0;
+
+  margin-bottom: 24px;
+}
+
+
+.doc-title {
+  text-align: center;
+
+  font-size: 16px;
+
+  font-weight: 700;
+
+  /* margin-top collapses against .doc-letterhead-banner's own 24px
+     margin-bottom (adjacent sibling margins), so this is set to 24px +
+     one body-text line (~22px) rather than just 22px, to actually add a
+     full extra line of visible space above the title instead of being
+     silently absorbed by the collapse. */
+  margin: 46px 0 36px;
+
+  padding-bottom: 12px;
+
+  border-bottom: 1.5px solid #1a1a1a;
+}
+
+
+/* =========================================
+   INFO BLOCK — borderless label/value rows
+   (Prüfbericht Nr. / Prüfgegenstand /
+   Bearbeiter), unlike the tables below which
+   do keep visible borders. Even gap between
+   every row (not per-row padding) so
+   Prüfbericht Nr. → Prüfgegenstand and
+   Prüfgegenstand → Bearbeiter read the same.
+========================================= */
+
+.doc-info-block {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 22px;
+
+  margin-bottom: 68px;
+}
+
+
+.doc-info-row {
+  display: flex;
+
+  gap: 16px;
+}
+
+
+.doc-info-label {
+  flex: 0 0 160px;
+}
+
+
+.doc-info-value {
+  flex: 1;
+
+  min-width: 0;
+}
+
+
+/* =========================================
+   TABLES
+========================================= */
+
+.doc-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  margin-bottom: 16px;
+
+  font-size: 12px;
+}
+
+
+.doc-table th,
+.doc-table td {
+  border: 1px solid #ddd;
+
+  padding: 8px;
+
+  vertical-align: top;
+  text-align: left;
+}
+
+
+.doc-table thead th {
+  font-weight: 700;
+}
+
+
+.doc-date-table {
+  margin-bottom: 32px;
+}
+
+
+.doc-date-table th,
+.doc-date-table td {
+  width: 33.33%;
+
+  text-align: center;
+}
+
+
+.doc-centered-table th,
+.doc-numbered-table th {
+  text-align: center;
+}
+
+
+.doc-numbered-table td:first-child {
+  width: 34px;
+
+  text-align: center;
+}
+
+
+.doc-results-table th,
+.doc-results-table td {
+  font-size: 11.5px;
+
+  text-align: center;
+
+  vertical-align: middle;
+
+  /* Bolder, solid black grid — the base .doc-table's pale #ddd border was
+     nearly invisible once the Bewertung column started filling solid
+     green/red. */
+  border: 1.5px solid #1a1a1a;
+}
+
+
+/* Bewertung cell fill — matching the .docx export's shading exactly (see
+   buildTestReportDocx.js's PASS_FILL/FAIL_FILL). */
+.doc-results-pass {
+  background: #00ff00;
+}
+
+
+.doc-results-fail {
+  background: #ff0000;
+
+  color: #ffffff;
+}
+
+
+/* =========================================
+   HEADINGS / TEXT
+========================================= */
+
+.doc-h2 {
+  font-size: 14px;
+
+  font-weight: 700;
+
+  margin: 32px 0 12px;
+}
+
+
+.doc-h3 {
+  font-size: 13px;
+
+  font-weight: 700;
+
+  margin: 24px 0 8px;
+}
+
+
+.doc-h4 {
+  font-size: 12.5px;
+
+  font-weight: 700;
+
+  text-decoration: underline;
+
+  margin: 24px 0 8px;
+}
+
+
+.doc-p {
+  margin: 0 0 16px;
+}
+
+
+/* Generic "tight" override — not scoped to .doc-p specifically, so it
+   also collapses .doc-disclaimer's own spacing when the two sit directly
+   adjacent (e.g. "7 Seiten Protokoll" immediately followed by the
+   disclaimer line, no blank line between them). */
+.doc-tight {
+  margin-bottom: 4px;
+}
+
+
+/* Zero gap at all — for a run of label/value lines meant to read as one
+   unbroken block (Verfahren:/Prüfdauer:/Prüfbedingungen:/Temperatur:/rel.
+   Feuchte: with no blank line anywhere in the run), where even .doc-tight's
+   4px still reads as a gap. */
+.doc-flush {
+  margin-bottom: 0;
+}
+
+
+.doc-disclaimer {
+  font-size: 10.5px;
+
+  font-style: italic;
+
+  color: #6b6b6b;
+
+  margin: 0 0 16px;
+}
+
+
+.doc-quote {
+  margin: 8px 0 16px;
+
+  padding: 4px 0 4px 24px;
+
+  border-left: 2px solid #ddd;
+}
+
+
+.doc-quote p {
+  margin: 0 0 6px;
+}
+
+
+.doc-quote p:last-child {
+  margin-bottom: 0;
+}
+
+
+/* =========================================
+   INDENTED BLOCK / DEFINITION ROWS — the real
+   reference report's own layout for procedure
+   text and "Label:   Value" parameter lists
+   (Verfahren:/Prüfdauer:, a "zu N)" sub-
+   heading's Temperatur:/rel. Feuchte: list):
+   plain indentation, NOT a bordered callout
+   the way .doc-quote reads — .doc-quote is
+   still used elsewhere, this is a separate,
+   undecorated alternative for this content.
+========================================= */
+
+.doc-indent-block {
+  margin: 0 0 16px;
+
+  padding-left: 24px;
+}
+
+
+.doc-indent-block p {
+  margin: 0 0 4px;
+}
+
+
+.doc-indent-block p:last-child {
+  margin-bottom: 0;
+}
+
+
+/* "zu N)" lines sit a bit further right than the plain .doc-indent-block
+   list above them (e.g. "Ein Prüfzyklus..."), not flush with it. */
+.doc-indent-block--deeper {
+  padding-left: 40px;
+}
+
+
+.doc-heading-indent {
+  padding-left: 24px;
+}
+
+
+.doc-def-table {
+  margin: 0 0 16px;
+}
+
+
+/* No trailing gap at all — used when a plain paragraph (e.g.
+   "Prüfbedingungen:") immediately follows this table with no blank line,
+   same reasoning as .doc-flush above. */
+.doc-def-table--flush {
+  margin-bottom: 0;
+}
+
+
+.doc-def-table--indent {
+  padding-left: 64px;
+}
+
+
+.doc-def-row {
+  display: flex;
+
+  margin-bottom: 2px;
+}
+
+
+/* A full blank-line gap between each value line instead of the tight 2px
+   list rhythm above — used for Sollvorgaben's stacked value lines (keine
+   Blasenbildung / keine Grundmetallkorrosion / the Gitterschnitt
+   requirement), which read as separate statements, not one dense list. */
+.doc-def-table--loose .doc-def-row {
+  margin-bottom: 16px;
+}
+
+
+.doc-def-row > span:first-child {
+  flex: 0 0 120px;
+}
+
+
+.doc-def-table--indent .doc-def-row > span:first-child {
+  flex-basis: 110px;
+}
+
+
+.doc-def-table--narrow .doc-def-row > span:first-child {
+  flex-basis: 90px;
+}
+
+
+/* Sollvorgaben's own label column — wider than --narrow (90px) so
+   "Sollvorgaben:" itself gets real breathing room before its value starts,
+   rather than the value crowding right up against the label; every
+   following value line (keine Grundmetallkorrosion, the Gitterschnitt
+   requirement) reserves this exact same width via an empty label span, so
+   they all land flush under "keine Blasenbildung". */
+.doc-def-table--wide .doc-def-row > span:first-child {
+  flex-basis: 140px;
+}
+
+
+/* =========================================
+   SIGNATURE BLOCK (signature image + name + title)
+========================================= */
+
+.doc-footer-block {
+  margin: 40px 0 0;
+}
+
+
+/* =========================================
+   DISCLAIMER BLOCK (Anlagen / Protokoll /
+   legal note) — pinned to the bottom of
+   whichever page it lands on by
+   TestReportPreview.jsx's pagination effect
+   (see the pinBottom/pinTopPx handling there),
+   so no margin-top of its own is needed here.
+========================================= */
+
+.doc-disclaimer-block {
+  margin: 0;
+}
+
+
+/* =========================================
+   PHOTO BOXES — every image group in the
+   report sits inside one black-bordered box
+   (matching the real reference report's
+   "Zustand nach N Zyklen" framed photo pairs).
+   Layout (side-by-side vs stacked) and each
+   cell's height are computed in
+   TestReportPreview.jsx from the photos' real
+   aspect ratios and applied as inline styles,
+   so the offscreen measuring pass sees true
+   heights — this file only styles the frame.
+========================================= */
+
+.doc-photo-box {
+  border: 1px solid #1a1a1a;
+
+  padding: 7px;
+
+  margin: 6px 0 16px;
+
+  background: #ffffff;
+}
+
+
+/* A lone photo (no pair, no grid) at its untouched auto size gets a border
+   that hugs the photo itself instead of stretching the full page width —
+   see the fitBox computation in photoBox() below. */
+.doc-photo-box--fit {
+  width: fit-content;
+}
+
+
+.doc-photo-cell {
+  display: flex;
+
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+
+/* A photo's position *within its own cell* — never a position on the page
+   (see the align buttons in the toolbar below). "left" is the default
+   (an unset override), matching a plain block element's natural position
+   before any alignment choice is made. */
+.doc-photo-align-left {
+  align-items: flex-start;
+}
+
+
+.doc-photo-align-center {
+  align-items: center;
+}
+
+
+.doc-photo-align-right {
+  align-items: flex-end;
+}
+
+
+.doc-photo-frame-wrap {
+  position: relative;
+
+  display: inline-flex;
+
+  flex-direction: column;
+}
+
+
+/* The left/center/right alignment toolbar — same reveal-on-hover treatment
+   as the resize handle below, and likewise never appears in the exported
+   .docx (purely an on-screen editing affordance). */
+.doc-photo-toolbar {
+  position: absolute;
+
+  top: -24px;
+
+  left: 0;
+
+  display: flex;
+
+  gap: 2px;
+
+  padding: 2px;
+
+  border-radius: 4px;
+
+  background: #ffffff;
+
+  box-shadow: 0 1px 4px rgba(20, 30, 55, 0.18);
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition: opacity 0.15s ease;
+
+  z-index: 3;
+}
+
+
+.doc-photo-frame-wrap:hover .doc-photo-toolbar {
+  opacity: 1;
+
+  pointer-events: auto;
+}
+
+
+.doc-photo-align-btn {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 20px;
+
+  height: 20px;
+
+  border: none;
+
+  border-radius: 3px;
+
+  background: transparent;
+
+  color: #667085;
+
+  cursor: pointer;
+}
+
+
+.doc-photo-align-btn:hover {
+  background: #eefaf7;
+
+  color: #14b8a6;
+}
+
+
+.doc-photo-align-btn.active {
+  background: #d7f3ee;
+
+  color: #0f9c8c;
+}
+
+
+.doc-photo-frame {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  /* visible, not hidden — a manually-resized frame's dimensions always
+     exactly match its photo's aspect ratio (see ResizableImageFrame.jsx),
+     so nothing needs clipping, and the resize handle below sits just
+     outside the frame's own edge. */
+  overflow: visible;
+
+  background: #ffffff;
+}
+
+
+.doc-photo-frame.is-resizing {
+  outline: 1.5px dashed #14b8a6;
+
+  outline-offset: 2px;
+}
+
+
+.doc-photo-img {
+  max-width: 100%;
+
+  max-height: 100%;
+
+  object-fit: contain;
+
+  display: block;
+}
+
+
+/* The "just like Word" corner resize handle — invisible until the photo is
+   hovered (or actively being dragged), so it never reads as a permanent UI
+   element on a document meant to look printed. Never appears in the
+   exported .docx — this is purely an on-screen editing affordance. */
+.doc-photo-resize-handle {
+  position: absolute;
+
+  right: -5px;
+
+  bottom: -5px;
+
+  width: 12px;
+
+  height: 12px;
+
+  border-radius: 3px;
+
+  border: 1.5px solid #ffffff;
+
+  background: #14b8a6;
+
+  cursor: nwse-resize;
+
+  touch-action: none;
+
+  opacity: 0;
+
+  transition: opacity 0.15s ease;
+
+  z-index: 2;
+}
+
+
+.doc-photo-frame:hover .doc-photo-resize-handle,
+.doc-photo-frame.is-resizing .doc-photo-resize-handle {
+  opacity: 1;
+}
+
+
+.doc-photo-caption {
+  display: block;
+
+  margin-top: 4px;
+
+  text-align: center;
+
+  font-size: 10.5px;
+
+  font-style: italic;
+
+  white-space: pre-line;
+
+  color: #333333;
+}
+
+
+/* A wrapped 2-line caption should still read as belonging to its photo —
+   follow the same left/center/right choice as the image above it. */
+.doc-photo-align-left .doc-photo-caption {
+  text-align: left;
+}
+
+
+.doc-photo-align-right .doc-photo-caption {
+  text-align: right;
+}
+
+
+/* The whole box's auto-numbered "Abb. N …" caption (see testReportDocData
+   .js's buildCaptions) — the number is a plain non-editable label; the
+   descriptive text after it is a real editable field (never looks like a
+   form control until hovered/focused) whose edits are exactly what the
+   downloaded .docx shows too. */
+.doc-photo-groupcaption-wrap {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 4px;
+
+  margin-top: 8px;
+
+  padding: 0 2px;
+}
+
+
+.doc-photo-groupcaption-number {
+  flex-shrink: 0;
+
+  padding-top: 3px;
+
+  font-size: 10.5px;
+
+  font-style: italic;
+
+  color: #1a1a1a;
+
+  white-space: nowrap;
+}
+
+
+.doc-photo-groupcaption {
+  flex: 1;
+
+  resize: none;
+
+  overflow: hidden;
+
+  border: 1px solid transparent;
+
+  border-radius: 4px;
+
+  background: transparent;
+
+  font-family: inherit;
+
+  font-size: 10.5px;
+
+  font-style: italic;
+
+  line-height: 1.4;
+
+  color: #1a1a1a;
+
+  padding: 2px 4px;
+}
+
+
+.doc-photo-groupcaption:hover {
+  border-color: #e1e5ec;
+}
+
+
+.doc-photo-groupcaption:focus {
+  outline: none;
+
+  border-color: #14b8a6;
+
+  background: #ffffff;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
+}
+
+
+/* Bearbeiter's uploaded signature, shown above the name in the signature
+   block (the form never previews it — this is the one place it appears). */
+.doc-signature-img {
+  display: block;
+
+  /* Larger than before (was 220x70) — a signature scan/photo is almost
+     always line art, and downscaling it into a small box made thin pen
+     strokes look muddy/pixelated. Giving it more room to render at closer
+     to its native resolution reads noticeably sharper on screen. */
+  max-width: 320px;
+
+  max-height: 110px;
+
+  object-fit: contain;
+
+  image-rendering: -webkit-optimize-contrast;
+
+  margin-bottom: 4px;
+}
+
+
+/* =========================================
+   IMAGE SLOTS / FIGURES
+========================================= */
+
+.doc-figure {
+  margin: 0 0 16px;
+}
+
+
+.doc-figure-row {
+  display: grid;
+
+  grid-template-columns: repeat(var(--doc-figure-count, 2), 1fr);
+
+  gap: 16px;
+}
+
+
+.doc-figure--portrait .doc-figure-row {
+  grid-template-columns: 1fr;
+
+  max-width: 30%;
+}
+
+
+.doc-figure--small .doc-image-slot {
+  aspect-ratio: 4 / 3;
+}
+
+
+.doc-image-slot {
+  position: relative;
+
+  aspect-ratio: 4 / 3;
+
+  min-height: 90px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  border: 1.5px dashed #ccc;
+
+  border-radius: 3px;
+
+  background: #fafafa;
+
+  color: #9a9a9a;
+
+  font-size: 10.5px;
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+
+.doc-image-slot:hover,
+.doc-image-slot.dragover {
+  border-color: #999;
+
+  background: #f2f2f2;
+}
+
+
+.doc-image-slot.has-image {
+  cursor: default;
+
+  border-style: solid;
+
+  border-color: #ddd;
+
+  background: #ffffff;
+}
+
+
+.doc-image-slot-preview {
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: cover;
+
+  display: block;
+}
+
+
+.doc-image-slot-remove {
+  position: absolute;
+
+  top: 4px;
+
+  right: 4px;
+
+  width: 20px;
+
+  height: 20px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: none;
+
+  border-radius: 4px;
+
+  background: rgba(0, 0, 0, 0.55);
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  opacity: 0;
+
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+
+.doc-image-slot:hover .doc-image-slot-remove {
+  opacity: 1;
+}
+
+
+.doc-image-slot-remove:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+
+.doc-image-slot-meta {
+  position: absolute;
+
+  bottom: 0;
+
+  left: 0;
+
+  right: 0;
+
+  padding: 3px 6px;
+
+  background: rgba(255, 255, 255, 0.9);
+
+  color: #666;
+
+  font-size: 9px;
+
+  text-align: center;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+
+.doc-figure-caption {
+  display: block;
+
+  width: 100%;
+
+  margin-top: 8px;
+
+  padding: 2px 4px;
+
+  border: 1px solid transparent;
+
+  border-radius: 3px;
+
+  background: transparent;
+
+  outline: none;
+
+  text-align: center;
+
+  font-size: 11px;
+
+  font-style: italic;
+
+  color: #666;
+
+  font-family: inherit;
+
+  box-sizing: border-box;
+
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+
+.doc-figure-caption:hover {
+  background: #fafafa;
+}
+
+
+.doc-figure-caption:focus {
+  background: #ffffff;
+
+  border-color: #bbb;
+}
+
+
+/* Fixed page width/height by design (see .doc-page above) — like
+   DocPreview.jsx's own .dp-page, this doesn't reflow at narrow viewports;
+   .doc-preview-surface scrolls horizontally instead of shrinking the sheet,
+   so a real A4 page and its offscreen measuring pass always agree on how
+   text wraps. */

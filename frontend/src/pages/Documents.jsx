@@ -15,6 +15,7 @@ import { fetchKbSpecification } from "../components/Calculation/kbLookup";
 import OfferDetails from "../components/OfferDetails/OfferDetails";
 import { buildOfferDetailsRows, computePreisGesamt } from "../components/OfferDetails/offerDetailsRows";
 import DocPreview from "../components/DocPreview/DocPreview";
+import { createTestReport, deleteTestReport, getTestReportByDocumentId } from "../components/TestReport/testReportsApi";
 import { BACKEND_URL } from "../config";
 
 const MAX_IMAGES = 4;
@@ -50,9 +51,17 @@ const makeEmptySlot = (slot) => ({
   // Documents' "Specification" column and the Schichtdicke auto-fill
   // fallback below; never required for the rest of the workflow to work.
   kbSpecification: null,
+  // Whether a Test Report is currently linked to this slot's document —
+  // drives Document Preview's "Test erforderlich" checkbox. Starts false
+  // (matches a genuinely new, never-checked document); resolved to the
+  // real answer by the "does this document have a report" check below the
+  // moment its documentId is known, so reopening a document that already
+  // had one checked shows it checked again instead of resetting.
+  hasTestReport: false,
+  testReportId: null,
 });
 
-const Documents = ({ onDocumentsChanged, openDocumentId }) => {
+const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) => {
   const [images, setImages] = useState([makeEmptySlot(1)]);
   const [activeSlot, setActiveSlot] = useState(1);
 
@@ -92,6 +101,33 @@ const Documents = ({ onDocumentsChanged, openDocumentId }) => {
   }, []);
 
   const activeImage = images.find((img) => img.slot === activeSlot) ?? images[0];
+
+  // Whether the active slot's document already has a Test Report linked to
+  // it — resolved fresh whenever the active document changes (including
+  // right after "Open in Workspace" hydration sets it), so Document
+  // Preview's "Test erforderlich" checkbox reflects reality (checked for a
+  // document a report was already created for in the past) instead of
+  // always starting unchecked. Cheap, idempotent GET — re-running it on
+  // every switch back to an already-checked slot is fine.
+  useEffect(() => {
+    const documentId = activeImage.documentId;
+    const slot = activeImage.slot;
+    if (!documentId) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const report = await getTestReportByDocumentId(documentId);
+        if (!cancelled) updateSlot(slot, { hasTestReport: !!report, testReportId: report?.id ?? null });
+      } catch {
+        // Backend unreachable — leave whatever the slot already had rather
+        // than guessing; the checkbox just keeps its last-known state.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeImage.documentId]);
 
   // UploadFile now processes a whole batch of dropped drawings through one
   // continuous async loop (see its processDrawingFiles) — the closures it
@@ -153,12 +189,15 @@ const Documents = ({ onDocumentsChanged, openDocumentId }) => {
   // Company Name / Address / Offer Number / Enquiry Date from Firma
   // Information — shared across every image of the offer (not per-slot),
   // fed into Document Preview's Projekt / recipient address / Angebot Nr.
-  // All four keys are seeded up front (not `{}`) so every FirmaInformation
+  // All five keys are seeded up front (not `{}`) so every FirmaInformation
   // input starts life as a real controlled input — starting a field at
   // `undefined` and only assigning it a real value later (e.g. Enquiry
   // Date auto-filling once an email links) trips React's "uncontrolled to
-  // controlled" warning.
-  const [firmaInfo, setFirmaInfo] = useState({ companyName: "", address: "", offerNumber: "", enquiryDate: "" });
+  // controlled" warning. `name` feeds Document Preview's recipient name
+  // line and salutation (see DocPreview.jsx) — added after the other four,
+  // so an older saved record without it just falls back to "" via the
+  // spread default below, same as any other field would.
+  const [firmaInfo, setFirmaInfo] = useState({ companyName: "", name: "", address: "", offerNumber: "", enquiryDate: "" });
 
   // Weight / Coating Thickness / Spec. Gewicht for the active slot, parsed
   // straight from its own AI extraction — see Calculation's matching
@@ -197,6 +236,91 @@ const Documents = ({ onDocumentsChanged, openDocumentId }) => {
     () => parseOfferDetailsFields(activeImage.extraction.summary),
     [activeImage.extraction.summary]
   );
+
+  // "Test erforderlich" in Document Preview — creates a Test Report draft
+  // linked to this slot's document, prefilled with whatever's already
+  // known (part name, drawing number, norm) plus a KB-derived cycle-count
+  // guess when the norm resolves to one. Only the cycle count is
+  // trustworthy enough to auto-fill this way — see the Test Report
+  // feature's own design notes for why the rest (Stück, Prüfung, exact
+  // "Zwischenbewertung" checkpoints) stays for the user to fill in by
+  // hand. Turning it back OFF deletes that draft (both directions now
+  // stay in sync with the checkbox — a document's checkbox state and
+  // whether it actually has a report can never drift apart), so a later
+  // re-check always starts a genuinely fresh record, never a resurrected
+  // old one.
+  const handleTestRequiredChange = async (checked) => {
+    if (!activeImage.documentId) return;
+    const slot = activeImage.slot;
+
+    if (!checked) {
+      const reportId = activeImage.testReportId;
+      updateSlot(slot, { hasTestReport: false, testReportId: null });
+      if (reportId) {
+        try {
+          await deleteTestReport(reportId);
+          onTestReportCreated?.();
+        } catch {
+          // Best-effort, same as the create path below — the checkbox
+          // already reflects the user's choice either way.
+        }
+      }
+      return;
+    }
+
+    const parsed = extractedOfferFields;
+    let durationCycles = "60";
+    try {
+      const kbSpec = await fetchKbSpecification(parsed.lackiervorschrift);
+      if (kbSpec) {
+        const cycles = (kbSpec.keyFacts || [])
+          .filter((fact) => fact.label === "cyclic_corrosion_cycles")
+          .map((fact) => Number(fact.value))
+          .filter((n) => Number.isFinite(n));
+        if (cycles.length) durationCycles = String(Math.max(...cycles));
+      }
+    } catch {
+      // KB lookup failed/unreachable — fall back to the default duration,
+      // same "never block on this" rule kbLookup.js's own caller follows.
+    }
+
+    try {
+      const created = await createTestReport({
+        documentId: activeImage.documentId,
+        testObject: parsed.teilebezeichnung || "",
+        norm: parsed.lackiervorschrift || "",
+        wizardState: {
+          reportInfo: { testObjectPart: parsed.teilebezeichnung || "" },
+          // Test Sample / Pattern (Subject / Test Task) mirrors Test Object
+          // / Part (Report Information) at prefill time — both name the
+          // same physical part, just shown on two different cards, so
+          // whatever the AI read for one is exactly what the other starts
+          // as too. surfaceProtectionType mirrors the same extracted norm
+          // used for the top-level `norm` column above — without this it
+          // silently fell back to the wizard's own generic hardcoded
+          // default (VW 13750 Ofi-x634) instead of the part's real,
+          // AI-read coating spec.
+          subjectTask: {
+            testSample: parsed.teilebezeichnung || "",
+            drawingNo: parsed.zeichnungsnummer || "",
+            surfaceProtectionType: parsed.lackiervorschrift || "",
+          },
+          durationCycles,
+        },
+      });
+      updateSlot(slot, { hasTestReport: true, testReportId: created.id });
+      // Test Report Overview's list lives in App.jsx (survives switching
+      // pages, same as documentRecords) — without this, the new draft sits
+      // in the database correctly but Overview keeps showing its
+      // last-fetched list until something else happens to refresh it (a
+      // full reload, or opening/saving a report), which reads as "it
+      // didn't work" even though it did.
+      onTestReportCreated?.();
+    } catch {
+      // Best-effort — nothing about the offer/document flow depends on
+      // this succeeding; Overview just won't show a new draft this time.
+    }
+  };
 
   // Document Preview's pricing block, one entry per image slot. The active
   // slot's own OfferDetails instance keeps `offerDetailsRows` fresh live (as
@@ -679,7 +803,7 @@ const Documents = ({ onDocumentsChanged, openDocumentId }) => {
 
         setImages(hydrated.length > 0 ? hydrated : [makeEmptySlot(1)]);
         setActiveSlot(1);
-        setFirmaInfo({ companyName: "", address: "", offerNumber: "", enquiryDate: "", ...data.firmaInfo });
+        setFirmaInfo({ companyName: "", name: "", address: "", offerNumber: "", enquiryDate: "", ...data.firmaInfo });
         setHydrationVersion((v) => v + 1);
       } catch {
         // Backend unreachable — workspace just stays as it was.
@@ -779,6 +903,8 @@ const Documents = ({ onDocumentsChanged, openDocumentId }) => {
         firmaInfo={firmaInfo}
         offerDetailsRowsList={offerDetailsRowsList}
         angebotsgueltigkeitDigits={activeImage.offerValues?.angebotsgueltigkeit}
+        onTestRequiredChange={handleTestRequiredChange}
+        testRequired={activeImage.hasTestReport}
       />
     </main>
   );

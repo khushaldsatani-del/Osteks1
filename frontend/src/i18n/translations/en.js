@@ -12,6 +12,9 @@ export default {
   sidebar: {
     workPlace: "Work Place",
     allDocuments: "All Documents",
+    testReport: "Test Report",
+    testReportOverview: "Overview",
+    testReportGenerate: "Generate Report",
     language: "Language",
   },
 
@@ -96,6 +99,8 @@ export default {
     title: "Firma Information",
     companyName: "Company Name",
     enterCompanyName: "Enter Company Name",
+    name: "Name",
+    enterName: "Enter contact person's name (e.g. Mr. Könsgen)",
     address: "Address",
     enterAddress: "Enter Address of company\n(one line per address line)",
     offerNumber: "Offer Number",
@@ -192,6 +197,7 @@ export default {
     downloadAsPdf: "Download as PDF",
     withSpecification: "With Specification",
     withoutSpecification: "Without Specification",
+    testRequired: "Test required",
     filenamePdf: "Offer.pdf",
     filenameDocx: "Offer.docx",
     oneTimeSuffix: "one-time",
@@ -207,8 +213,9 @@ export default {
     sortPricePerStk: "Price per stk",
     tabAll: "All",
     tabPdf: "PDF",
-    tabStep: "STEP",
     tabImage: "Image",
+    tabEmail: "Email",
+    tabEmailImage: "Email + Image",
     csvFilename: "uploaded-files.csv",
     csvFileName: "File Name",
     csvNorm: "Norm",
@@ -287,5 +294,270 @@ export default {
     downloadAttachment: "Download {fileName}",
     downloadOriginalEmail: "Download Original Email ({fileName})",
     couldNotLoad: "Could not load this email.",
+  },
+
+  testReportOverview: {
+    title: "Test Reports",
+    subtitle: "Overview of all created reports",
+    searchLabel: "Search report",
+    searchPlaceholder: "Name, test procedure or keyword ...",
+    reportNoLabel: "Report No.",
+    reportNoPlaceholder: "Report No. ...",
+    dateFromLabel: "Date from",
+    dateToLabel: "Date to",
+    searchButton: "Search",
+    resetButton: "Reset",
+    colNo: "No.",
+    colReportNo: "Report No.",
+    colProcedure: "Test Procedure",
+    colObject: "Test Object",
+    colTestDate: "Test Date",
+    colCreatedAt: "Created On",
+    colStatus: "Status",
+    statusCreated: "Created",
+    statusPending: "Pending",
+    colActions: "Actions",
+    view: "View",
+    download: "Download",
+    delete: "Delete",
+    noResults: "No reports match your search.",
+    rangeLabel: "{start} – {end} of {total} reports",
+    perPage: "{size} / page",
+  },
+
+  testReport: {
+    pageTitle: "Create New Test Report",
+    loadingReport: "Loading test report…",
+
+    stepBasicInfo: "Basic Information",
+    stepTestConditions: "Test Conditions",
+    stepResults: "Results",
+    stepEvaluation: "Evaluation",
+    stepPreviewExport: "Preview & Export",
+
+    sectionBasicInfo: "1. Basic Information – Test Object",
+
+    reportInfoTitle: "Report Information",
+    reportNo: "Report No.",
+    description: "Description",
+    testStartDate: "Test Start Date",
+    testObjectPart: "Test Object / Part",
+    sampleReceivedDate: "Sample Received Date",
+    plannedTestEndDate: "Planned Test End Date",
+
+    subjectTaskTitle: "Subject / Test Task",
+    testSamplePattern: "Test Sample / Pattern",
+    partNo: "Part No.",
+    drawingNoOptional: "Drawing No. (optional)",
+    enterDrawingNo: "Enter drawing number",
+    quantity: "Quantity",
+    material: "Material",
+    surfaceProtectionType: "Surface / Protection Type",
+
+    tests: "Tests",
+    addTest: "Add Test",
+    removeTest: "Remove test",
+    testPlaceholder: "Enter test description",
+
+    createdBy: "Created By",
+    signature: "Signature",
+    uploadSignature: "Upload signature",
+
+    placeholderSelect: "Select",
+    orTypeYourOwn: "select or type your own",
+
+    sectionTestConditions: "2. Test Conditions",
+    general: "General",
+    testMethod: "Test Method",
+    testDurationCycles: "Test Duration (Cycles)",
+    testPeriod: "Test Period",
+    oneCycleConsistsOf: "One Test Cycle (24 h) consists of:",
+    restPeriodNote: "After every 5 cycles, a 2-day rest period at normal climate according to ISO 554-23/50 is performed.",
+    uploadImageBeforeTesting: "Upload image before testing",
+
+    sectionResults: "3. Results",
+    testResults: "Test Results",
+    colNo: "No.",
+    colCriteria: "Criteria",
+    colObservation: "Observation / Result",
+    colRequirement: "Requirement",
+    colAssessment: "Assessment",
+
+    conditionAfterCycles: "Condition after {count} cycles",
+    uploadImages: "Upload images",
+    // "Before test" / "After test" everywhere they're used as a photo-slot
+    // label (per-cycle uploads, delamination cards, Cross-cut Test,
+    // BeforeTestingUploader) — Front part / Back part reads better across
+    // all of those than a literal before/after-the-test framing does.
+    beforeTest: "Front part",
+    clickToUpload: "Click to upload",
+    uploadingImage: "Uploading…",
+    orDragDrop: "or drag and drop",
+    uploadFormats: "JPG, PNG, TIFF (max 10 MB)",
+    replaceImage: "Replace image",
+    removeImage: "Remove image",
+    swapImages: "Swap images",
+    noteTitle: "Note",
+    noteBullet1: "Upload clear, high-resolution images.",
+    noteBullet2: "Make sure the same area is photographed.",
+    noteBullet3: "Supported formats: JPG, PNG, TIFF.",
+    noteBullet4: "Maximum file size: 10 MB per image.",
+
+    delaminationTitle: "Delamination (undermining) at the scratch line",
+    verfahren: "Procedure",
+    uploadImage: "Upload Image",
+    afterTest: "Back part",
+    delaminationValueLabel: "D =",
+    delaminationBeforeExample: "Example: 0.71 mm",
+    delaminationAfterExample: "Example: 0.5 mm",
+    delaminationNote: "Upload clear, high-resolution images of the scratch area before and after testing. Supported formats: JPG, PNG, TIFF. Maximum file size: 10 MB per image.",
+    addDelaminationMeasurement: "Add Delamination Measurement",
+    cycleLabel: "Cycle",
+    enterCycle: "Enter cycle",
+    add: "Add",
+    cycleChip: "Cycle {cycle}",
+    closeSection: "Close",
+
+    crosscutTitle: "Cross-cut Test",
+    crosscutRailCorrosion: "Cross-cut Test – Corrosion",
+    crosscutRailCondensation: "Cross-cut Test – Condensation",
+    crosscutUploadFor: "Upload cross-cut image for {test}",
+    crosscutGrade: "Result (Gt-class)",
+    crosscutGradePlaceholder: "e.g. 1x Gt0",
+    description: "Description",
+    crosscutDescriptionPlaceholder: "Describe the cross-cut result (e.g. classification, flaking, edge detachment)",
+
+    colDuration: "Test Duration (Cycles)",
+    colResult: "Result",
+    colRequirementSpec: "Requirements / Specification",
+    cyclesUnit: "Cycles",
+    evaluationNote: "Requirements are loaded automatically based on the selected specification.",
+    overallAssessment: "Assessment",
+    overallAssessmentPlaceholder: "Overall assessment / conclusion for this evaluation",
+    eval1Heading: "1. Corrosion Change Test PV 1210 Rev. 2016-02",
+    eval2Heading: "2. Condensation Constant Climate Test",
+    eval2ColResult: "Result after 240h Condensation Constant Climate per DIN EN ISO 6270-2",
+    eval2ColRequirement: "Requirements for Ofl X-633 per TL 227",
+    fulfilledShort: "Fulfilled",
+    notFulfilledShort: "Not Fulfilled",
+
+    back: "Back",
+    next: "Next",
+    finish: "Finish",
+
+    comingSoonTitle: "This step isn't built out yet",
+    comingSoonBody: "Basic Information is fully wired up — the remaining steps follow the same design once their fields are specified.",
+
+    // Dropdown option labels — the stored value (used everywhere else,
+    // including the fixed-German Preview/Word export) stays as originally
+    // authored; only the label shown in this wizard's dropdown switches
+    // with the UI language.
+    materialBlackSheetSteel: "Black Sheet Steel",
+    materialAluminum: "Aluminum",
+    materialGalvanizedSteel: "Galvanized Steel",
+
+    // One Test Cycle card (Step 2) — reference content, fully reactive to
+    // the language toggle (not a one-time seed) since none of it is
+    // user-editable.
+    cyclePhaseSaltSprayTitle: "Salt Spray Test",
+    cyclePhaseNormalClimateTitle: "Normal Climate",
+    cyclePhaseHumidityHeatFlowTitle: "Humidity / Heat Storage (CH)",
+    cyclePhaseHumidityHeatTitle: "Condensation Water Constant Climate",
+    labelTestSolution: "Test Solution",
+    labelPhValue: "pH Value",
+    labelTemperature: "Temperature",
+    labelSprayRate: "Spray Rate",
+    labelRelativeHumidity: "Relative Humidity",
+    labelDuration: "Duration",
+    cyclePhaseHumidityValue: "close to 100 % with condensation",
+
+    // Condensation Water Constant Climate card (Step 2)
+    cwtTitle: "Condensation Water Constant Climate Test ({duration})",
+    cwtSubtitle: "Examination / Examination Results",
+    testDuration: "Test Duration",
+    testParts: "Test Parts",
+    testConditionsLabel: "Test Conditions",
+    labelRelativeHumidityShort: "Rel. Humidity",
+    cwtConditionsHumidityValue: "close to 100 % with condensation of the samples (>96 %)",
+    equipmentTitleLabel: "Equipment",
+    cwtEquipmentLine1: "Corrosion test device SKBWF-C 1000 A-TR",
+    cwtEquipmentLine2: "by Gebr. Liebisch GmbH Co. KG",
+    periodBeginLabel: "Start",
+    periodEndLabel: "End",
+    periodTotalLabel: "Total Duration",
+    requirementsTitleLabel: "Specifications / Requirements",
+    cwtReq1: "No blistering",
+    cwtReq2: "No base metal corrosion",
+    cwtReq3Text: "Cross-cut test according to DIN EN ISO 2409",
+    cwtReq3Note: "Requirement: rating ≤ 1",
+    sampleUnitsSuffix: "sample parts",
+
+    // Results rail (Step 3)
+    railOverview: "Overview",
+    railCyclesLabel: "{cycles} Cycles",
+    railConstantClimate: "Constant Climate Test",
+
+    // Results' own "Overview" rail item — a summary of every checkpoint run
+    // so far, reusing Evaluation's Result text/each cycle's worst
+    // Pass/Fail/Conditional verdict/any triggered delamination reading.
+    overviewActualCycles: "Actual Cycles Performed",
+    overviewStartDate: "Start Date",
+    overviewEndDate: "End Date",
+    overviewResultsHeading: "Results at Defined Intervals",
+    overviewColCycles: "Cycles",
+    overviewColObservation: "Observation / Result",
+    overviewColDelamination: "Delamination (mm)",
+    overviewColRequirement: "Requirement (max.)",
+    overviewColAssessment: "Assessment",
+    overviewNoCycles: "No cycle checkpoints yet — pick a Test Duration in Test Conditions.",
+
+    // Default inspection rows (Step 3) — criteria/requirement columns are
+    // plain text (not editable), so these stay fully reactive; only
+    // Observation is a seeded starting suggestion the tester overwrites.
+    inspectionCriteriaBlisters: "Blisters",
+    inspectionCriteriaZincCorrosion: "Zinc corrosion",
+    inspectionCriteriaBaseMetalCorrosion: "Base metal corrosion",
+    inspectionCriteriaCoatingCondition: "Coating condition",
+    inspectionCriteriaOthers: "Others",
+    inspectionReqNoBlisters: "No blisters",
+    inspectionReqNoZincCorrosion: "No zinc corrosion",
+    inspectionReqNoRelevantChanges: "No relevant changes",
+
+    assessmentPass: "Pass",
+    assessmentFail: "Fail",
+    assessmentConditional: "Conditional",
+
+    crosscutAssignCorrosion: "Corrosion Change Test PV 1210 Rev. 2016-02",
+    crosscutAssignCondensation: "Condensation Water Constant Climate Test",
+
+    // Evaluation seed text (Step 4) — both AutoTextarea fields are
+    // user-editable, so these are only the starting suggestion typed in
+    // when the wizard first mounts, seeded in whichever language is active
+    // at that moment (like any other freeform default text).
+    evalSeed5Result: "No changes to the surface of the KTL coating",
+    evalSeed5Requirement: "No changes to the surface, including cut edges and weld seams",
+    evalSeed15Result: "No changes to the surface of the KTL coating - no blistering - no zinc corrosion on the surface or cut edges",
+    evalSeed15Requirement: "No change to the surface including cut edges; isolated base metal corrosion at weld seams permitted",
+    evalSeed30Result: "No changes to the surface of the KTL coating - no blistering - no zinc corrosion on the surface or cut edges\nDelamination at the scribe line 1.41 mm\n1x Gt0",
+    evalSeed30Requirement: "No blistering and no zinc corrosion on the surface outside the scribe line; isolated base metal corrosion at cut edges and weld seams up to 1.5 mm width permitted; delamination at the scribe line up to 1.5 mm permitted",
+    evalSeed60Requirement: "No blistering and no zinc corrosion on the surface outside the scribe line; slight blistering and zinc corrosion at the cut edges permitted",
+    evalTable2BlistersRequirement: "No blisters",
+    evalTable2CorrosionRequirement: "No base metal corrosion",
+    evalTable2CrosscutRequirement: "Cross-cut test according to DIN EN ISO 2409 Gt ≤ 1",
+
+    // Basic Information seed defaults (Step 1) — freeform editable fields,
+    // seeded in whichever language is active when the wizard first mounts.
+    initialDescription: "for performing the Corrosion Change Test 60 cycles according to PV 1210 + Condensation Water Constant Climate according to DIN EN ISO 6270-2 CH",
+    initialTestObjectPart: "Assy Bracket Aggregate Carrier",
+    initialTest1: "Corrosion change test according to VW PV 1210",
+    initialTest2: "Condensation water constant climate test according to DIN EN ISO 6270-2 CH",
+
+    // Created By seed/suggestion names — same three people, salutation
+    // localized (Mr./Mrs. here, Herr/Frau in German) so the Bearbeiter line
+    // in the exported document reads naturally in whichever language the
+    // report was generated in.
+    createdByBreitfeld: "Mr. Breitfeld",
+    createdByScholz: "Mr. Scholz",
+    createdByWeber: "Mrs. Weber",
   },
 };

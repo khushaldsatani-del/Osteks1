@@ -1,0 +1,2962 @@
+/* =========================================
+   TEST REPORT — matches calculation.css /
+   docPreview.css theme exactly: same card
+   shell (#ffffff, #e3e7ef border, 18px radius,
+   two-layer soft shadow), same icon badge
+   (26px, 8px radius, teal #0f8a7c on #e1f7f3),
+   same field styling (36px inputs, 9px radius,
+   #e1e5ec border, teal focus glow), same
+   button pair (outline "Back" / solid teal
+   "Next") already used for Download as .doc /
+   .pdf in docPreview.css.
+========================================= */
+
+.testreport-page {
+  width: 100%;
+  min-width: 0;
+}
+
+
+.testreport-page-title {
+  font-size: 17px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0 0 18px;
+}
+
+
+.testreport-loading {
+  padding: 40px 0;
+
+  text-align: center;
+}
+
+
+.testreport-loading-text {
+  font-size: 13.5px;
+
+  color: #626b7c;
+
+  margin: 0 0 16px;
+}
+
+
+.testreport-loadingbar-track {
+  width: 100%;
+
+  max-width: 360px;
+
+  height: 8px;
+
+  margin: 0 auto;
+
+  border-radius: 999px;
+
+  background: #e1e5ec;
+
+  overflow: hidden;
+}
+
+
+.testreport-loadingbar-fill {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(120deg, #0f8a7c 0%, #14b8a6 45%, #0f8a7c 100%);
+
+  background-size: 220% 100%;
+
+  transition: width 0.16s linear;
+
+  animation: progress-btn-liquid 1.1s ease-in-out infinite;
+}
+
+
+/* =========================================
+   STEPPER
+========================================= */
+
+.testreport-stepper {
+  display: flex;
+
+  align-items: flex-start;
+
+  margin-bottom: 22px;
+}
+
+
+.testreport-step {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+
+.testreport-step-circle {
+  width: 30px;
+
+  height: 30px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  font-size: 12.5px;
+
+  font-weight: 700;
+
+  background: #ffffff;
+
+  border: 1.5px solid #d7dbe4;
+
+  color: #8992a1;
+
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+
+.testreport-step-circle.active {
+  background: #14b8a6;
+
+  border-color: #14b8a6;
+
+  color: #ffffff;
+}
+
+
+.testreport-step-circle.done {
+  background: #e1f7f3;
+
+  border-color: #14b8a6;
+
+  color: #0f8a7c;
+}
+
+
+.testreport-step-label {
+  font-size: 12.5px;
+
+  font-weight: 600;
+
+  color: #8992a1;
+
+  white-space: nowrap;
+}
+
+
+.testreport-step-label.active {
+  color: #1c2333;
+}
+
+
+.testreport-step-connector {
+  flex: 1;
+
+  height: 1.5px;
+
+  background: #d7dbe4;
+
+  margin: 0 14px;
+
+  min-width: 24px;
+
+  align-self: center;
+}
+
+
+.testreport-step-btn {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  background: none;
+
+  border: none;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-family: inherit;
+}
+
+
+/* =========================================
+   SECTION HEADING
+========================================= */
+
+.testreport-section-title {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  font-size: 14.5px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0 0 16px;
+}
+
+
+.testreport-section-icon {
+  width: 24px;
+
+  height: 24px;
+
+  border-radius: 7px;
+
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================
+   CARD (reuses calc-card's exact shell)
+========================================= */
+
+.testreport-card {
+  background: #ffffff;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+
+  box-sizing: border-box;
+
+  padding: 18px 20px 20px;
+
+  margin-bottom: 18px;
+}
+
+
+.testreport-card-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 16px;
+}
+
+
+.testreport-card-icon {
+  width: 26px;
+
+  height: 26px;
+
+  border-radius: 8px;
+
+  background: #e1f7f3;
+
+  color: #0f8a7c;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+
+.testreport-card-title {
+  font-size: 13.5px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0;
+
+  flex: 1;
+}
+
+
+.testreport-collapse-btn {
+  background: none;
+
+  border: none;
+
+  padding: 4px;
+
+  cursor: pointer;
+
+  color: #8992a1;
+
+  display: flex;
+
+  align-items: center;
+
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+
+.testreport-collapse-btn:hover {
+  color: #0f8a7c;
+}
+
+
+.testreport-collapse-btn.collapsed {
+  transform: rotate(180deg);
+}
+
+
+/* Distinct from the collapse chevron — this actually closes the card back
+   to its "Add Delamination Measurement" button, rather than just hiding
+   the body while the card itself stays. */
+.testreport-close-btn {
+  background: none;
+
+  border: none;
+
+  padding: 4px;
+
+  margin-left: 2px;
+
+  cursor: pointer;
+
+  color: #8992a1;
+
+  display: flex;
+
+  align-items: center;
+
+  transition: color 0.15s ease, background 0.15s ease;
+
+  border-radius: 6px;
+}
+
+
+.testreport-close-btn:hover {
+  color: #b3261e;
+
+  background: #fdecea;
+}
+
+
+/* =========================================
+   FORM GRID — 3 columns, same gap/field
+   styling as calc-form-grid.
+========================================= */
+
+.testreport-grid-3 {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 14px 16px;
+}
+
+
+.testreport-grid-4 {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 14px 16px;
+}
+
+
+.testreport-grid-3 + .testreport-grid-3,
+.testreport-grid-4 + .testreport-grid-3,
+.testreport-tests + .testreport-grid-4 {
+  margin-top: 14px;
+}
+
+
+.testreport-grid-2 {
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+
+  gap: 14px 16px;
+
+  margin-top: 16px;
+}
+
+
+.testreport-field {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  min-width: 0;
+}
+
+
+.testreport-field label {
+  font-size: 11px;
+
+  font-weight: 600;
+
+  color: #626b7c;
+}
+
+
+.testreport-field input {
+  height: 36px;
+
+  padding: 0 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+
+  font-family: inherit;
+
+  color: #262e3d;
+
+  background: #ffffff;
+
+  outline: none;
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.testreport-field input::placeholder {
+  color: #a4abb9;
+}
+
+
+.testreport-field input:focus {
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+.testreport-field textarea {
+  min-height: 84px;
+
+  padding: 10px 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+
+  font-family: inherit;
+
+  color: #262e3d;
+
+  background: #ffffff;
+
+  outline: none;
+
+  width: 100%;
+
+  resize: vertical;
+
+  box-sizing: border-box;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.testreport-field textarea::placeholder {
+  color: #a4abb9;
+}
+
+
+.testreport-field textarea:focus {
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+/* Report Information's "Description" field — same textarea element/style
+   as the per-cycle and Cross-cut Test "Description" fields, but starts at
+   this card's normal 36px single-line input height instead of their
+   taller min-height. Selector matches ".testreport-field textarea"'s own
+   specificity (class + element) so this override actually wins instead of
+   losing to that rule's min-height: 84px.
+   Text wraps normally and overflow scrolls vertically (no horizontal
+   scroll) with the scrollbar itself hidden — content still scrolls on
+   wheel/drag/keyboard, it just isn't shown as a visible bar. The user can
+   still grow the box themselves via the native resize handle
+   (resize: vertical) if one line isn't enough. */
+.testreport-field textarea.testreport-description-textarea {
+  height: 36px;
+
+  min-height: 36px;
+
+  padding: 8px 12px;
+
+  resize: vertical;
+
+  overflow-y: auto;
+
+  scrollbar-width: none; /* Firefox */
+
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+
+.testreport-field textarea.testreport-description-textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge (Chromium) */
+}
+
+
+.testreport-crosscut-description {
+  margin-top: 18px;
+}
+
+
+.testreport-crosscut-assignment {
+  max-width: 360px;
+
+  margin-bottom: 22px;
+}
+
+
+.testreport-crosscut-upload-label {
+  display: block;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  color: #26314a;
+
+  margin: 0 0 16px;
+}
+
+
+/* =========================================
+   TESTS LIST
+========================================= */
+
+.testreport-tests {
+  margin-top: 16px;
+}
+
+
+.testreport-tests-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 10px;
+}
+
+
+.testreport-tests-label {
+  font-size: 11px;
+
+  font-weight: 600;
+
+  color: #626b7c;
+}
+
+
+.testreport-add-test {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  background: none;
+
+  border: none;
+
+  padding: 0;
+
+  font-size: 11.5px;
+
+  font-weight: 600;
+
+  color: #0f8a7c;
+
+  cursor: pointer;
+}
+
+
+.testreport-add-test:hover {
+  color: #0c6f64;
+}
+
+
+/* Signature upload (Subject / Test Task) — a button, then a filename chip
+   once something's picked. No image preview, on purpose. */
+.testreport-signature-upload {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  height: 36px;
+
+  padding: 0 14px;
+
+  border: 1px dashed #c3c8d2;
+
+  border-radius: 8px;
+
+  background: #fbfcfe;
+
+  color: #52627d;
+
+  font-size: 12.5px;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+
+.testreport-signature-upload:hover {
+  border-color: #14b8a6;
+
+  color: #0f8a7c;
+}
+
+
+.testreport-signature-chip {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 8px;
+
+  height: 36px;
+
+  padding: 0 8px 0 12px;
+
+  border: 1px solid #d7f3ee;
+
+  border-radius: 8px;
+
+  background: #eefaf7;
+}
+
+
+.testreport-signature-name {
+  font-size: 12.5px;
+
+  color: #26314a;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.testreport-signature-remove {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 22px;
+
+  height: 22px;
+
+  border: none;
+
+  border-radius: 6px;
+
+  background: none;
+
+  color: #6b7688;
+
+  cursor: pointer;
+}
+
+
+.testreport-signature-remove:hover {
+  background: #d7f3ee;
+
+  color: #0f8a7c;
+}
+
+
+.testreport-test-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin-bottom: 8px;
+}
+
+
+.testreport-test-row input {
+  flex: 1;
+
+  height: 38px;
+
+  padding: 0 14px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+
+  font-family: inherit;
+
+  color: #262e3d;
+
+  background: #ffffff;
+
+  outline: none;
+
+  box-sizing: border-box;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.testreport-test-row input:focus {
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+.testreport-test-remove {
+  width: 34px;
+
+  height: 34px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: none;
+
+  color: #b3261e;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+
+.testreport-test-remove:hover {
+  background: #fdecea;
+}
+
+
+/* =========================================
+   TEST PERIOD (read-only, derived field)
+========================================= */
+
+.testreport-period-field {
+  height: 36px;
+
+  padding: 0 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+
+  color: #262e3d;
+
+  background: #f6f7fa;
+
+  box-sizing: border-box;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 8px;
+}
+
+
+.testreport-period-field svg {
+  color: #8992a1;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================
+   ONE TEST CYCLE — flow diagram + phase cards.
+   Three semantic colors (orange/blue/green) tell
+   the salt-spray/climate/humidity phases apart —
+   kept alongside the app's teal accent rather
+   than folded into it, same way status pills
+   elsewhere in this app (e.g. All Documents'
+   accepted/pending/send) use their own colors on
+   top of the shared card/input theme.
+========================================= */
+
+.testreport-cycle-heading {
+  font-size: 12.5px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0 0 14px;
+}
+
+
+.testreport-flow {
+  display: flex;
+
+  align-items: stretch;
+
+  gap: 10px;
+
+  margin-bottom: 16px;
+}
+
+
+.testreport-flow-box {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 4px;
+
+  text-align: center;
+
+  padding: 14px 12px;
+
+  border-radius: 12px;
+
+  border: 1px solid transparent;
+}
+
+
+.testreport-flow-box strong {
+  font-size: 12.5px;
+}
+
+
+.testreport-flow-standard {
+  font-size: 11px;
+
+  font-weight: 600;
+}
+
+
+.testreport-flow-duration {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  font-size: 11px;
+
+  color: #626b7c;
+
+  margin-top: 2px;
+}
+
+
+.testreport-flow-icon {
+  width: 34px;
+
+  height: 34px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  margin-bottom: 2px;
+}
+
+
+.testreport-flow-arrow {
+  display: flex;
+
+  align-items: center;
+
+  color: #b8bec9;
+
+  flex-shrink: 0;
+}
+
+
+.testreport-phase-card {
+  border-radius: 12px;
+
+  border: 1px solid #e3e7ef;
+
+  overflow: hidden;
+}
+
+
+.testreport-phase-card-header {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 2px;
+
+  padding: 12px 14px;
+}
+
+
+.testreport-phase-card-header strong {
+  font-size: 12.5px;
+}
+
+
+.testreport-phase-card-header span {
+  font-size: 11px;
+
+  font-weight: 600;
+}
+
+
+.testreport-phase-card-rows {
+  background: #ffffff;
+
+  padding: 4px 14px 12px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+
+.testreport-phase-card-row {
+  display: flex;
+
+  align-items: baseline;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  font-size: 11.5px;
+}
+
+
+.testreport-phase-card-row > span {
+  color: #626b7c;
+
+  flex-shrink: 0;
+}
+
+
+.testreport-phase-card-row > strong {
+  color: #262e3d;
+
+  font-weight: 600;
+
+  text-align: right;
+}
+
+
+/* Beginn/Ende in the Prüfzeitraum card — real inputs, not read-only text,
+   sized to sit inline in the same row a plain <strong> value would. */
+.testreport-phase-card-date-input {
+  height: 26px;
+
+  padding: 0 6px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 6px;
+
+  font-size: 11px;
+
+  font-family: inherit;
+
+  font-weight: 600;
+
+  color: #262e3d;
+
+  background: #ffffff;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.testreport-phase-card-date-input:focus {
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+/* Theme colors — orange (salt spray), blue (normal climate), green
+   (humidity/heat storage). Applied to both the flow box and its matching
+   detail card below, so the pairing reads as one phase at a glance. */
+
+.testreport-theme--orange.testreport-flow-box,
+.testreport-theme--orange .testreport-phase-card-header {
+  background: #fdf2e9;
+}
+
+.testreport-theme--orange .testreport-flow-icon {
+  background: #fbe2cc;
+
+  color: #c2540c;
+}
+
+.testreport-theme--orange.testreport-flow-box strong,
+.testreport-theme--orange .testreport-phase-card-header strong {
+  color: #c2540c;
+}
+
+.testreport-theme--orange.testreport-flow-box .testreport-flow-standard,
+.testreport-theme--orange .testreport-phase-card-header span {
+  color: #b3600f;
+}
+
+
+.testreport-theme--blue.testreport-flow-box,
+.testreport-theme--blue .testreport-phase-card-header {
+  background: #eaf2fd;
+}
+
+.testreport-theme--blue .testreport-flow-icon {
+  background: #d7e6fb;
+
+  color: #2563eb;
+}
+
+.testreport-theme--blue.testreport-flow-box strong,
+.testreport-theme--blue .testreport-phase-card-header strong {
+  color: #1d4ed8;
+}
+
+.testreport-theme--blue.testreport-flow-box .testreport-flow-standard,
+.testreport-theme--blue .testreport-phase-card-header span {
+  color: #3b6fd4;
+}
+
+
+.testreport-theme--green.testreport-flow-box,
+.testreport-theme--green .testreport-phase-card-header {
+  background: #eafaf0;
+}
+
+.testreport-theme--green .testreport-flow-icon {
+  background: #d3f3e0;
+
+  color: #16a34a;
+}
+
+.testreport-theme--green.testreport-flow-box strong,
+.testreport-theme--green .testreport-phase-card-header strong {
+  color: #15803d;
+}
+
+.testreport-theme--green.testreport-flow-box .testreport-flow-standard,
+.testreport-theme--green .testreport-phase-card-header span {
+  color: #2f9159;
+}
+
+
+/* =========================================
+   INFO BANNER
+========================================= */
+
+.testreport-info-banner {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 10px;
+
+  margin-top: 16px;
+
+  padding: 12px 14px;
+
+  border-radius: 10px;
+
+  background: #f1eefe;
+
+  color: #6d28d9;
+
+  font-size: 11.5px;
+
+  line-height: 1.5;
+}
+
+
+.testreport-info-banner svg {
+  flex-shrink: 0;
+
+  margin-top: 1px;
+}
+
+
+/* =========================================
+   RESULTS — left rail + content, same active/
+   hover colors as the real app Sidebar's own
+   .sidebar-menu-item.active (#d7f3ee bg /
+   #0f8a7c text) so this reads as "the same
+   kind of navigation", just scoped to the step.
+========================================= */
+
+.testreport-results-layout {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 18px;
+}
+
+
+.testreport-results-rail {
+  width: 216px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+
+  background: #ffffff;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 14px;
+
+  padding: 10px;
+
+  box-sizing: border-box;
+}
+
+
+.testreport-rail-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 10px 12px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: transparent;
+
+  color: #5b6373;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  font-family: inherit;
+
+  line-height: 1.3;
+
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+
+.testreport-rail-item svg {
+  flex-shrink: 0;
+
+  color: #8992a1;
+
+  transition: color 0.15s ease;
+}
+
+
+.testreport-rail-item:hover {
+  background: #effbf8;
+
+  color: #0f8a7c;
+}
+
+
+.testreport-rail-item:hover svg {
+  color: #0f8a7c;
+}
+
+
+.testreport-rail-item.active {
+  background: #d7f3ee;
+
+  color: #0f8a7c;
+
+  font-weight: 700;
+}
+
+
+.testreport-rail-item.active svg {
+  color: #0f8a7c;
+}
+
+
+.testreport-results-content {
+  flex: 1;
+
+  min-width: 0;
+
+  margin-bottom: 0;
+}
+
+
+.testreport-results-heading {
+  font-size: 13px;
+
+  font-weight: 700;
+
+  color: #1c2333;
+
+  margin: 0 0 16px;
+}
+
+
+/* The results table now sits directly under this heading — "Visual
+   Inspection Results" was removed as a separate subheading, and the
+   Cycles Performed / Start Date / End Date fields that used to sit between
+   this heading and the table are gone too — so less bottom space is
+   needed here than the default. */
+.testreport-results-heading--tight {
+  margin-bottom: 12px;
+}
+
+
+/* =========================================
+   RESULTS TABLE
+========================================= */
+
+.testreport-table-wrap {
+  overflow-x: auto;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 12px;
+}
+
+
+.testreport-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  font-size: 11.5px;
+}
+
+
+.testreport-table th {
+  text-align: left;
+
+  padding: 10px 14px;
+
+  background: #f6f7fa;
+
+  color: #626b7c;
+
+  font-weight: 600;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+
+  border-bottom: 1px solid #e3e7ef;
+}
+
+
+.testreport-table td {
+  padding: 8px 14px;
+
+  border-bottom: 1px solid #edf0f5;
+
+  color: #262e3d;
+
+  vertical-align: middle;
+}
+
+
+.testreport-table tr:last-child td {
+  border-bottom: none;
+}
+
+
+.testreport-table td input[type="text"] {
+  width: 100%;
+
+  height: 32px;
+
+  padding: 0 10px;
+
+  border: 1px solid transparent;
+
+  border-radius: 7px;
+
+  font-size: 11.5px;
+
+  font-family: inherit;
+
+  color: #262e3d;
+
+  background: transparent;
+
+  outline: none;
+
+  box-sizing: border-box;
+
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.testreport-table td input[type="text"]:hover {
+  background: #f6f7fa;
+}
+
+
+.testreport-table td input[type="text"]:focus {
+  background: #ffffff;
+
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+/* Assessment — a pill-styled CustomSelect, colored by its current value
+   (green Pass / red Fail / amber Conditional), same success-green the rest
+   of the app already uses for a positive state (calc-card-icon--green /
+   calc-metric-row). */
+
+.testreport-assessment {
+  width: 128px;
+}
+
+
+.testreport-assessment .custom-select-trigger {
+  height: 28px;
+
+  padding: 0 10px;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  border-color: transparent;
+
+  justify-content: center;
+
+  gap: 4px;
+}
+
+
+.testreport-assessment .custom-select-chevron {
+  width: 12px;
+
+  height: 12px;
+}
+
+
+.testreport-assessment--pass .custom-select-trigger {
+  background: #e7f8ee;
+
+  color: #1fa056;
+}
+
+
+.testreport-assessment--fail .custom-select-trigger {
+  background: #fdecea;
+
+  color: #b3261e;
+}
+
+
+.testreport-assessment--conditional .custom-select-trigger {
+  background: #fef3e2;
+
+  color: #b45309;
+}
+
+
+/* =========================================
+   RESULTS OVERVIEW (Step 3's "Overview" rail
+   item) — the Actual Cycles Performed stat
+   box, then a summary table across every
+   checkpoint run so far.
+========================================= */
+
+.testreport-overview-stats {
+  display: grid;
+
+  grid-template-columns: minmax(0, 220px);
+
+  gap: 16px;
+
+  margin-bottom: 22px;
+}
+
+
+.testreport-overview-stat {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+
+.testreport-overview-stat-label {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  color: #667085;
+}
+
+
+.testreport-overview-stat-value {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  height: 38px;
+
+  padding: 0 12px;
+
+  border: 1px solid #e1e5ec;
+
+  border-radius: 9px;
+
+  background: #fafbfd;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  color: #262e3d;
+}
+
+
+.testreport-overview-stat-icon {
+  color: #a4abb9;
+
+  flex-shrink: 0;
+}
+
+
+.testreport-overview-heading {
+  margin: 0 0 12px;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  color: #14b8a6;
+}
+
+
+.testreport-overview-table th,
+.testreport-overview-table td {
+  text-align: center;
+}
+
+
+.testreport-overview-table th:nth-child(2),
+.testreport-overview-table td:nth-child(2) {
+  text-align: left;
+}
+
+
+.testreport-overview-empty {
+  text-align: center !important;
+
+  color: #8992a1;
+
+  padding: 20px 0;
+}
+
+
+.testreport-overview-badge {
+  display: inline-block;
+
+  padding: 4px 12px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+.testreport-overview-badge--pass {
+  background: #e7f8ee;
+
+  color: #1fa056;
+}
+
+
+.testreport-overview-badge--fail {
+  background: #fdecea;
+
+  color: #b3261e;
+}
+
+
+.testreport-overview-badge--conditional {
+  background: #fef3e2;
+
+  color: #b45309;
+}
+
+
+/* =========================================
+   PHOTO CARD (Condition after N cycles) — now
+   one merged card with the results section
+   below it, not two separate cards, so this
+   divider is what actually separates the two.
+========================================= */
+
+.testreport-card-divider {
+  border: none;
+
+  border-top: 1px solid #edf0f5;
+
+  margin: 20px 0;
+}
+
+
+/* =========================================
+   DELAMINATION FOLLOW-UP CARD (ISO 4628-8) —
+   appears only when a Results row reads Fail
+   or Conditional. Same white/teal card theme
+   as everything else on this page on purpose —
+   the reference design used a yellow/red
+   "alert" treatment, replaced here so a
+   conditionally-shown card never looks like a
+   different, bolted-on product.
+========================================= */
+
+.testreport-delamination-title {
+  flex: 1;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 1px;
+}
+
+
+.testreport-delamination-title .testreport-card-title {
+  flex: none;
+}
+
+
+.testreport-delamination-standard {
+  font-size: 10.5px;
+
+  font-weight: 600;
+
+  color: #8992a1;
+}
+
+
+.testreport-delamination-upload-label {
+  display: block;
+
+  margin-top: 18px;
+
+  margin-bottom: 8px;
+}
+
+
+/* =========================================
+   "Add Delamination Measurement" — the button
+   that reveals the LAST cycle checkpoint's
+   version of the card above (see
+   testreport-final-delam-* below for its own
+   Procedure + "+ Add" row, unique to this
+   version).
+========================================= */
+
+.testreport-add-delamination-btn {
+  align-self: flex-start;
+}
+
+
+.testreport-final-delam-row {
+  display: flex;
+
+  align-items: flex-end;
+
+  gap: 16px;
+}
+
+
+.testreport-final-delam-procedure {
+  flex: 1;
+
+  min-width: 0;
+}
+
+
+/* Outline pill, not solid — this "+ Add" snapshots the whole fieldset
+   below (photos + D/cycle pairs) as a new logged entry each click, so it
+   reads as a lighter-weight, repeatable action rather than the page's one
+   primary Next/Back buttons. */
+.testreport-final-delam-add {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  height: 36px;
+
+  padding: 0 18px;
+
+  border: 1.5px solid #14b8a6;
+
+  border-radius: 999px;
+
+  background: #ffffff;
+
+  color: #0f8a7c;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  transition: background 0.15s ease;
+}
+
+
+.testreport-final-delam-add:hover {
+  background: #effbf8;
+}
+
+
+/* "+ Add Cycle" in Evaluation uses the solid version — the reference
+   design shows it filled, unlike Delamination's outline "+ Add". */
+.testreport-final-delam-add--solid {
+  border-color: transparent;
+
+  background: #14b8a6;
+
+  color: #ffffff;
+}
+
+
+.testreport-final-delam-add--solid:hover {
+  background: #0f9c8c;
+}
+
+
+/* D= / Cycle pairs — Before's pair, then After's pair, in one row (each
+   pair sits directly under its matching upload box above). */
+.testreport-final-delam-values {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 14px 16px;
+
+  margin-top: 16px;
+}
+
+
+/* Native number-input spinner is left as-is on the Cycle fields (unlike
+   this app's other numeric inputs, which hide it) since the reference
+   design explicitly shows up/down arrows here. */
+
+
+/* =========================================
+   Logged entries — each "+ Add" click's full
+   snapshot (procedure, both photos, both D/
+   cycle pairs), not just a text tag.
+========================================= */
+
+.testreport-final-delam-entries {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+
+  margin-top: 16px;
+}
+
+
+.testreport-final-delam-entry {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 8px 10px;
+
+  border: 1px solid #e3e7ef;
+
+  border-radius: 10px;
+
+  background: #fafbfc;
+}
+
+
+.testreport-final-delam-entry-thumbs {
+  display: flex;
+
+  gap: 4px;
+
+  flex-shrink: 0;
+}
+
+
+.testreport-final-delam-entry-thumbs img,
+.testreport-final-delam-entry-thumb-empty {
+  width: 34px;
+
+  height: 34px;
+
+  border-radius: 7px;
+
+  object-fit: cover;
+
+  background: #edf0f5;
+
+  display: block;
+}
+
+
+.testreport-final-delam-entry-text {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+
+.testreport-final-delam-entry-text strong {
+  font-size: 11.5px;
+
+  color: #1c2333;
+}
+
+
+.testreport-final-delam-entry-text span {
+  font-size: 11px;
+
+  color: #626b7c;
+}
+
+
+.testreport-final-delam-entry-remove {
+  width: 30px;
+
+  height: 30px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: none;
+
+  color: #b3261e;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+
+.testreport-final-delam-entry-remove:hover {
+  background: #fdecea;
+}
+
+
+.testreport-photo-row {
+  display: flex;
+
+  align-items: stretch;
+
+  gap: 14px;
+
+  margin-top: 12px;
+}
+
+
+/* Extra breathing room below the "One Test Cycle" card's own before/after
+   uploader, before the flow diagram that follows it — .testreport-photo-row
+   itself has no margin-bottom, since none of its other (paired) uses need
+   one there. */
+.testreport-cycle-photo-row {
+  margin-bottom: 24px;
+}
+
+
+.testreport-upload-col {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+
+.testreport-upload-label {
+  font-size: 11px;
+
+  font-weight: 600;
+
+  color: #626b7c;
+}
+
+
+.testreport-upload-box {
+  position: relative;
+
+  flex: 1;
+
+  min-height: 148px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 4px;
+
+  text-align: center;
+
+  padding: 16px;
+
+  border-radius: 12px;
+
+  border: 1.5px dashed #d7dbe4;
+
+  background: #fafbfc;
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+
+.testreport-upload-box:hover,
+.testreport-upload-box.dragover {
+  border-color: #14b8a6;
+
+  background: #effbf8;
+}
+
+
+.testreport-upload-box.has-image {
+  padding: 0;
+
+  cursor: default;
+
+  border-style: solid;
+
+  border-color: #e3e7ef;
+}
+
+
+.testreport-upload-box.uploading {
+  cursor: default;
+
+  border-color: #cdd2da;
+
+  background: #f7f8fa;
+}
+
+
+.testreport-upload-icon {
+  color: #a4abb9;
+}
+
+
+.testreport-upload-spinner {
+  animation: testreport-spin 0.9s linear infinite;
+}
+
+
+@keyframes testreport-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.testreport-upload-box strong {
+  font-size: 12px;
+
+  color: #333c4c;
+}
+
+
+.testreport-upload-hint,
+.testreport-upload-formats {
+  font-size: 10.5px;
+
+  color: #a4abb9;
+}
+
+
+.testreport-upload-preview {
+  width: 100%;
+
+  height: 100%;
+
+  min-height: 148px;
+
+  object-fit: cover;
+
+  display: block;
+}
+
+
+.testreport-upload-overlay {
+  position: absolute;
+
+  top: 8px;
+
+  right: 8px;
+
+  display: flex;
+
+  gap: 6px;
+}
+
+
+.testreport-upload-overlay button {
+  width: 26px;
+
+  height: 26px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: rgba(20, 30, 55, 0.55);
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+
+.testreport-upload-overlay button:hover {
+  background: rgba(20, 30, 55, 0.78);
+}
+
+
+.testreport-swap-btn {
+  align-self: center;
+
+  flex-shrink: 0;
+
+  width: 32px;
+
+  height: 32px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  border: 1px solid #e1e5ec;
+
+  background: #ffffff;
+
+  color: #626b7c;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+
+.testreport-swap-btn:hover {
+  border-color: #14b8a6;
+
+  color: #0f8a7c;
+
+  background: #effbf8;
+}
+
+
+.testreport-photo-note {
+  flex: 1;
+
+  min-width: 180px;
+
+  max-width: 220px;
+
+  padding: 12px 14px;
+
+  border-radius: 10px;
+
+  background: #eafaf0;
+
+  box-sizing: border-box;
+}
+
+
+.testreport-photo-note-title {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  font-size: 11.5px;
+
+  font-weight: 700;
+
+  color: #1fa056;
+
+  margin-bottom: 8px;
+}
+
+
+.testreport-photo-note ul {
+  margin: 0;
+
+  padding-left: 16px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+}
+
+
+.testreport-photo-note li {
+  font-size: 10.5px;
+
+  color: #2f7d4d;
+
+  line-height: 1.4;
+}
+
+
+/* =========================================
+   STEP 2: CONDENSATION WATER CONSTANT CLIMATE
+   SUMMARY CARD — same orange/blue/green theme
+   language as CYCLE_PHASES above it, just a
+   different card shape (label+value+subvalue
+   instead of title+standard+duration), so its
+   colors are its own rules rather than reusing
+   testreport-theme--* (which is scoped to
+   .testreport-flow-box / .testreport-phase-
+   card-header specifically).
+========================================= */
+
+.testreport-cwt-summary-row {
+  margin-bottom: 16px;
+}
+
+
+.testreport-cwt-card {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 12px 14px;
+
+  border-radius: 12px;
+
+  border: 1px solid transparent;
+}
+
+
+.testreport-cwt-card-icon {
+  width: 34px;
+
+  height: 34px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+
+.testreport-cwt-card-body {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 2px;
+
+  min-width: 0;
+}
+
+
+.testreport-cwt-card-body strong {
+  font-size: 11px;
+
+  font-weight: 700;
+}
+
+
+.testreport-cwt-card-body > span:not(.testreport-cwt-card-subvalue) {
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+.testreport-cwt-card-subvalue {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  font-size: 10.5px;
+
+  color: #626b7c;
+
+  font-weight: 500;
+}
+
+
+.testreport-cwt-card--orange {
+  background: #fdf2e9;
+}
+
+.testreport-cwt-card--orange .testreport-cwt-card-icon {
+  background: #fbe2cc;
+
+  color: #c2540c;
+}
+
+.testreport-cwt-card--orange strong,
+.testreport-cwt-card--orange > .testreport-cwt-card-body > span:not(.testreport-cwt-card-subvalue) {
+  color: #c2540c;
+}
+
+
+.testreport-cwt-card--blue {
+  background: #eaf2fd;
+}
+
+.testreport-cwt-card--blue .testreport-cwt-card-icon {
+  background: #d7e6fb;
+
+  color: #2563eb;
+}
+
+.testreport-cwt-card--blue strong,
+.testreport-cwt-card--blue > .testreport-cwt-card-body > span:not(.testreport-cwt-card-subvalue) {
+  color: #1d4ed8;
+}
+
+
+.testreport-cwt-card--green {
+  background: #eafaf0;
+}
+
+.testreport-cwt-card--green .testreport-cwt-card-icon {
+  background: #d3f3e0;
+
+  color: #16a34a;
+}
+
+.testreport-cwt-card--green strong,
+.testreport-cwt-card--green > .testreport-cwt-card-body > span:not(.testreport-cwt-card-subvalue) {
+  color: #15803d;
+}
+
+
+.testreport-cwt-detail-row {
+  margin-top: 0;
+}
+
+
+/* Freeform 2-line equipment text — same cell background/padding role as
+   .testreport-phase-card-row, just without the label/value split. */
+.testreport-phase-card-text {
+  padding: 0 14px 12px;
+
+  font-size: 11.5px;
+
+  font-weight: 600;
+
+  color: #262e3d;
+
+  line-height: 1.5;
+}
+
+
+/* Requirements banner — same lavender/Info-icon language as
+   .testreport-info-banner, extended with a numbered-badge list instead of
+   one line of text. */
+.testreport-cwt-requirements {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 10px;
+
+  margin-top: 16px;
+
+  padding: 14px 16px;
+
+  border-radius: 10px;
+
+  background: #f1eefe;
+
+  color: #6d28d9;
+}
+
+
+.testreport-cwt-requirements-body {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+
+.testreport-cwt-requirements-body > strong {
+  font-size: 11.5px;
+
+  font-weight: 700;
+}
+
+
+.testreport-cwt-requirements-list {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 10px;
+}
+
+
+.testreport-cwt-requirement-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 8px 14px 8px 8px;
+
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  min-width: 200px;
+
+  flex: 1;
+}
+
+
+.testreport-cwt-requirement-num {
+  width: 22px;
+
+  height: 22px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  background: #e5defc;
+
+  color: #6d28d9;
+
+  font-size: 11px;
+
+  font-weight: 700;
+}
+
+
+.testreport-cwt-requirement-text {
+  font-size: 11.5px;
+
+  font-weight: 600;
+
+  color: #333c4c;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+
+.testreport-cwt-requirement-text em {
+  font-style: normal;
+
+  font-size: 10.5px;
+
+  font-weight: 500;
+
+  color: #6d28d9;
+
+  margin-top: 2px;
+}
+
+
+@media (max-width: 900px) {
+  .testreport-cwt-summary-row {
+    flex-direction: column;
+  }
+
+  .testreport-cwt-summary-row .testreport-flow-arrow {
+    transform: rotate(90deg);
+
+    align-self: center;
+  }
+}
+
+
+/* =========================================
+   STEP 4: EVALUATION
+========================================= */
+
+.testreport-eval-summary-field {
+  margin-top: 18px;
+}
+
+
+/* Table — wider cells than Results' inspection table, since Result and
+   Requirement hold multi-line narrative text rather than short values. */
+
+.testreport-eval-table-wrap {
+  margin-top: 0;
+}
+
+
+.testreport-eval-table th:nth-child(2),
+.testreport-eval-table th:nth-child(3) {
+  width: 32%;
+}
+
+
+.testreport-eval-cycle-cell {
+  white-space: nowrap;
+
+  font-size: 12px;
+}
+
+
+.testreport-eval-cycle-cell strong {
+  font-size: 13px;
+
+  color: #1c2333;
+}
+
+
+/* Auto-resized by the AutoTextarea component (height set to scrollHeight
+   on every change) — resize:none and overflow:hidden so the browser never
+   shows its own resize handle or a scrollbar on top of that; the element
+   itself grows instead. */
+.testreport-eval-cell-textarea {
+  display: block;
+
+  width: 100%;
+
+  padding: 8px 10px;
+
+  border: 1px solid transparent;
+
+  border-radius: 8px;
+
+  font-size: 11.5px;
+
+  font-family: inherit;
+
+  line-height: 1.5;
+
+  color: #262e3d;
+
+  background: transparent;
+
+  outline: none;
+
+  resize: none;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.testreport-eval-cell-textarea:hover {
+  background: #f6f7fa;
+}
+
+
+.testreport-eval-cell-textarea:focus {
+  background: #ffffff;
+
+  border-color: #14b8a6;
+
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+
+/* Bold Result text for Table 2 — matches the reference design (its
+   Result column is emphasized; Table 1's isn't). */
+.testreport-eval-cell-textarea--bold {
+  font-weight: 700;
+}
+
+
+/* Assessment — a colored, click-to-toggle pill badge (Fulfilled/Not
+   Fulfilled) centered in its cell, rather than a plain dropdown. */
+.testreport-eval-table td.testreport-eval-status-cell {
+  padding: 10px 8px;
+
+  width: 150px;
+
+  text-align: center;
+}
+
+
+.testreport-eval-status-btn {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  min-width: 116px;
+
+  padding: 8px 16px;
+
+  border-radius: 20px;
+
+  border: 1px solid transparent;
+
+  background: none;
+
+  font-size: 11.5px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+
+.testreport-eval-status-btn::before {
+  content: "";
+
+  width: 6px;
+
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: currentColor;
+
+  flex-shrink: 0;
+}
+
+
+.testreport-eval-status-btn:hover {
+  filter: brightness(0.97);
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 4px 10px rgba(20, 30, 55, 0.1);
+}
+
+
+.testreport-eval-status-btn:active {
+  transform: translateY(0);
+
+  box-shadow: none;
+}
+
+
+.testreport-eval-status-btn--ok {
+  background: #e0f8ea;
+
+  color: #128a4c;
+
+  border-color: rgba(18, 138, 76, 0.28);
+}
+
+
+.testreport-eval-status-btn--bad {
+  background: #fdecea;
+
+  color: #c0281e;
+
+  border-color: rgba(192, 40, 30, 0.28);
+}
+
+
+/* =========================================
+   PLACEHOLDER STEP (5, not yet specified)
+========================================= */
+
+.testreport-placeholder {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  text-align: center;
+
+  gap: 6px;
+
+  padding: 48px 20px;
+
+  color: #8992a1;
+}
+
+
+.testreport-placeholder strong {
+  font-size: 13px;
+
+  color: #1c2333;
+}
+
+
+.testreport-placeholder span {
+  font-size: 12px;
+
+  max-width: 420px;
+}
+
+
+/* =========================================
+   FOOTER NAV — same outline/solid button pair
+   docpreview-btn / docpreview-btn--solid uses.
+========================================= */
+
+.testreport-footer {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-top: 4px;
+}
+
+
+.testreport-btn {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  height: 38px;
+
+  padding: 0 18px;
+
+  border-radius: 10px;
+
+  font-size: 12.5px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  border: 1px solid #e1e5ec;
+
+  background: #ffffff;
+
+  color: #333c4c;
+
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+
+.testreport-btn:hover {
+  border-color: #c7cbd6;
+}
+
+
+.testreport-btn--solid {
+  border: none;
+
+  background: #14b8a6;
+
+  color: #ffffff;
+}
+
+
+.testreport-btn--solid:hover {
+  background: #0f9c8c;
+}
+
+
+.testreport-btn:disabled {
+  opacity: 0.55;
+
+  cursor: default;
+
+  pointer-events: none;
+}
+
+
+/* =========================================
+   PROGRESS BUTTON (Step 5's Speichern / Als
+   Word herunterladen) — an animated "liquid"
+   fill climbing 0→100% while the save/download
+   runs, since neither has real byte-level
+   progress to report (a JSON round-trip,
+   client-side .docx generation). See
+   ProgressButton.jsx for the phase timing.
+========================================= */
+
+.progress-btn {
+  position: relative;
+
+  overflow: hidden;
+
+  isolation: isolate;
+}
+
+
+/* Cancel the plain .testreport-btn:disabled dimming while a progress
+   button is running/done/erroring — it's disabled (can't be re-clicked)
+   but should stay fully visible so its own fill/label read clearly. */
+.progress-btn:disabled {
+  opacity: 1;
+}
+
+
+.progress-btn-fill {
+  position: absolute;
+
+  inset: 0;
+
+  z-index: 0;
+
+  width: 0;
+
+  border-radius: inherit;
+
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.06) 45%, rgba(255, 255, 255, 0.32) 100%);
+
+  background-size: 220% 100%;
+
+  transition: width 0.16s linear;
+
+  animation: progress-btn-liquid 1.1s ease-in-out infinite;
+
+  pointer-events: none;
+}
+
+
+@keyframes progress-btn-liquid {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: -220% 50%;
+  }
+}
+
+
+.progress-btn-label {
+  position: relative;
+
+  z-index: 1;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+}
+
+
+/* The running-phase readout — replaces the icon+label entirely so the
+   button reads as an actual 0→100% counter, not text sitting over a fill. */
+.progress-btn-percent {
+  font-variant-numeric: tabular-nums;
+
+  min-width: 2.4em;
+
+  text-align: center;
+}
+
+
+/* Outline (Speichern) variant — the fill reads as a teal wash over the
+   white button; solid (Als Word herunterladen) variant — the fill is a
+   lighter shimmer over the already-teal background (see .progress-btn-fill
+   above, a translucent white gradient works for both). */
+.testreport-btn.progress-btn .progress-btn-fill {
+  background-image: linear-gradient(120deg, rgba(20, 184, 166, 0.22) 0%, rgba(20, 184, 166, 0.08) 45%, rgba(20, 184, 166, 0.22) 100%);
+}
+
+
+.testreport-btn--solid.progress-btn .progress-btn-fill {
+  background-image: linear-gradient(120deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 45%, rgba(255, 255, 255, 0.34) 100%);
+}
+
+
+/* Done/error — a little darker than idle, so "it finished" reads at a
+   glance even after the fill animation itself has settled at 100%. */
+.testreport-btn--solid.progress-btn--done,
+.testreport-btn--solid.progress-btn--error {
+  background: #0c8a7c;
+}
+
+
+.testreport-btn.progress-btn--done .progress-btn-fill,
+.testreport-btn--solid.progress-btn--done .progress-btn-fill {
+  animation: none;
+
+  background-image: none;
+
+  background-color: rgba(20, 184, 166, 0.9);
+}
+
+
+.testreport-btn--solid.progress-btn--done .progress-btn-fill {
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+
+.progress-btn--error .progress-btn-fill {
+  animation: none;
+
+  background-image: none;
+
+  background-color: rgba(179, 38, 30, 0.16);
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+  .testreport-grid-3,
+  .testreport-grid-4,
+  .testreport-final-delam-values {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .testreport-step-label {
+    display: none;
+  }
+}
+
+
+@media (max-width: 700px) {
+  .testreport-grid-3,
+  .testreport-grid-4,
+  .testreport-grid-2,
+  .testreport-final-delam-values {
+    grid-template-columns: 1fr;
+  }
+
+  .testreport-step-connector {
+    margin: 0 6px;
+  }
+
+  .testreport-flow {
+    flex-direction: column;
+  }
+
+  .testreport-flow-arrow {
+    transform: rotate(90deg);
+
+    align-self: center;
+  }
+
+  .testreport-results-layout {
+    flex-direction: column;
+  }
+
+  .testreport-results-rail {
+    width: 100%;
+
+    flex-direction: row;
+
+    flex-wrap: wrap;
+  }
+
+  .testreport-photo-row {
+    flex-direction: column;
+  }
+
+  .testreport-swap-btn {
+    transform: rotate(90deg);
+  }
+
+  .testreport-photo-note {
+    max-width: none;
+  }
+}

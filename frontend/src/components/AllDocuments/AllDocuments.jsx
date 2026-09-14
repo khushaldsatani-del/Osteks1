@@ -9,7 +9,7 @@ import {
   FolderOpen,
   Trash2,
   FileText,
-  Box,
+  Mail,
   Image as ImageIcon,
 } from "lucide-react";
 
@@ -41,11 +41,28 @@ function getSortValue(row, field) {
 
 const ROWS_PER_PAGE_OPTIONS = ["10", "15", "25", "50"].map((value) => ({ value, label: value }));
 
-function getFileTypeMeta(fileName) {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  if (ext === "pdf") return { tab: "pdf", Icon: FileText, color: "#d64545", bg: "#fdecea" };
-  if (ext === "step" || ext === "stp") return { tab: "step", Icon: Box, color: "#0f8a7c", bg: "#e1f7f3" };
-  if (["png", "jpg", "jpeg"].includes(ext)) return { tab: "image", Icon: ImageIcon, color: "#14b8a6", bg: "#e1f7f3" };
+// Categorizes a row into one of the four real upload paths this app
+// actually supports — PDF, Image, Email (extracted straight from an email's
+// text, no usable attachment), Email + Image (an email whose attachment was
+// itself processed through the normal image/PDF pipeline). "STEP" never
+// belonged here — this app has never accepted STEP file uploads, so that tab
+// could never match anything. `row.fileKind` ("pdf"/"tiff"/"image"/"email")
+// comes from the backend's own detect_file_kind()/email extraction meta;
+// `row.mailEmailId` is set whenever a document is linked to a source email
+// (see documents_repo.py's LEFT JOIN emails). Falls back to the file
+// extension only for older rows saved before file_kind existed.
+function getFileTypeMeta(row) {
+  const ext = (row.fileName || "").split(".").pop()?.toLowerCase() ?? "";
+  const isPdf = row.fileKind === "pdf" || row.fileKind === "tiff" || ["pdf", "tif", "tiff"].includes(ext);
+  const isImage = row.fileKind === "image" || ["png", "jpg", "jpeg", "webp"].includes(ext);
+  const isEmail = Boolean(row.mailEmailId) || row.fileKind === "email";
+
+  if (isEmail && (isPdf || isImage)) {
+    return { tab: "email-image", Icon: Mail, color: "#b45309", bg: "#fef3e2" };
+  }
+  if (isEmail) return { tab: "email", Icon: Mail, color: "#7c3aed", bg: "#f0e9fd" };
+  if (isPdf) return { tab: "pdf", Icon: FileText, color: "#d64545", bg: "#fdecea" };
+  if (isImage) return { tab: "image", Icon: ImageIcon, color: "#14b8a6", bg: "#e1f7f3" };
   return { tab: "other", Icon: FileText, color: "#8992a1", bg: "#f1f3f8" };
 }
 
@@ -88,8 +105,9 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
   const FILE_TABS = [
     { id: "all", label: t("allDocuments.tabAll") },
     { id: "pdf", label: t("allDocuments.tabPdf") },
-    { id: "step", label: t("allDocuments.tabStep") },
     { id: "image", label: t("allDocuments.tabImage") },
+    { id: "email", label: t("allDocuments.tabEmail") },
+    { id: "email-image", label: t("allDocuments.tabEmailImage") },
   ];
 
   const [search, setSearch] = useState("");
@@ -131,7 +149,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
         if (!haystack.includes(query)) return false;
       }
 
-      if (activeTab !== "all" && getFileTypeMeta(row.fileName).tab !== activeTab) return false;
+      if (activeTab !== "all" && getFileTypeMeta(row).tab !== activeTab) return false;
 
       if (statusFilter.length > 0 && !statusFilter.includes(row.status)) return false;
 
@@ -424,7 +442,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                 </tr>
               ) : (
                 pageRows.map((row) => {
-                  const { Icon, color, bg } = getFileTypeMeta(row.fileName);
+                  const { Icon, color, bg } = getFileTypeMeta(row);
                   const total = row.pricePerStk * row.annualQuantity;
 
                   return (

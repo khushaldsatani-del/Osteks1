@@ -41,6 +41,19 @@ Server starts on `http://localhost:5001` (override with `PORT` in `.env`). The f
 - `DELETE /api/emails/{id}` — unlink/remove.
 - `GET /api/emails/{id}/download`, `GET /api/emails/attachments/{attachment_id}/download` — raw file downloads.
 
+**Standards knowledge base** (read-only; data extracted/loaded out-of-band, not through HTTP):
+- `GET /api/kb/lookup?q=...` — condensed spec lookup (norm number + Ofl-code) consumed right after image/email extraction. Powers All Documents' Specification column.
+
+**Test Reports** (Postgres-backed metadata + form state; photos live in Google Cloud Storage, never in Postgres — see "Google Cloud Storage setup" below):
+- `GET /api/test-reports` — list, for the Test Report Overview page. Summary columns only (no `wizardState`).
+- `GET /api/test-reports/{id}` — one report's full `wizardState`, for "Open" into the Generate Report wizard.
+- `POST /api/test-reports` — `{documentId?, reportNo?, testObject?, norm?, wizardState?, testDate?}` → creates a draft (fired from Document Preview's "Test erforderlich", or from scratch with no `documentId`).
+- `PATCH /api/test-reports/{id}` — same shape, any subset → the wizard's Save button.
+- `DELETE /api/test-reports/{id}` — also deletes every GCS object recorded for it.
+- `POST /api/test-reports/{id}/images` — multipart, `file` + `slot` (a free-form key like `"cycle5.before"`). Uploads to GCS, returns `{objectPath, contentType, fileSize, originalFilename}` — never a URL.
+- `GET /api/test-reports/{id}/images/{object_path}/url` — streams the image bytes back directly (proxied through the backend, not a signed URL — see `gcs_storage.py`'s `download_bytes()`); usable directly as an `<img src>`.
+- `DELETE /api/test-reports/{id}/images/{object_path}` — removes both the bookkeeping row and the GCS object (photo replaced/cleared).
+
 ## Files
 
 | File | Role |
@@ -53,6 +66,37 @@ Server starts on `http://localhost:5001` (override with `PORT` in `.env`). The f
 | `services/documents_repo.py` | CRUD for the `documents` table, including the `emails` join used for the All Documents Mail column. |
 | `services/email_processing.py` | Parses a `.eml`/`.msg` buffer into subject/from/to/cc/date/body + attachment bytes. **Storage-only** — no AI calls of any kind live here. |
 | `services/emails_repo.py` | CRUD for `emails`/`email_attachments`, including raw-bytes retrieval for downloads. |
+| `services/kb_db.py` / `kb_repo.py` | Standards knowledge base schema + `lookup_specification()` (see `GET /api/kb/lookup` above). |
+| `services/test_reports_db.py` | `test_reports` / `test_report_images` schema + `init_test_reports_schema()`. |
+| `services/test_reports_repo.py` | CRUD for `test_reports`, plus `test_report_images` bookkeeping (record/delete/ownership-check) used by the image endpoints. |
+| `services/gcs_storage.py` | Google Cloud Storage upload / download / delete for test-report photos — see below. |
+
+## Google Cloud Storage setup (test-report photos)
+
+The app already deploys to Cloud Run under an existing GCP project/service account (see `cloudbuild.yaml`) — this reuses that identity rather than creating a new one. One-time setup, run in Cloud Shell or a local `gcloud` install:
+
+```bash
+# 1. Create the bucket (pick a globally-unique name; region should match
+#    the Cloud Run service — europe-west1 per cloudbuild.yaml).
+gcloud storage buckets create gs://<BUCKET_NAME> \
+  --project=<PROJECT_ID> \
+  --location=europe-west1 \
+  --uniform-bucket-level-access
+
+# 2. Find the Cloud Run service's service account (Cloud Console → Cloud
+#    Run → osteks1 → the "Service account" field on the Revisions tab, or:
+gcloud run services describe osteks1 --region=europe-west1 --format='value(spec.template.spec.serviceAccountName)'
+
+# 3. Grant that service account read/write access to the bucket only
+#    (not project-wide storage admin).
+gcloud storage buckets add-iam-policy-binding gs://<BUCKET_NAME> \
+  --member="serviceAccount:<SERVICE_ACCOUNT_EMAIL>" \
+  --role="roles/storage.objectAdmin"
+```
+
+Then set `GCS_BUCKET_NAME=<BUCKET_NAME>` in `.env` (and as an env var on the Cloud Run service for production). The bucket should stay **private** — every read in the app is proxied through the backend (`gcs_storage.download_bytes()`), never a public link or a signed URL (signing needs an RSA private key, which neither a personal login nor a Compute Engine/Cloud Run credential has — proxying sidesteps that entirely).
+
+For local development, `google-cloud-storage` needs *some* credential to find — either run `gcloud auth application-default login` once (uses your own Google account, no key file — also set `GOOGLE_CLOUD_PROJECT` in `.env` in this case, since a personal login has no project attached to it the way a service-account key does), or download a service-account JSON key and point `GOOGLE_APPLICATION_CREDENTIALS` at it in `.env`. On Cloud Run itself neither is needed — the attached service account is picked up automatically.
 
 ## Business rule: technical file = AI, email = storage only
 

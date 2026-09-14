@@ -111,6 +111,18 @@
 }
 
 
+/* Portaled straight onto <body> (see CustomSelect.jsx) so the list is
+   never clipped by a scrolling ancestor — e.g. the Results table's own
+   scroll box, which used to hide the options entirely for a select near
+   its bottom edge. Position/size come from inline style (computed from the
+   trigger's real fixed-viewport bounding rect), not this class. */
+.custom-select-list--portal {
+  position: fixed;
+
+  margin: 0;
+}
+
+
 .custom-select-option {
   padding: 8px 10px;
 

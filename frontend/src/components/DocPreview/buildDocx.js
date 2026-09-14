@@ -152,6 +152,12 @@ export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
   const recipientLines = overrides.recipientLines ?? RECIPIENT_LINES;
   const headingRows = overrides.headingRows ?? HEADING_ROWS;
   const offerDetailsRows = overrides.offerDetailsRows ?? [];
+  // Same live "Name" field (Firma Information) that DocPreview.jsx's own
+  // preview already used to build these — passed straight through so the
+  // download always matches the preview exactly, same pattern as
+  // recipientLines/headingRows above.
+  const salutation = overrides.salutation ?? SALUTATION;
+  const introLines = overrides.introLines ?? INTRO_LINES;
 
   const header = new Header({
     children: [
@@ -203,10 +209,10 @@ export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
 
     new Paragraph({
       spacing: { before: twips(8), after: twips(12) },
-      children: [run(SALUTATION)],
+      children: [run(salutation)],
     }),
 
-    linesParagraph(INTRO_LINES, { after: 16 }),
+    linesParagraph(introLines, { after: 16 }),
 
     labelValueTable(SPEC_FIELD_ROWS, { labelWidthPt: 118 }),
 
