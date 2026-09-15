@@ -493,9 +493,11 @@
 
 
 .dp-pricing-row > span {
-  width: 195px;
+  width: 280px;
 
   flex-shrink: 0;
+
+  white-space: nowrap;
 
   font-weight: 700;
 }

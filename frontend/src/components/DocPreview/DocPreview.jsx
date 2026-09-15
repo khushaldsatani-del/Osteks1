@@ -137,19 +137,25 @@ const DocPreview = ({
     : null;
 
   const typedName = firmaInfo.name?.trim() || "";
+  const typedCompany = firmaInfo.companyName?.trim() || "";
 
-  // Firma Information's "Name" field (e.g. "Herr Könsgen") supplies the
-  // recipient block's name line and the salutation. Kept fully backward
-  // compatible: when it's empty, both the recipient block and salutation
-  // render exactly as they did before this field existed — a custom-typed
-  // address is shown completely unchanged, and the static sample keeps its
-  // original "Herr Könsgen" line.
-  const recipientLines = typedAddressLines
-    ? typedName
-      ? [...typedAddressLines.slice(0, 2), typedName, ...typedAddressLines.slice(2)]
-      : typedAddressLines
-    : typedName
-      ? [...RECIPIENT_LINES.slice(0, 2), typedName, ...RECIPIENT_LINES.slice(3)]
+  // Recipient block always reads Company Name -> Name -> Address, in that
+  // order, once ANY of the three has actually been typed — each one that's
+  // still blank falls back to its own line from the static sample, so a
+  // partially-filled form still reads sensibly (e.g. a typed address with
+  // no company name yet shows the sample's own company name next to it).
+  // The static sample's leading "Vollmann Group - Kundenteam" attention
+  // line is sample-only content — it disappears the moment any real
+  // recipient info is typed, same as it already did once an address was
+  // typed (this just makes that same behavior consistent for company name
+  // and person name too, instead of only for address).
+  const recipientLines =
+    typedCompany || typedName || typedAddressLines
+      ? [
+          typedCompany || RECIPIENT_LINES[1],
+          typedName || RECIPIENT_LINES[2],
+          ...(typedAddressLines || RECIPIENT_LINES.slice(3)),
+        ]
       : RECIPIENT_LINES;
 
   // "Sehr geehrte" instead of "Sehr geehrter" when the typed name starts
@@ -164,7 +170,7 @@ const DocPreview = ({
     : INTRO_LINES;
 
   const headingRows = [
-    [HEADING_ROWS[0][0], firmaInfo.companyName?.trim() ? firmaInfo.companyName : HEADING_ROWS[0][1]],
+    [HEADING_ROWS[0][0], firmaInfo.projectName?.trim() ? firmaInfo.projectName : HEADING_ROWS[0][1]],
     [HEADING_ROWS[1][0], firmaInfo.offerNumber?.trim() ? firmaInfo.offerNumber : HEADING_ROWS[1][1]],
   ];
 

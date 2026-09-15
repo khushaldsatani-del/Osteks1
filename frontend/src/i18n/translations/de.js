@@ -103,6 +103,8 @@ export default {
     enterAddress: "Adresse des Unternehmens eingeben\n(eine Zeile pro Adresszeile)",
     offerNumber: "Angebotsnummer",
     enterOfferNumber: "Angebotsnummer eingeben",
+    projectName: "Projektname",
+    enterProjectName: "Projektname eingeben",
     enquiryDate: "Anfragedatum",
   },
 

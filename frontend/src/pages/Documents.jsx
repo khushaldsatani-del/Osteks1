@@ -197,7 +197,14 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
   // line and salutation (see DocPreview.jsx) — added after the other four,
   // so an older saved record without it just falls back to "" via the
   // spread default below, same as any other field would.
-  const [firmaInfo, setFirmaInfo] = useState({ companyName: "", name: "", address: "", offerNumber: "", enquiryDate: "" });
+  const [firmaInfo, setFirmaInfo] = useState({
+    companyName: "",
+    name: "",
+    address: "",
+    offerNumber: "",
+    projectName: "",
+    enquiryDate: "",
+  });
 
   // Weight / Coating Thickness / Spec. Gewicht for the active slot, parsed
   // straight from its own AI extraction — see Calculation's matching
@@ -803,7 +810,15 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
 
         setImages(hydrated.length > 0 ? hydrated : [makeEmptySlot(1)]);
         setActiveSlot(1);
-        setFirmaInfo({ companyName: "", name: "", address: "", offerNumber: "", enquiryDate: "", ...data.firmaInfo });
+        setFirmaInfo({
+          companyName: "",
+          name: "",
+          address: "",
+          offerNumber: "",
+          projectName: "",
+          enquiryDate: "",
+          ...data.firmaInfo,
+        });
         setHydrationVersion((v) => v + 1);
       } catch {
         // Backend unreachable — workspace just stays as it was.

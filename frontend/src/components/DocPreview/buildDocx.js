@@ -217,7 +217,7 @@ export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
     labelValueTable(SPEC_FIELD_ROWS, { labelWidthPt: 118 }),
 
     ...(offerDetailsRows.length > 0
-      ? [labelValueTable(offerDetailsRows, { labelWidthPt: 150, bold: true, indentPt: 24 })]
+      ? [labelValueTable(offerDetailsRows, { labelWidthPt: 220, bold: true, indentPt: 24 })]
       : []),
 
     new Paragraph({

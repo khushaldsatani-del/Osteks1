@@ -105,6 +105,8 @@ export default {
     enterAddress: "Enter Address of company\n(one line per address line)",
     offerNumber: "Offer Number",
     enterOfferNumber: "Enter Offer Number",
+    projectName: "Project Name",
+    enterProjectName: "Enter Project Name",
     enquiryDate: "Enquiry Date",
   },
 
