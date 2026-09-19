@@ -1,15 +1,33 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { Menu, X } from "lucide-react";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Documents from "./pages/Documents";
 import AllDocuments from "./components/AllDocuments/AllDocuments";
 import TestReport from "./pages/TestReport";
 import TestReportOverview from "./pages/TestReportOverview";
 import { listTestReports, deleteTestReport } from "./components/TestReport/testReportsApi";
+import { useTranslation } from "./i18n/LanguageContext";
 import { BACKEND_URL } from "./config";
 import "./App.css";
 
+// Labels for the mobile top bar, which has to say which page is showing
+// because the sidebar that would otherwise show it is closed by default on a
+// phone. Keyed by the same page ids handleSelectItem sets.
+const PAGE_TITLE_KEYS = {
+  workplace: "sidebar.workPlace",
+  documents: "sidebar.allDocuments",
+  testReportOverview: "sidebar.testReportOverview",
+  testReportGenerate: "sidebar.testReportGenerate",
+};
+
 function App() {
+  const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState("workplace");
+
+  // Drives the off-canvas sidebar below 900px (see Sidebar.css). Always
+  // false on desktop, where the sidebar is a permanent column and neither
+  // this flag nor the menu button is reachable.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Set when "Open in Workspace" is clicked from All Documents — tells
   // Documents.jsx which saved record to hydrate instead of starting blank.
@@ -95,7 +113,29 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar activeItem={currentPage} onSelectItem={handleSelectItem} />
+      <Sidebar
+        activeItem={currentPage}
+        onSelectItem={handleSelectItem}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <header className="mobile-topbar">
+        <button
+          type="button"
+          className="mobile-menu-button"
+          aria-label={sidebarOpen ? t("sidebar.closeMenu") : t("sidebar.openMenu")}
+          aria-expanded={sidebarOpen}
+          onClick={() => setSidebarOpen((isOpen) => !isOpen)}
+        >
+          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
+        <span className="mobile-topbar-title">
+          {t(PAGE_TITLE_KEYS[currentPage] ?? "sidebar.workPlace")}
+        </span>
+      </header>
+
        <main className="main-content">
         {currentPage === "documents" ? (
           <AllDocuments

@@ -2,6 +2,15 @@
    GLOBAL
 ========================================= */
 
+:root {
+  /* The real rendered width of .sidebar. Every offset below is derived from
+     this, so the shell can never drift out of step with the sidebar again. */
+  --sidebar-width: 252px;
+
+  /* Height of the mobile-only bar that holds the menu button. */
+  --mobile-topbar-height: 58px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -45,23 +54,13 @@ body {
    MAIN CONTENT
 ========================================= */
 
-/*
-   Your sidebar is approximately 315px wide.
-
-   OLD:
-   margin-left: 216px;
-
-   NEW:
-   margin-left: 315px;
-*/
-
 .main-content {
-  width: calc(100% - 315px);
+  width: calc(100% - var(--sidebar-width));
 
   min-width: 0;
   min-height: 100vh;
 
-  margin-left: 280px;
+  margin-left: var(--sidebar-width);
 
   /*
      This creates the breathing space
@@ -96,28 +95,106 @@ body {
 
 @media (max-width: 1100px) {
   .main-content {
-    margin-left: 315px;
-
-    width: calc(100% - 315px);
-
     padding: 20px;
   }
 }
 
 
+/*
+   Below this width the sidebar stops being a column and becomes an
+   off-canvas drawer (see Sidebar.css), so the main column takes the full
+   width and only has to leave room for the fixed menu bar above it.
+*/
 @media (max-width: 900px) {
   .main-content {
     margin-left: 0;
 
     width: 100%;
 
-    padding: 20px;
+    padding: calc(var(--mobile-topbar-height) + 16px) 16px 28px;
   }
 }
 
 
 @media (max-width: 600px) {
   .main-content {
-    padding: 14px;
+    padding: calc(var(--mobile-topbar-height) + 12px) 12px 24px;
+  }
+}
+
+
+/* =========================================
+   MOBILE TOP BAR
+
+   Only exists below 900px. It is what makes the drawer reachable, so it is
+   fixed: the menu button stays available no matter how far the page is
+   scrolled.
+========================================= */
+
+.mobile-topbar {
+  display: none;
+}
+
+.mobile-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+
+  padding: 0;
+
+  border: 1px solid #e3e7ef;
+  border-radius: 11px;
+
+  background: #ffffff;
+  color: #34425d;
+
+  cursor: pointer;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.mobile-menu-button:hover {
+  background: #f1f5f9;
+  color: #0f8a7c;
+}
+
+.mobile-topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+
+  color: #172033;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .mobile-topbar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: var(--mobile-topbar-height);
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 0 14px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #e3e7ef;
+
+    /* above the drawer backdrop so the button can always close the drawer */
+    z-index: 1300;
   }
 }

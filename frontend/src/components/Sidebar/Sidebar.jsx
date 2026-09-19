@@ -5,17 +5,63 @@ import {
   ClipboardList,
   ChevronDown,
   Settings,
+  X,
 } from "lucide-react";
 
 import { useLanguage, useTranslation } from "../../i18n/LanguageContext";
 import "./Sidebar.css";
 
 
-const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
+const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose } = {}) => {
 
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguage();
 
+
+  // Below 900px this component renders as an off-canvas drawer (see
+  // Sidebar.css). Escape closes it, matching every other dismissible layer
+  // in this app, and it is torn down on unmount so the handler never
+  // outlives the drawer.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  // The page behind a drawer must not scroll with it, otherwise closing the
+  // drawer leaves the reader somewhere they never navigated to. The previous
+  // value is restored rather than hard-coded back to "", so this cannot
+  // clobber an overflow another component set.
+  useEffect(() => {
+    if (!open) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
+  // Resizing from phone width up to desktop leaves the drawer flagged open
+  // while it is once again a permanent column; the backdrop would then sit
+  // over the whole page with nothing to explain it.
+  useEffect(() => {
+    if (!open) return undefined;
+    const query = window.matchMedia("(min-width: 901px)");
+    const onChange = (event) => {
+      if (event.matches) onClose?.();
+    };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, [open, onClose]);
+
+  // Picking a page closes the drawer - on a phone the new page is behind it.
+  const handleSelect = (pageId) => {
+    onSelectItem?.(pageId);
+    onClose?.();
+  };
 
   const menuItems = [
     {
@@ -66,7 +112,26 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
 
 
   return (
-    <aside className="sidebar">
+    <>
+      {open && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label={t("sidebar.closeMenu")}
+          onClick={onClose}
+        />
+      )}
+
+    <aside className={`sidebar ${open ? "sidebar--open" : ""}`}>
+
+      <button
+        type="button"
+        className="sidebar-close"
+        aria-label={t("sidebar.closeMenu")}
+        onClick={onClose}
+      >
+        <X size={19} />
+      </button>
 
       {/* =========================
           NAVIGATION
@@ -109,7 +174,7 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
                       key={child.id}
                       type="button"
                       className={`sidebar-submenu-item ${activeItem === child.id ? "active" : ""}`}
-                      onClick={() => onSelectItem?.(child.id)}
+                      onClick={() => handleSelect(child.id)}
                     >
                       <span className="menu-label">{child.label}</span>
                     </button>
@@ -127,7 +192,7 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
                 isActive ? "active" : ""
               }`}
 
-              onClick={() => onSelectItem?.(item.id)}
+              onClick={() => handleSelect(item.id)}
             >
 
               <Icon className="menu-icon" />
@@ -187,6 +252,7 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem } = {}) => {
       </div>
 
     </aside>
+    </>
   );
 };
 

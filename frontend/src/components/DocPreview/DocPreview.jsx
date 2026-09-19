@@ -14,6 +14,7 @@ import "./docPreview.css";
 // Used to figure out, from REAL measured content height, how many pages are
 // needed and where each one breaks — see the pagination block below.
 // ===========================================================================
+const PAGE_WIDTH = 794;
 const PAGE_HEIGHT = 1123;
 const PAGE_PADDING_TOP = 78;
 const PAGE_PADDING_BOTTOM = 90;
@@ -100,6 +101,21 @@ const DocPreview = ({
   const [pages, setPages] = useState([]);
   const surfaceRef = useRef(null);
   const measureRef = useRef(null);
+
+  // An A4 sheet is 794px wide, wider than a phone, which left the reader
+  // panning sideways inside the preview. Each page is shrunk to fit the
+  // surface instead. This is zoom, not transform: zoom shrinks the layout
+  // box as well, so no empty scrolling area is left beside the page. It has
+  // to be computed here - a CSS calc() like (100vw - 76px) / 794 yields a
+  // length, and zoom/scale() only accept a plain number, so the browser
+  // silently drops the rule. On any screen wide enough for the sheet this
+  // stays exactly 1 and nothing changes.
+  const [pageScale, setPageScale] = useState(1);
+
+  // PDF export screenshots the on-screen pages (handleDownloadPdf), so while
+  // it runs the pages must be back at full size, or a phone user would get
+  // a shrunken PDF.
+  const [capturingPdf, setCapturingPdf] = useState(false);
   const continuationHeaderRef = useRef(null);
   const blockRefs = useRef([]);
 
@@ -464,6 +480,26 @@ const DocPreview = ({
     setPages(computed);
   }, [blocks]);
 
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface || typeof ResizeObserver === "undefined") return undefined;
+    const update = () => {
+      const style = getComputedStyle(surface);
+      const available =
+        surface.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const next = Math.min(1, Math.max(0.2, available / PAGE_WIDTH));
+      setPageScale((prev) => (Math.abs(prev - next) < 0.001 ? prev : next));
+    };
+    update();
+    // The surface's width comes from its container, never from the pages
+    // inside it, so zooming the pages cannot feed back into this observer.
+    const observer = new ResizeObserver(update);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, []);
+
+  const pageZoom = capturingPdf ? 1 : pageScale;
+
   // PDF export rasterizes the actual rendered pages — a PDF is expected to
   // be a faithful visual snapshot, so a screenshot-per-page is the right
   // tool here and guarantees pixel-for-pixel match with the preview. Works
@@ -473,7 +509,12 @@ const DocPreview = ({
   // mostly-white page down to a few hundred KB with no visible quality loss.
   const handleDownloadPdf = async () => {
     setDownloading(true);
+    setCapturingPdf(true);
     try {
+      // Let React re-render the pages at full size (see pageScale) before
+      // html2canvas reads them: two frames guarantees the new layout is
+      // painted, and on a wide screen the zoom was already 1, so this is free.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const pageEls = surfaceRef.current.querySelectorAll(".dp-page");
       const pdf = new jsPDF({ unit: "px", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -491,6 +532,7 @@ const DocPreview = ({
 
       pdf.save(t("docPreview.filenamePdf"));
     } finally {
+      setCapturingPdf(false);
       setDownloading(false);
     }
   };
@@ -591,7 +633,11 @@ const DocPreview = ({
 
       <div className="docpreview-surface" ref={surfaceRef}>
         {pages.map((pageBlocks, pageIndex) => (
-          <div className="dp-page" key={pageBlocks.map((b) => b.key).join("-") || pageIndex}>
+          <div
+            className="dp-page"
+            key={pageBlocks.map((b) => b.key).join("-") || pageIndex}
+            style={pageZoom < 1 ? { zoom: pageZoom } : undefined}
+          >
             {pageIndex > 0 && continuationHeader}
             {pageBlocks.map((block) => (
               <React.Fragment key={block.key}>{block.node}</React.Fragment>

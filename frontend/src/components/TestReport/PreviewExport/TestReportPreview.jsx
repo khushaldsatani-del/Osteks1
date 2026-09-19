@@ -15,6 +15,9 @@ import {
 } from "./testReportImageLayout";
 import "./testReportPreview.css";
 
+// Must match .doc-page { width } in testReportPreview.css.
+const A4_PAGE_WIDTH_PX = 794;
+
 // ===========================================================================
 // Step 5 (Preview & Export) — a live preview of the actual "Prüfbericht"
 // document this wizard produces, styled like the real printed report (white
@@ -98,6 +101,31 @@ const TestReportPreview = ({
   const ratioRequestedRef = useRef(new Set());
 
   const measureRef = useRef(null);
+
+  // An A4 sheet is 794px wide - wider than a phone - so the page was cut off
+  // at the right and had to be panned. Each visible page is shrunk to fit
+  // the surface instead: zoom, not transform, so the layout box shrinks too
+  // and no empty scroll area is left beside it. The offscreen measuring page
+  // is never zoomed, so pagination still measures true A4 sizes. There is no
+  // screenshot-based export here (Word is built from data), so nothing else
+  // depends on the on-screen size. On a wide screen this stays exactly 1.
+  const surfaceRef = useRef(null);
+  const [pageScale, setPageScale] = useState(1);
+  useLayoutEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface || typeof ResizeObserver === "undefined") return undefined;
+    const update = () => {
+      const style = getComputedStyle(surface);
+      const available =
+        surface.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const next = Math.min(1, Math.max(0.2, available / A4_PAGE_WIDTH_PX));
+      setPageScale((prev) => (Math.abs(prev - next) < 0.001 ? prev : next));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, []);
   const pageHeaderRef = useRef(null);
   const blockRefs = useRef([]);
 
@@ -943,9 +971,13 @@ const TestReportPreview = ({
         ))}
       </div>
 
-      <div className="doc-preview-surface">
+      <div className="doc-preview-surface" ref={surfaceRef}>
         {pages.map((pageBlocks, pageIndex) => (
-          <div className="doc-page" key={pageBlocks.map((b) => b.key).join("-") || pageIndex}>
+          <div
+            className="doc-page"
+            key={pageBlocks.map((b) => b.key).join("-") || pageIndex}
+            style={pageScale < 1 ? { zoom: pageScale } : undefined}
+          >
             {pageHeader}
             {pageBlocks.map((block) =>
               block.pinTopPx != null ? (

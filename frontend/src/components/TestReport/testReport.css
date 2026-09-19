@@ -2494,6 +2494,19 @@
 }
 
 
+/* Each Result / Requirement cell holds a width:100% textarea, which has no
+   minimum width of its own. On a narrow screen the table then shrank those
+   columns to ~10px, the text wrapped one letter per line, and the
+   auto-growing textarea stretched the step to ~5000px tall. With a floor on
+   the column width the table keeps readable columns and scrolls sideways
+   inside its wrapper instead. Wider screens already give these columns far
+   more than this, so nothing changes there. */
+.testreport-eval-table td:nth-child(2),
+.testreport-eval-table td:nth-child(3) {
+  min-width: 200px;
+}
+
+
 .testreport-eval-cycle-cell {
   white-space: nowrap;
 
@@ -2936,8 +2949,18 @@
     align-self: center;
   }
 
+  /* Stacked, the base rule's align-items: flex-start sizes the content
+     column to its widest child - the results table's full natural width -
+     so the card ran ~160px past the screen and the table's own sideways
+     scroll never engaged. Stretch pins it to the screen width instead. */
   .testreport-results-layout {
     flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .testreport-results-content {
+    width: 100%;
   }
 
   .testreport-results-rail {

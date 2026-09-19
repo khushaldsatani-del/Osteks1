@@ -527,3 +527,49 @@
 
   color: #1a1a1a;
 }
+
+
+/* =========================================
+   MOBILE
+
+   The header row (title + download buttons) is a single non-wrapping flex
+   line, so on a phone the buttons pushed past the screen edge.
+
+   The fixed 794px A4 sheet is shrunk to the screen width in DocPreview.jsx
+   (see pageScale) - it cannot be done here, because a calc() such as
+   (100vw - 76px) / 794 produces a length and zoom/scale() need a plain
+   number.
+========================================= */
+
+@media (max-width: 900px) {
+  .docpreview-card {
+    padding: 14px 12px 16px;
+  }
+
+  .docpreview-card-header {
+    flex-wrap: wrap;
+  }
+
+  .docpreview-actions {
+    width: 100%;
+
+    margin-left: 0;
+
+    flex-wrap: wrap;
+  }
+
+  .docpreview-btn {
+    flex: 1 1 auto;
+
+    justify-content: center;
+
+    min-height: 38px;
+  }
+
+  .docpreview-surface {
+
+    padding: 14px 10px;
+
+    max-height: 72vh;
+  }
+}

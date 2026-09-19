@@ -7,7 +7,7 @@
   top: 0;
   left: 0;
 
-  width: 252px;
+  width: var(--sidebar-width, 252px);
   height: 100vh;
 
   background: #ffffff;
@@ -459,4 +459,128 @@
 
 .language-option:not(.active):hover {
   color: #0f8a7c;
+}
+
+/* =========================================================
+   MOBILE DRAWER
+
+   On a phone the sidebar cannot stay a fixed column: it is 252px of a
+   ~360px screen, and because it is position:fixed it sat on top of the
+   page content with no way to dismiss it. Below 900px it becomes an
+   off-canvas drawer instead - slid out of view by default, slid in when
+   the menu button in the top bar is pressed, and closed again by picking
+   a page, tapping the backdrop, or pressing Escape.
+
+   The drawer keeps its own scroll (overflow-y) because the menu plus the
+   language card is taller than a short phone screen in landscape.
+========================================================= */
+
+.sidebar-backdrop {
+  display: none;
+}
+
+.sidebar-close {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: min(84vw, 300px);
+
+    /* square off the outer edge - it now meets the screen edge, not content */
+    border-top-right-radius: 22px;
+    border-bottom-right-radius: 22px;
+
+    /* The top bar is fixed above this drawer, so the first 58px of the
+       drawer are covered by it. Start the content below that line, or the
+       close button below is invisible. */
+    padding-top: calc(var(--mobile-topbar-height) + 12px);
+
+    overflow-y: auto;
+
+    transform: translateX(-100%);
+
+    transition: transform 240ms ease;
+
+    /* above the backdrop, below the top bar */
+    z-index: 1200;
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+
+    box-shadow: 0 10px 40px rgba(20, 30, 55, 0.22);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+
+    display: block;
+
+    background: rgba(15, 23, 42, 0.45);
+
+    border: none;
+    padding: 0;
+
+    z-index: 1150;
+
+    animation: sidebar-backdrop-in 160ms ease;
+  }
+
+  @keyframes sidebar-backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .sidebar-close {
+    align-self: flex-end;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 38px;
+    height: 38px;
+
+    margin-bottom: 6px;
+
+    padding: 0;
+
+    border: 1px solid #e3e7ef;
+    border-radius: 11px;
+
+    background: #ffffff;
+    color: #34425d;
+
+    cursor: pointer;
+  }
+
+  .sidebar-close:hover {
+    background: #f1f5f9;
+    color: #0f8a7c;
+  }
+
+  /* Comfortable touch targets - 54px rows are already fine, but the
+     submenu rows and language buttons were sized for a mouse. */
+  .sidebar-submenu-item {
+    min-height: 44px;
+  }
+
+  .language-option {
+    height: 34px;
+  }
+}
+
+
+/* A drawer that animates in is disorienting for anyone who has asked the
+   system to reduce motion, so it simply appears instead. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+
+  .sidebar-backdrop {
+    animation: none;
+  }
 }

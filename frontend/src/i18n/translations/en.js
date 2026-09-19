@@ -16,6 +16,8 @@ export default {
     testReportOverview: "Overview",
     testReportGenerate: "Generate Report",
     language: "Language",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
   },
 
   upload: {

@@ -605,4 +605,12 @@
     align-items: stretch;
   }
 
+  /* In a column, "flex: 1 1 220px" sizes the HEIGHT, which left a ~220px
+     empty band under the search input. Size it by its content instead. */
+  .tro-field--grow {
+    flex: 0 0 auto;
+
+    min-width: 0;
+  }
+
 }

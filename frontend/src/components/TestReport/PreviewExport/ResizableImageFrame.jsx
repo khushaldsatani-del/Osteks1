@@ -29,13 +29,20 @@ const ResizableImageFrame = ({ src, width, height, ratio, minWidth, maxWidth, al
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { startX: event.clientX, startWidth: width };
+    // On a phone the page is shown zoomed out (TestReportPreview's
+    // pageScale), but clientX is in screen pixels while width is in page
+    // pixels. Without dividing by the zoom, a drag would resize the photo far
+    // less than the finger moved. Read from the page this frame is actually
+    // in; it is 1 on a normal screen, so desktop dragging is unchanged.
+    const page = event.currentTarget.closest(".doc-page");
+    const zoom = page ? parseFloat(getComputedStyle(page).zoom) || 1 : 1;
+    dragRef.current = { startX: event.clientX, startWidth: width, zoom };
     setDragging(true);
   };
 
   const handlePointerMove = (event) => {
     if (!dragRef.current || !frameRef.current) return;
-    const delta = event.clientX - dragRef.current.startX;
+    const delta = (event.clientX - dragRef.current.startX) / dragRef.current.zoom;
     const nextWidth = Math.max(minWidth, Math.min(maxWidth, dragRef.current.startWidth + delta));
     const nextHeight = nextWidth / ratio;
     frameRef.current.style.width = `${nextWidth}px`;
