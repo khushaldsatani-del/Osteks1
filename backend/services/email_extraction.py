@@ -3,6 +3,7 @@ import io
 from PIL import Image, ImageOps
 
 from services import openai_client
+from services.norm_text import normalize_ofl_designation
 
 # Orchestration for the email-only calculation source (main.py's
 # /api/extract-email). Deliberately NOT in email_processing.py — that
@@ -115,6 +116,8 @@ def _render_part_summary(part: dict) -> str:
     lines = []
     for key, label in _ALWAYS_PRESENT_FIELDS:
         value = (part.get(key) or "").strip()
+        if key == "surfaceTreatment":
+            value = normalize_ofl_designation(value)
         lines.append(f"{label}: {value or _NOT_SPECIFIED}")
     for key, label in _OMIT_IF_ABSENT_FIELDS:
         value = (part.get(key) or "").strip()
@@ -153,11 +156,18 @@ def _has_calculation_relevant_value(part: dict) -> bool:
 # max_parts to match the frontend's fixed 4-slot workspace (main.py's
 # MAX_IMAGE_SLOTS). Returns [] if nothing calculation-relevant was found;
 # never fabricates a placeholder part.
-async def extract_calculation_from_email(parsed_email: dict, max_parts: int = 4) -> list[dict]:
+#
+# `on_event` (optional) forwards real progress events for the streaming
+# endpoint (/api/extract-email-stream) — a "converted" event once the email's
+# embedded images are normalized, then the AI stages' own start/done/token
+# events; omitting it keeps the original behavior exactly.
+async def extract_calculation_from_email(parsed_email: dict, max_parts: int = 4, on_event=None) -> list[dict]:
     email_text = _build_email_text(parsed_email)
     images = _normalize_image_attachments(parsed_email.get("attachments") or [])
+    if on_event is not None:
+        on_event({"type": "converted", "images": len(images)})
 
-    parts = await openai_client.extract_calculation_from_email(email_text, images)
+    parts = await openai_client.extract_calculation_from_email(email_text, images, on_event=on_event)
 
     results = []
     for part in parts:

@@ -47,14 +47,21 @@ const ROWS_PER_PAGE_OPTIONS = ["10", "15", "25", "50"].map((value) => ({ value, 
 // itself processed through the normal image/PDF pipeline). "STEP" never
 // belonged here — this app has never accepted STEP file uploads, so that tab
 // could never match anything. `row.fileKind` ("pdf"/"tiff"/"image"/"email")
-// comes from the backend's own detect_file_kind()/email extraction meta;
+// comes from the backend's own detect_file_kind()/email extraction meta.
+// TIFF counts as an Image, not a PDF: a .tif here is a scanned raster
+// drawing, which is exactly what the Image tab means, and it's what the rest
+// of the app already treats it as (UploadFile's DRAWING_EXTENSIONS, the test
+// report's image pickers). Grouping it under PDF meant that uploading .tif
+// drawings — the common case — left the Image tab permanently empty while
+// listing those scans as PDFs.
 // `row.mailEmailId` is set whenever a document is linked to a source email
 // (see documents_repo.py's LEFT JOIN emails). Falls back to the file
 // extension only for older rows saved before file_kind existed.
 function getFileTypeMeta(row) {
   const ext = (row.fileName || "").split(".").pop()?.toLowerCase() ?? "";
-  const isPdf = row.fileKind === "pdf" || row.fileKind === "tiff" || ["pdf", "tif", "tiff"].includes(ext);
-  const isImage = row.fileKind === "image" || ["png", "jpg", "jpeg", "webp"].includes(ext);
+  const isPdf = row.fileKind === "pdf" || ext === "pdf";
+  const isImage =
+    row.fileKind === "image" || row.fileKind === "tiff" || ["png", "jpg", "jpeg", "webp", "tif", "tiff"].includes(ext);
   const isEmail = Boolean(row.mailEmailId) || row.fileKind === "email";
 
   if (isEmail && (isPdf || isImage)) {
@@ -91,9 +98,12 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
   const { t } = useTranslation();
 
   const STATUS_OPTIONS = [
-    { value: "accepted", label: t("allDocuments.statusAccepted") },
+    // Only two states exist: a row is created by extraction as "pending" and
+    // flips to "created" when Save is pressed in the workspace (see
+    // documents_repo.py's update_document). Both are still selectable here so
+    // a row can be put back by hand.
     { value: "pending", label: t("allDocuments.statusPending") },
-    { value: "send", label: t("allDocuments.statusSend") },
+    { value: "created", label: t("allDocuments.statusCreated") },
   ];
 
   const SORT_FIELDS = [
@@ -497,7 +507,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                             aria-expanded={openStatusId === row.id}
                             onClick={() => setOpenStatusId((prev) => (prev === row.id ? null : row.id))}
                           >
-                            {STATUS_OPTIONS.find((option) => option.value === row.status)?.label}
+                            {STATUS_OPTIONS.find((option) => option.value === row.status)?.label ?? row.status}
                             <ChevronDown size={15} />
                           </button>
 

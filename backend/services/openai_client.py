@@ -3,6 +3,8 @@ import base64
 import json
 import os
 import random
+import time
+from types import SimpleNamespace
 
 from openai import (
     APIConnectionError,
@@ -24,6 +26,7 @@ from prompts.email_extraction_prompt import (
     build_email_candidate_user_text,
     build_email_validation_user_text,
 )
+from services.norm_text import normalize_ofl_designation
 
 _client: AsyncOpenAI | None = None
 
@@ -236,9 +239,53 @@ def _log_usage(stage: str, response) -> None:
     )
 
 
-async def _run_candidate_extraction(client: AsyncOpenAI, model: str, images: list[dict]) -> dict:
+# Same request, same parameters, same final answer as a plain
+# chat.completions.create() — but delivered as a stream so the caller can
+# be told, live, how many output chunks (≈ tokens) have arrived so far. Only
+# used when a progress callback is supplied (the /api/extract-stream
+# endpoint); every other caller keeps the original non-streaming call
+# untouched. Returns an object with the same attributes the callers below
+# read from a normal response (.usage, .choices[0].finish_reason,
+# .choices[0].message.content), so nothing downstream needs to know which
+# path produced it.
+#
+# Note the reasoning model's hidden "thinking" tokens are never streamed —
+# on_tokens only starts firing once the model begins writing its visible
+# answer, which is why the progress bar treats "output has started" as a
+# separate, later phase of each stage rather than a continuous 0-100% count.
+async def _stream_chat_completion(client: AsyncOpenAI, on_tokens, **kwargs):
+    stream = await client.chat.completions.create(stream=True, stream_options={"include_usage": True}, **kwargs)
+    parts: list[str] = []
+    finish_reason = None
+    usage = None
+    count = 0
+    last_emit = 0.0
+    async for chunk in stream:
+        if chunk.usage is not None:
+            usage = chunk.usage
+        if not chunk.choices:
+            continue
+        choice = chunk.choices[0]
+        delta = choice.delta.content if choice.delta else None
+        if delta:
+            parts.append(delta)
+            count += 1
+            now = time.monotonic()
+            if now - last_emit >= 0.4:
+                on_tokens(count)
+                last_emit = now
+        if choice.finish_reason:
+            finish_reason = choice.finish_reason
+    on_tokens(count)
+    return SimpleNamespace(
+        usage=usage,
+        choices=[SimpleNamespace(finish_reason=finish_reason, message=SimpleNamespace(content="".join(parts)))],
+    )
+
+
+async def _run_candidate_extraction(client: AsyncOpenAI, model: str, images: list[dict], on_tokens=None) -> dict:
     async def call():
-        return await client.chat.completions.create(
+        request = dict(
             model=model,
             messages=[
                 {"role": "system", "content": CANDIDATE_EXTRACTION_SYSTEM_PROMPT},
@@ -254,6 +301,9 @@ async def _run_candidate_extraction(client: AsyncOpenAI, model: str, images: lis
                 "json_schema": {"name": "candidate_extraction", "schema": _CANDIDATE_JSON_SCHEMA, "strict": True},
             },
         )
+        if on_tokens is not None:
+            return await _stream_chat_completion(client, on_tokens, **request)
+        return await client.chat.completions.create(**request)
 
     response = await _with_retry(call)
     _log_usage("stage 1 (candidate extraction)", response)
@@ -274,9 +324,9 @@ async def _run_candidate_extraction(client: AsyncOpenAI, model: str, images: lis
         raise RuntimeError("Stage 1 (candidate extraction) returned malformed JSON.") from error
 
 
-async def _run_validation(client: AsyncOpenAI, model: str, images: list[dict], candidates: list) -> str:
+async def _run_validation(client: AsyncOpenAI, model: str, images: list[dict], candidates: list, on_tokens=None) -> str:
     async def call():
-        return await client.chat.completions.create(
+        request = dict(
             model=model,
             messages=[
                 {"role": "system", "content": VALIDATION_SYSTEM_PROMPT},
@@ -288,6 +338,9 @@ async def _run_validation(client: AsyncOpenAI, model: str, images: list[dict], c
             reasoning_effort=_reasoning_effort(),
             max_completion_tokens=_max_tokens_stage2(),
         )
+        if on_tokens is not None:
+            return await _stream_chat_completion(client, on_tokens, **request)
+        return await client.chat.completions.create(**request)
 
     response = await _with_retry(call)
     _log_usage("stage 2 (validation)", response)
@@ -299,7 +352,7 @@ async def _run_validation(client: AsyncOpenAI, model: str, images: list[dict], c
     text = (response.choices[0].message.content or "").strip() if response.choices else ""
     if not text:
         raise RuntimeError("Stage 2 (validation) returned an empty response.")
-    return text
+    return normalize_ofl_designation(text)
 
 
 # Same two-stage design the app has used from the start (candidate
@@ -307,17 +360,47 @@ async def _run_validation(client: AsyncOpenAI, model: str, images: list[dict], c
 # images, just called through OpenAI's chat.completions instead of
 # Gemini's generateContent. See prompts/extraction_prompt.py's own
 # docstring for why two stages instead of one single-shot read.
-async def extract_drawing_info(images: list[dict]) -> str:
+#
+# `on_event` (optional) receives real progress events as they happen —
+# {"type": "stage", "stage": 1|2, "state": "start"|"done", "seconds": ...}
+# and {"type": "tokens", "stage": 1|2, "count": n} while a stage's visible
+# answer is streaming in. Passing it switches both calls to their streaming
+# form; omitting it (the plain /api/extract endpoint) keeps the original
+# behavior exactly.
+async def extract_drawing_info(images: list[dict], on_event=None) -> str:
     client = _get_client()
     model = _model_name()
 
-    candidate_result = await _run_candidate_extraction(client, model, images)
-    return await _run_validation(client, model, images, candidate_result.get("candidates", []))
+    if on_event is None:
+        candidate_result = await _run_candidate_extraction(client, model, images)
+        return await _run_validation(client, model, images, candidate_result.get("candidates", []))
+
+    on_event({"type": "stage", "stage": 1, "state": "start"})
+    started = time.monotonic()
+    candidate_result = await _run_candidate_extraction(
+        client, model, images, lambda count: on_event({"type": "tokens", "stage": 1, "count": count})
+    )
+    stage1_seconds = round(time.monotonic() - started, 1)
+    print(f"OpenAI stage 1 (candidate extraction) took {stage1_seconds}s")
+    on_event({"type": "stage", "stage": 1, "state": "done", "seconds": stage1_seconds})
+
+    on_event({"type": "stage", "stage": 2, "state": "start"})
+    started = time.monotonic()
+    summary = await _run_validation(
+        client, model, images, candidate_result.get("candidates", []),
+        lambda count: on_event({"type": "tokens", "stage": 2, "count": count}),
+    )
+    stage2_seconds = round(time.monotonic() - started, 1)
+    print(f"OpenAI stage 2 (validation) took {stage2_seconds}s")
+    on_event({"type": "stage", "stage": 2, "state": "done", "seconds": stage2_seconds})
+    return summary
 
 
-async def _run_email_candidate_extraction(client: AsyncOpenAI, model: str, email_text: str, images: list[dict]) -> dict:
+async def _run_email_candidate_extraction(
+    client: AsyncOpenAI, model: str, email_text: str, images: list[dict], on_tokens=None
+) -> dict:
     async def call():
-        return await client.chat.completions.create(
+        request = dict(
             model=model,
             messages=[
                 {"role": "system", "content": EMAIL_CANDIDATE_EXTRACTION_SYSTEM_PROMPT},
@@ -336,6 +419,9 @@ async def _run_email_candidate_extraction(client: AsyncOpenAI, model: str, email
                 "json_schema": {"name": "email_candidate_extraction", "schema": _CANDIDATE_JSON_SCHEMA, "strict": True},
             },
         )
+        if on_tokens is not None:
+            return await _stream_chat_completion(client, on_tokens, **request)
+        return await client.chat.completions.create(**request)
 
     response = await _with_retry(call)
     _log_usage("email stage 1 (candidate extraction)", response)
@@ -354,9 +440,11 @@ async def _run_email_candidate_extraction(client: AsyncOpenAI, model: str, email
         raise RuntimeError("Stage 1 (candidate extraction) returned malformed JSON.") from error
 
 
-async def _run_email_validation(client: AsyncOpenAI, model: str, email_text: str, images: list[dict], candidates: list) -> list[dict]:
+async def _run_email_validation(
+    client: AsyncOpenAI, model: str, email_text: str, images: list[dict], candidates: list, on_tokens=None
+) -> list[dict]:
     async def call():
-        return await client.chat.completions.create(
+        request = dict(
             model=model,
             messages=[
                 {"role": "system", "content": EMAIL_VALIDATION_SYSTEM_PROMPT},
@@ -375,6 +463,9 @@ async def _run_email_validation(client: AsyncOpenAI, model: str, email_text: str
                 "json_schema": {"name": "email_validated_parts", "schema": _EMAIL_PARTS_JSON_SCHEMA, "strict": True},
             },
         )
+        if on_tokens is not None:
+            return await _stream_chat_completion(client, on_tokens, **request)
+        return await client.chat.completions.create(**request)
 
     response = await _with_retry(call)
     _log_usage("email stage 2 (validation)", response)
@@ -400,12 +491,37 @@ async def _run_email_validation(client: AsyncOpenAI, model: str, email_text: str
 # text plus optional embedded images, and returning structured per-part
 # JSON instead of one free-text summary so the caller can split genuinely
 # separate components into separate Calculation slots.
-async def extract_calculation_from_email(email_text: str, images: list[dict]) -> list[dict]:
+#
+# `on_event` (optional) works exactly as in extract_drawing_info above —
+# real per-stage start/done + live token events; omitting it keeps the
+# original non-streaming behavior.
+async def extract_calculation_from_email(email_text: str, images: list[dict], on_event=None) -> list[dict]:
     client = _get_client()
     model = _model_name()
 
-    candidate_result = await _run_email_candidate_extraction(client, model, email_text, images)
-    return await _run_email_validation(client, model, email_text, images, candidate_result.get("candidates", []))
+    if on_event is None:
+        candidate_result = await _run_email_candidate_extraction(client, model, email_text, images)
+        return await _run_email_validation(client, model, email_text, images, candidate_result.get("candidates", []))
+
+    on_event({"type": "stage", "stage": 1, "state": "start"})
+    started = time.monotonic()
+    candidate_result = await _run_email_candidate_extraction(
+        client, model, email_text, images, lambda count: on_event({"type": "tokens", "stage": 1, "count": count})
+    )
+    stage1_seconds = round(time.monotonic() - started, 1)
+    print(f"OpenAI email stage 1 (candidate extraction) took {stage1_seconds}s")
+    on_event({"type": "stage", "stage": 1, "state": "done", "seconds": stage1_seconds})
+
+    on_event({"type": "stage", "stage": 2, "state": "start"})
+    started = time.monotonic()
+    parts = await _run_email_validation(
+        client, model, email_text, images, candidate_result.get("candidates", []),
+        lambda count: on_event({"type": "tokens", "stage": 2, "count": count}),
+    )
+    stage2_seconds = round(time.monotonic() - started, 1)
+    print(f"OpenAI email stage 2 (validation) took {stage2_seconds}s")
+    on_event({"type": "stage", "stage": 2, "state": "done", "seconds": stage2_seconds})
+    return parts
 
 
 # Translates a raw OpenAI/SDK error into one consistent user-facing

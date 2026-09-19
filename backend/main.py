@@ -1,3 +1,5 @@
+import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 from urllib.parse import quote
@@ -8,7 +10,7 @@ load_dotenv()
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 from services import documents_repo, emails_repo, gcs_storage, kb_repo, test_reports_repo
@@ -122,6 +124,97 @@ async def extract(file: UploadFile | None = File(None)):
         return JSONResponse(status_code=status, content={"error": described["message"]})
 
 
+# Shared plumbing for the two streaming extraction endpoints below
+# (/api/extract-stream for drawings, /api/extract-email-stream for emails):
+# runs `run(emit)` as a background task and answers as a newline-delimited
+# JSON stream of REAL progress events (emit(...) puts an event on the
+# stream), so the frontend's progress bar reflects what the server is
+# actually doing rather than a timer. `run` emits events like
+# {"type": "received"}, "converted", per-stage "start"/"done" + live
+# "tokens" counts, and finally one {"type": "result", ...}. Any exception
+# `run` raises becomes a final {"type": "error"} event with the same
+# user-facing message the non-streaming endpoints return. A "tick" is sent
+# every few seconds of silence purely as a keepalive so no proxy ever sees
+# the connection as idle during the AI stages' long reasoning phase (no
+# visible tokens are produced during that phase).
+def _ndjson_stream(run, fallback_prefix: str) -> StreamingResponse:
+    queue: asyncio.Queue = asyncio.Queue()
+
+    async def pipeline():
+        try:
+            await run(queue.put_nowait)
+        except Exception as error:  # noqa: BLE001
+            print("Extraction failed:", repr(error))
+            described = describe_extraction_error(error, fallback_prefix)
+            queue.put_nowait({"type": "error", "error": described["message"]})
+        finally:
+            queue.put_nowait(None)
+
+    async def event_stream():
+        task = asyncio.create_task(pipeline())
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=5)
+                except asyncio.TimeoutError:
+                    yield json.dumps({"type": "tick"}) + "\n"
+                    continue
+                if event is None:
+                    break
+                yield json.dumps(event) + "\n"
+        finally:
+            # Client went away mid-extraction (closed the tab, navigated
+            # off the page) — stop paying for an AI call nobody will read.
+            if not task.done():
+                task.cancel()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# Same extraction as /api/extract above (same validation, same conversion,
+# same two-stage AI pipeline, same final summary) — answered as a stream of
+# real progress events (see _ndjson_stream). Anything wrong with the upload
+# itself is still an ordinary 4xx JSON response, before any streaming starts.
+@app.post("/api/extract-stream")
+async def extract_stream(file: UploadFile | None = File(None)):
+    if not file or not file.filename:
+        return JSONResponse(status_code=400, content={"error": "No file was uploaded. Attach a file under the 'file' field."})
+
+    try:
+        buffer = await _read_and_check_size(file)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": f"Upload error: {error}"})
+
+    kind = detect_file_kind(file.filename, file.content_type or "")
+    if not kind:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Unsupported file type. Upload a TIFF, PNG, JPG, JPEG, or PDF drawing."},
+        )
+
+    async def run(emit):
+        emit({"type": "received", "bytes": len(buffer)})
+        emit({"type": "converting"})
+        # Worker thread so events/ticks keep flowing during a large PDF's
+        # rendering instead of the event loop stalling on it.
+        images = await asyncio.to_thread(convert_to_image_pages, buffer, kind)
+        emit({"type": "converted", "images": len(images)})
+        summary = await extract_drawing_info(images, on_event=emit)
+        emit(
+            {
+                "type": "result",
+                "summary": summary,
+                "meta": {"fileName": file.filename, "fileKind": kind, "imagesAnalyzed": len(images)},
+            }
+        )
+
+    return _ndjson_stream(run, "Could not extract information from this drawing.")
+
+
 # Email-only calculation source: only ever called by the frontend when no
 # drawing has been uploaded for this offer (see UploadFile.jsx's
 # hasImageSource guard) — once any image exists, email stays storage/link
@@ -158,6 +251,45 @@ async def extract_email_calculation(email: UploadFile = File(...), max_parts: in
         described = describe_extraction_error(error, "Could not extract information from this email.")
         status = 500 if described["is_config_error"] else 502
         return JSONResponse(status_code=status, content={"error": described["message"]})
+
+
+# Same extraction as /api/extract-email above, answered as a stream of real
+# progress events (see _ndjson_stream) — the final event is
+# {"type": "result", "parts": [...]}, the same list the plain endpoint
+# returns, or an error event carrying the same "no calculation-relevant
+# data" message the plain endpoint answers with a 422.
+@app.post("/api/extract-email-stream")
+async def extract_email_stream(email: UploadFile = File(...), max_parts: int = Form(MAX_IMAGE_SLOTS)):
+    if not email.filename:
+        return JSONResponse(status_code=400, content={"error": "No email file was uploaded."})
+
+    kind = detect_email_kind(email.filename, email.content_type or "")
+    if not kind:
+        return JSONResponse(status_code=400, content={"error": "Unsupported email format. Upload a .eml or .msg file."})
+
+    try:
+        buffer = await _read_and_check_size(email)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": f"Upload error: {error}"})
+
+    async def run(emit):
+        emit({"type": "received", "bytes": len(buffer)})
+        emit({"type": "converting"})
+        try:
+            parsed = parse_email_buffer(buffer, is_msg=(kind == "msg"))
+        except Exception as error:  # noqa: BLE001
+            print("Email parsing failed:", repr(error))
+            emit({"type": "error", "error": "Could not parse this email file."})
+            return
+        parts = await extract_calculation_from_email(
+            parsed, max_parts=max(1, min(max_parts, MAX_IMAGE_SLOTS)), on_event=emit
+        )
+        if not parts:
+            emit({"type": "error", "error": "No calculation-relevant data could be found in this email."})
+            return
+        emit({"type": "result", "parts": parts})
+
+    return _ndjson_stream(run, "Could not extract information from this email.")
 
 
 # --- Documents (Neon-backed) ------------------------------------------------

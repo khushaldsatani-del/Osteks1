@@ -50,6 +50,17 @@ TILE_OVERLAP_RATIO = 0.12
 MAX_TILES_PER_PAGE = 4
 MAX_PAGES = 12
 
+# A very large sheet (a full A0+2 general-arrangement drawing scanned at high
+# DPI is routinely 150+ megapixels) cannot be covered by 4 tiles at any useful
+# resolution no matter how the grid is shaped — 4 tiles over a 186MP sheet is
+# a ~5x downscale, which crushes title-block and callout text into exactly the
+# character-level misreads this two-stage pipeline exists to prevent ("Ofl"
+# read as "OF1", 1293 read as 1283). Above this size the tile budget is
+# raised so the grid can actually follow the sheet's shape. Normal-sized
+# drawings are unaffected — they never reach this threshold.
+LARGE_SHEET_PIXELS = 40_000_000
+MAX_TILES_PER_PAGE_LARGE = 8
+
 # No tile/overview is ever upscaled past this — comfortably above
 # TILE_TARGET_PX, only relevant for unusually huge source scans.
 SAFETY_MAX_EDGE_PX = 3200
@@ -66,8 +77,22 @@ SAFETY_MAX_EDGE_PX = 3200
 # in the part number — this crop is sized to the corner alone, so it stays
 # much closer to native pixel density for the same edge-length cap.
 TITLE_BLOCK_CROP_WIDTH_FRACTION = 0.32
-TITLE_BLOCK_CROP_HEIGHT_FRACTION = 0.28
+TITLE_BLOCK_CROP_HEIGHT_FRACTION = 0.34
 TITLE_BLOCK_CROP_MAX_EDGE_PX = 3200
+
+# A title block is a roughly fixed physical size (DIN/ISO put it at ~180mm
+# wide) no matter how large the sheet around it is, so on a standard A-series
+# sheet — about 1.4x wider than tall — the 0.32 width fraction above lands on
+# it well. On an unusually wide sheet (an A0+2 strip drawing can be over 4x
+# wider than tall) that same fraction grabs a band several times wider than
+# the title block itself, and the edge cap below then downscales the whole
+# thing — so the actual title block arrives at a fraction of its native
+# resolution, which is precisely when small print stops being readable.
+# Bounding the crop's width by the sheet's HEIGHT instead keeps it tight on
+# any aspect ratio: on a standard sheet this bound is never the binding one
+# (0.5 x height > 0.32 x width there), so those drawings crop exactly as
+# before.
+TITLE_BLOCK_CROP_WIDTH_MAX_HEIGHT_FRACTION = 0.50
 
 # Higher-DPI PDF rendering than a plain viewer would use, so the raster we
 # tile from already has enough detail for small text before we even crop it.
@@ -132,6 +157,45 @@ def _resize_within(image: Image.Image, target_edge: int) -> Image.Image:
 # silently drop coverage of whatever region the discarded tile held — the
 # grid itself is computed smaller so the *whole* drawing still gets covered,
 # just with fewer, larger tiles (some resolution traded for full coverage).
+def _tile_extract_size(width: int, height: int, cols: int, rows: int) -> tuple[int, int]:
+    tile_width = math.ceil(width / cols)
+    tile_height = math.ceil(height / rows)
+    return (
+        min(width, tile_width + 2 * _js_round(tile_width * TILE_OVERLAP_RATIO)),
+        min(height, tile_height + 2 * _js_round(tile_height * TILE_OVERLAP_RATIO)),
+    )
+
+
+# Picks the tile grid that keeps the most real pixels when the ideal grid
+# doesn't fit the image budget.
+#
+# The reduction this replaces just stepped whichever of cols/rows was larger
+# down by one until the product fit — which ignores the sheet's shape and can
+# land on a grid whose tiles are far coarser than necessary. On a 28087x6622
+# sheet it produced a 2x2 grid whose tiles are enormously wide but short:
+# each one is downscaled ~5.4x to fit the edge cap, because a tile's WIDTH
+# blows past the cap long before its height gets near it. A 4x1 grid over the
+# same sheet costs exactly the same four images, but each tile is only ~2.7x
+# downscaled — tiles shaped like the sheet waste no budget on the dimension
+# that already fits. This searches the candidate grids directly and keeps the
+# one with the least downscaling, preferring fewer tiles when two grids tie
+# (which is what stops it from spending budget that buys no extra detail).
+def _choose_tile_grid(width: int, height: int, ideal_cols: int, ideal_rows: int, max_tiles: int) -> tuple[int, int]:
+    best_key: tuple[float, int] | None = None
+    best_grid = (1, 1)
+    for cols in range(1, ideal_cols + 1):
+        for rows in range(1, ideal_rows + 1):
+            if cols * rows > max_tiles:
+                continue
+            extract_width, extract_height = _tile_extract_size(width, height, cols, rows)
+            scale = min(1.0, SAFETY_MAX_EDGE_PX / max(extract_width, extract_height))
+            key = (round(scale, 6), -(cols * rows))
+            if best_key is None or key > best_key:
+                best_key = key
+                best_grid = (cols, rows)
+    return best_grid
+
+
 def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[dict]:
     with Image.open(io.BytesIO(original_bytes)) as raw:
         # Normalize EXIF orientation once, up front, so every crop below
@@ -166,7 +230,10 @@ def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[di
         # Reserve one slot for the overview already added above; the rest of
         # the budget is what the tile grid is allowed to use. None means no
         # provider-imposed cap — use the normal default.
-        max_tiles = MAX_TILES_PER_PAGE if max_images is None else max(0, max_images - 1)
+        if max_images is None:
+            max_tiles = MAX_TILES_PER_PAGE_LARGE if width * height >= LARGE_SHEET_PIXELS else MAX_TILES_PER_PAGE
+        else:
+            max_tiles = max(0, max_images - 1)
 
         longest_edge = max(width, height)
         if longest_edge <= TILE_THRESHOLD_PX or max_tiles == 0:
@@ -177,13 +244,8 @@ def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[di
 
         cols = max(1, _js_round(width / TILE_TARGET_PX))
         rows = max(1, _js_round(height / TILE_TARGET_PX))
-        while cols * rows > max_tiles:
-            if cols >= rows:
-                cols -= 1
-            else:
-                rows -= 1
-            cols = max(1, cols)
-            rows = max(1, rows)
+        if cols * rows > max_tiles:
+            cols, rows = _choose_tile_grid(width, height, cols, rows, max_tiles)
 
         tile_width = math.ceil(width / cols)
         tile_height = math.ceil(height / rows)
@@ -223,7 +285,11 @@ def _tile_image(original_bytes: bytes, max_images: int | None = None) -> list[di
         # has room).
         tiles_used = cols * rows
         if max_images is None or (1 + tiles_used) < max_images:
-            crop_left = max(0, width - _js_round(width * TITLE_BLOCK_CROP_WIDTH_FRACTION))
+            crop_width = min(
+                _js_round(width * TITLE_BLOCK_CROP_WIDTH_FRACTION),
+                _js_round(height * TITLE_BLOCK_CROP_WIDTH_MAX_HEIGHT_FRACTION),
+            )
+            crop_left = max(0, width - max(1, crop_width))
             crop_top = max(0, height - _js_round(height * TITLE_BLOCK_CROP_HEIGHT_FRACTION))
             title_block_crop = base.crop((crop_left, crop_top, width, height))
             crop_edge = min(max(title_block_crop.width, title_block_crop.height), TITLE_BLOCK_CROP_MAX_EDGE_PX)

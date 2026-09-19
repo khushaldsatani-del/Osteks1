@@ -115,6 +115,17 @@ async def update_document(document_id: int, fields: dict) -> dict:
             firma_info = $7, calculation_data = $8, offer_details_rows = $9,
             offer_details_values = $10,
             kb_specification = COALESCE($11, kb_specification),
+            -- Reaching this statement IS the Save button: this is the only
+            -- write path it uses, and the only caller of this function (see
+            -- Documents.jsx's saveOneSlot). A row starts life at the schema
+            -- default 'pending' when extraction creates it, and becomes
+            -- 'created' here — so All Documents distinguishes "uploaded but
+            -- never saved" from "saved" without the user setting anything by
+            -- hand. The narrow specification PATCH below deliberately does
+            -- NOT do this: it fires on its own right after extraction, and
+            -- marking a document created there would make every upload look
+            -- saved.
+            status = 'created',
             updated_at = now()
         WHERE id = $1
         RETURNING id

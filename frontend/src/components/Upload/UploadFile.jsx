@@ -1,8 +1,10 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { UploadCloud, Image as ImageIcon, CircleHelp, Mail, X } from "lucide-react";
-import { BACKEND_URL } from "../../config";
 import { useTranslation } from "../../i18n/LanguageContext";
 import UploadInfoModal from "./UploadInfoModal";
+import ExtractionProgressToast from "../Extraction/ExtractionProgressToast";
+import { createExtractionProgress } from "../Extraction/extractionProgress";
+import { streamExtract, streamExtractEmail, ExtractionNetworkError } from "../Extraction/streamExtract";
 import "./upload.css";
 
 const COMBINED_ACCEPT = ".pdf,.png,.jpg,.jpeg,.tif,.tiff,.eml,.msg";
@@ -69,32 +71,76 @@ const UploadFile = ({
   // dropping again before confirming, cleared entirely on Confirm or Cancel.
   const [pending, setPending] = useState(null);
 
-  const extractDrawing = async (selectedFile, index) => {
+  // The bottom-right progress card. `progressRef` holds the live model for
+  // the drawing currently being extracted (fed real events by
+  // extractDrawing below); `toast` is what actually renders, refreshed on a
+  // short interval while a run is active because part of the model is
+  // time-based (see extractionProgress.js) and must keep advancing between
+  // server events. Overall progress across a multi-drawing batch is each
+  // finished drawing's full share plus the current drawing's own progress.
+  const progressRef = useRef(null);
+  const [toast, setToast] = useState(null);
+
+  const buildToast = (state, extra = {}) => {
+    const run = progressRef.current;
+    if (!run) return null;
+    const filePercent = run.model.percent();
+    return {
+      state,
+      percent: ((run.index * 100 + filePercent) / run.total),
+      fileIndex: run.index,
+      fileCount: run.total,
+      fileName: run.fileName,
+      stage: run.model.stage(),
+      indeterminate: run.model.indeterminate(),
+      ...extra,
+    };
+  };
+
+  useEffect(() => {
+    if (!toast || toast.state !== "running") return undefined;
+    const interval = setInterval(() => setToast((current) => (current?.state === "running" ? buildToast("running") : current)), 250);
+    return () => clearInterval(interval);
+    // buildToast only reads progressRef, so re-creating the interval when
+    // toast.state changes is all that's needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast?.state]);
+
+  useEffect(() => {
+    if (toast?.state !== "done" && toast?.state !== "error") return undefined;
+    const timer = setTimeout(() => setToast(null), toast.state === "done" ? 2500 : 8000);
+    return () => clearTimeout(timer);
+  }, [toast?.state]);
+
+  const extractDrawing = async (selectedFile, index, total = 1) => {
     setStatus("loading");
     onExtractionStart?.(selectedFile.name, index);
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
+    const model = createExtractionProgress("drawing");
+    progressRef.current = { model, index, total, fileName: selectedFile.name };
+    setToast(buildToast("running"));
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/extract`, {
-        method: "POST",
-        body: formData,
+      const data = await streamExtract(selectedFile, {
+        onUploadProgress: (loaded, size) => model.handleUploadProgress(loaded, size),
+        onEvent: (event) => model.handleEvent(event),
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || t("upload.errorExtractionFailed", { status: response.status }));
-      }
 
       setStatus("success");
       onExtractionResult?.(data.summary, data.meta, index);
+      // 100% only now — the extracted details have just been applied to the
+      // slot (onExtractionResult's synchronous part sets its extraction
+      // state to "success"), so the bar hitting 100 and the details
+      // appearing are the same moment. Between drawings of a batch the card
+      // simply carries on into the next one.
+      model.finish();
+      setToast(buildToast(index + 1 >= total ? "done" : "running"));
     } catch (error) {
-      const isNetworkError = error instanceof TypeError;
+      const isNetworkError = error instanceof ExtractionNetworkError;
       const message = isNetworkError ? t("upload.errorBackendUnreachable") : error.message;
       setStatus("error");
       onExtractionError?.(message, index);
+      setToast(buildToast("error", { errorMessage: message }));
     }
   };
 
@@ -107,7 +153,7 @@ const UploadFile = ({
     for (let index = 0; index < drawings.length; index += 1) {
       setFile(drawings[index]);
       // eslint-disable-next-line no-await-in-loop
-      await extractDrawing(drawings[index], index);
+      await extractDrawing(drawings[index], index, drawings.length);
     }
   };
 
@@ -136,23 +182,21 @@ const UploadFile = ({
     onBatchStart?.(1, { reuseActiveSlot: true });
     onExtractionStart?.(selectedEmail.name, 0);
 
-    const formData = new FormData();
-    formData.append("email", selectedEmail);
-    formData.append("max_parts", String(Math.max(1, maxFiles)));
+    // Same bottom-right progress card as drawings, fed by the email
+    // endpoint's own real events (see extractionProgress.js's "email"
+    // profile). One email is one unit of progress, however many parts it
+    // turns out to describe.
+    const model = createExtractionProgress("email");
+    progressRef.current = { model, index: 0, total: 1, fileName: selectedEmail.name };
+    setToast(buildToast("running"));
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/extract-email`, {
-        method: "POST",
-        body: formData,
+      const data = await streamExtractEmail(selectedEmail, Math.max(1, maxFiles), {
+        onUploadProgress: (loaded, size) => model.handleUploadProgress(loaded, size),
+        onEvent: (event) => model.handleEvent(event),
       });
 
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || t("upload.errorExtractionFailed", { status: response.status }));
-      }
-
-      const parts = Array.isArray(data.parts) ? data.parts : [];
+      const parts = data.parts;
       if (parts.length === 0) {
         throw new Error(t("upload.errorNoEmailCalculationData"));
       }
@@ -179,14 +223,26 @@ const UploadFile = ({
         // real 4-part upload left slot 2 with no parentDocumentId at all).
         // eslint-disable-next-line no-await-in-loop
         await onExtractionResult?.(parts[index].summary, parts[index].meta, index);
+        // Each part's own document is created one after another — the last
+        // 5% of the bar advances as they land, and 100% only once every
+        // part's details have actually been applied.
+        model.setApplied((index + 1) / parts.length);
+        setToast(buildToast("running"));
       }
 
       setStatus("success");
+      model.finish();
+      setToast(buildToast("done"));
     } catch (error) {
-      const isNetworkError = error instanceof TypeError;
+      const isNetworkError = error instanceof ExtractionNetworkError;
       const message = isNetworkError ? t("upload.errorBackendUnreachable") : error.message;
       setStatus("error");
       onExtractionError?.(message, 0);
+      setToast(buildToast("error", { errorMessage: message }));
+      // No successful extraction, no stored email — un-stage it (see
+      // confirmPending) so a failed email-only upload can't leave its email
+      // waiting to attach itself to whatever drawing is uploaded next.
+      onEmailFileChange?.(null);
     }
   };
 
@@ -242,6 +298,15 @@ const UploadFile = ({
       if (email) onEmailFileChange?.(email);
       processDrawingFiles(drawings);
     } else if (mode === "emailOnly") {
+      // The email is the calculation source here, but it must ALSO be stored
+      // and linked to the first document it creates — that link is what the
+      // Mail column in All Documents reads. Staging it (exactly like an
+      // email dropped alongside drawings) is what lets Documents.jsx's
+      // handleExtractionResult attach it once slot 1's document exists;
+      // without this the email was extracted but never stored, so its Mail
+      // cell stayed "—". processEmailOnlyFile un-stages it again if the
+      // extraction fails.
+      onEmailFileChange?.(email);
       processEmailOnlyFile(email);
     }
   };
@@ -549,6 +614,8 @@ const UploadFile = ({
       </div>
 
       {infoOpen && <UploadInfoModal onClose={() => setInfoOpen(false)} />}
+
+      <ExtractionProgressToast toast={toast} />
     </div>
   );
 };

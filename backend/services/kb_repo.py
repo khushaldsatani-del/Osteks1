@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from decimal import Decimal, InvalidOperation
 
 from services.db import get_pool
@@ -527,7 +528,88 @@ async def search_documents(query: str) -> list[dict]:
 # space, a period (e.g. "Ofl.- X633", seen on a real drawing), or any mix
 # of those — so the character class covers all of them rather than just
 # the dash/underscore/space this originally shipped with.
-_OFL_CODE_RE = re.compile(r"(?i)\bofl[\s\-_.]*([a-z]\d{3})\b")
+#
+# The "l" in "Ofl" is also routinely misread off a drawing as a look-alike
+# character — the digit 1 ("Of1-s621", seen on a real drawing, which made
+# the whole lookup silently return nothing), a capital I, or a pipe — so
+# all of those are accepted in that one position. Safe because it's
+# still anchored to a word boundary and must be followed by exactly one
+# letter + three digits, which ordinary text doesn't produce.
+#
+# Beyond that single-regex version, extract_ofl_codes() below is deliberately
+# tolerant of everything a drawing/OCR/AI read is known to do to this text:
+# any punctuation (or none) between "Ofl" and the code, including long
+# dashes, colons, slashes and brackets; spaces inside the code ("x 633"); a
+# code glued to the next word ("x633TL227"); a zero for the "O"; fullwidth /
+# ligature characters; and look-alike characters in the digit positions
+# (Of1, x63O, s62l...). It never invents a code — every candidate is still
+# checked against the KB by exact match, and a look-alike substitution is only
+# tried when the literal text was NOT already a well-formed code.
+_INVISIBLE_RE = re.compile("[­​-‍⁠﻿]")
+_OFL_PREFIX = r"(?<![a-z])[o0]f[ \t]?[l1i|!]"
+_OFL_STRICT_RE = re.compile(rf"(?i){_OFL_PREFIX}[^0-9a-z]*([a-z])[^0-9a-z]*(\d{{3}})(?!\d)")
+_OFL_LOOKALIKE_RE = re.compile(rf"(?i){_OFL_PREFIX}[^0-9a-z]*([a-z])[^0-9a-z]*([0-9oli|sbz]{{3}})(?![0-9a-z])")
+# "VW 13750 x633" — the family document number followed directly by a code,
+# no "Ofl" at all. Only consulted when no "Ofl..." code was found.
+_VW13750_BARE_RE = re.compile(r"(?i)(?<![a-z0-9])vw[^0-9a-z]*13750(?!\d)[^0-9a-z]*([a-z])[^0-9a-z]*(\d{3})(?!\d)")
+_LOOKALIKE_DIGITS = {"o": "0", "l": "1", "i": "1", "|": "1", "s": "5", "b": "8", "z": "2"}
+_FAMILY_DOCUMENT = "VW 13750"
+
+
+def _clean_norm_text(text: str) -> str:
+    return _INVISIBLE_RE.sub("", unicodedata.normalize("NFKC", text))
+
+
+def extract_ofl_codes(text: str) -> list[str]:
+    """Every plausible Ofl code in `text`, lowercase ("x633"), in reading
+    order, exact spellings first, then look-alike-corrected ones."""
+    cleaned = _clean_norm_text(text)
+    codes: list[str] = []
+
+    def add(code: str) -> None:
+        if code not in codes:
+            codes.append(code)
+
+    for m in _OFL_STRICT_RE.finditer(cleaned):
+        add(f"{m.group(1)}{m.group(2)}".lower())
+    for m in _OFL_LOOKALIKE_RE.finditer(cleaned):
+        digits = m.group(2).lower()
+        if sum(ch.isdigit() for ch in digits) < 2:
+            continue
+        add(m.group(1).lower() + "".join(_LOOKALIKE_DIGITS.get(ch, ch) for ch in digits))
+    if not codes:
+        for m in _VW13750_BARE_RE.finditer(cleaned):
+            add(f"{m.group(1)}{m.group(2)}".lower())
+    return codes
+
+
+async def _find_document_in_text(pool, text: str, exclude_base: str | None = None) -> dict | None:
+    """A KB document whose number appears anywhere inside `text` (e.g. "VW
+    13750 - TL 227", "TL 244: 2017-06"), not only when the whole text IS the
+    number. Any spacing/dash/dot between the number's parts is accepted."""
+    cleaned = _clean_norm_text(text)
+    bases = [r["base_document_number"] for r in await pool.fetch("SELECT DISTINCT base_document_number FROM kb_documents")]
+    found: list[tuple[int, str]] = []
+    for base in bases:
+        if not base or base == exclude_base:
+            continue
+        runs = re.findall(r"[A-Za-z0-9]+", base)
+        if not runs:
+            continue
+        pattern = r"(?<![A-Za-z0-9])" + r"[\s\-_.]*".join(re.escape(run) for run in runs) + r"(?!\d)"
+        match = re.search(pattern, cleaned, re.I)
+        if match:
+            found.append((match.start(), base))
+    if not found:
+        return None
+    # A specific document beats the VW 13750 family document when both are named.
+    found.sort(key=lambda item: (item[1] == _FAMILY_DOCUMENT, item[0]))
+    row = await pool.fetchrow(
+        "SELECT original_document_number, base_document_number, title FROM kb_documents "
+        "WHERE base_document_number = $1 ORDER BY edition DESC LIMIT 1",
+        found[0][1],
+    )
+    return dict(row) if row else None
 
 
 async def lookup_specification(text: str) -> dict | None:
@@ -535,19 +617,25 @@ async def lookup_specification(text: str) -> dict | None:
         return None
 
     pool = await get_pool()
-    match = _OFL_CODE_RE.search(text)
-    code = match.group(1).lower() if match else None
+    codes = extract_ofl_codes(text)
 
-    if code:
-        rows = await pool.fetch(
+    rows = []
+    code = None
+    if codes:
+        all_rows = await pool.fetch(
             """
-            SELECT d.id, d.original_document_number, d.base_document_number, d.edition, r.condition
+            SELECT d.id, d.original_document_number, d.base_document_number, d.edition, r.condition, r.value_text
             FROM kb_requirements r JOIN kb_documents d ON d.id = r.document_id
-            WHERE r.requirement_type = 'surface_treatment_code' AND r.value_text = $1
+            WHERE r.requirement_type = 'surface_treatment_code' AND r.value_text = ANY($1::text[])
             ORDER BY d.id
             """,
-            code,
+            codes,
         )
+        # First candidate (in reading order) that the KB actually knows.
+        code = next((c for c in codes if any(r["value_text"] == c for r in all_rows)), None)
+        rows = [r for r in all_rows if r["value_text"] == code] if code else []
+
+    if code:
         if rows:
             # VW 13750 is the "family" document — where the code is
             # *defined* — so its condition text is the plain-language
@@ -611,24 +699,38 @@ async def lookup_specification(text: str) -> dict | None:
     # No Ofl-code found — fall back to a plain document-number match so a
     # norm text naming just "TL 227" (no embedded code) still resolves to
     # at least the document's identity, not nothing at all.
+    # A code WAS read but this KB has no such code: never fall back to naming
+    # the VW 13750 family document — that would present a generic title as if
+    # it were this code's specification. A different document named in the
+    # same text (e.g. "... Ofl-x999 TL 227") is still fair game.
+    row = None
     normalized = normalize_document_number(text)
-    if normalized:
+    if normalized and not codes:
         row = await pool.fetchrow(
             "SELECT original_document_number, base_document_number, title FROM kb_documents "
             "WHERE normalized_document_number = $1 ORDER BY edition DESC LIMIT 1",
             normalized,
         )
-        if row:
-            return {
-                "matched": True,
-                "code": None,
-                "queryText": text,
-                "documentNumber": row["base_document_number"],
-                "meaning": row["title"],
-                "governingDocument": row["original_document_number"],
-                "thickness": None,
-                "keyFacts": [],
-            }
+        row = dict(row) if row else None
+    if row is None:
+        row = await _find_document_in_text(pool, text, exclude_base=_FAMILY_DOCUMENT if codes else None)
+    if row:
+        return {
+            "matched": True,
+            "code": None,
+            "queryText": text,
+            "documentNumber": row["base_document_number"],
+            "meaning": row["title"],
+            "governingDocument": row["original_document_number"],
+            "thickness": None,
+            "keyFacts": [],
+        }
+
+    if codes:
+        # Callers only look at "matched", so this is invisible to them; it
+        # just makes "code read but not in the KB" distinguishable from
+        # "nothing recognisable at all" for logs / a future UI hint.
+        return {"matched": False, "detectedCodes": codes, "queryText": text, "reason": "code_not_in_knowledge_base"}
 
     return None
 

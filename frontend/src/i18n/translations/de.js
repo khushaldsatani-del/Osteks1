@@ -88,6 +88,21 @@ export default {
     step6: "Wird abgeschlossen",
   },
 
+  extractionProgress: {
+    uploading: "Zeichnung wird hochgeladen…",
+    preparing: "Zeichnung wird vorbereitet…",
+    stage1: "Zeichnung wird gelesen (1/2)…",
+    uploadingEmail: "E-Mail wird hochgeladen…",
+    preparingEmail: "E-Mail wird gelesen…",
+    stage1Email: "E-Mail wird analysiert (1/2)…",
+    stage2: "Extrahierte Werte werden geprüft (2/2)…",
+    finalizing: "Wird abgeschlossen…",
+    done: "Extraktion abgeschlossen",
+    failed: "Extraktion fehlgeschlagen",
+    fileOf: "Zeichnung {current} von {total}",
+    processing: "Wird verarbeitet…",
+  },
+
   calculation: {
     save: "Speichern",
     saved: "Gespeichert",
@@ -205,9 +220,8 @@ export default {
   },
 
   allDocuments: {
-    statusAccepted: "Akzeptiert",
     statusPending: "Ausstehend",
-    statusSend: "Senden",
+    statusCreated: "Erstellt",
     sortTotalPrice: "Gesamtpreis",
     sortAnnualQuantity: "Jahresmenge",
     sortPricePerStk: "Preis pro Stk",

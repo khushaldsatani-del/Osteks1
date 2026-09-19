@@ -90,6 +90,22 @@ export default {
     step6: "Finalizing",
   },
 
+  // Bottom-right progress card (see ExtractionProgressToast.jsx).
+  extractionProgress: {
+    uploading: "Uploading drawing…",
+    preparing: "Preparing drawing…",
+    stage1: "Reading the drawing (1/2)…",
+    uploadingEmail: "Uploading email…",
+    preparingEmail: "Reading the email…",
+    stage1Email: "Analyzing the email (1/2)…",
+    stage2: "Verifying extracted values (2/2)…",
+    finalizing: "Finishing up…",
+    done: "Extraction complete",
+    failed: "Extraction failed",
+    fileOf: "Drawing {current} of {total}",
+    processing: "Processing…",
+  },
+
   calculation: {
     save: "Save",
     saved: "Saved",
@@ -207,9 +223,8 @@ export default {
   },
 
   allDocuments: {
-    statusAccepted: "Accepted",
     statusPending: "Pending",
-    statusSend: "Send",
+    statusCreated: "Created",
     sortTotalPrice: "Total Price",
     sortAnnualQuantity: "Annual Quantity",
     sortPricePerStk: "Price per stk",
