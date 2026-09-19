@@ -16,6 +16,7 @@ import OfferDetails from "../components/OfferDetails/OfferDetails";
 import { buildOfferDetailsRows, computePreisGesamt } from "../components/OfferDetails/offerDetailsRows";
 import DocPreview from "../components/DocPreview/DocPreview";
 import { createTestReport, deleteTestReport, getTestReportByDocumentId } from "../components/TestReport/testReportsApi";
+import { CYCLE_DURATIONS } from "../components/TestReport/testReportConstants";
 import { BACKEND_URL } from "../config";
 
 const MAX_IMAGES = 4;
@@ -227,6 +228,10 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
     const parsed = parseExtractionSummary(activeImage.extraction.summary);
     const kbThickness = activeImage.kbSpecification?.thickness;
     if (parsed.schichtdickeUm === undefined && kbThickness) {
+      // A catalogue norm (BMW, Porsche, Daimler, ...) states its thickness as
+      // text - "≥ 8 µm", "25-40 µm" - so it arrives ready to show; a VW
+      // result has no display and is formatted from min/max exactly as before.
+      if (kbThickness.display) return { ...parsed, schichtdickeUm: kbThickness.display };
       const range =
         kbThickness.min === kbThickness.max
           ? `${kbThickness.min} ${kbThickness.unit}`
@@ -280,10 +285,14 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
     try {
       const kbSpec = await fetchKbSpecification(parsed.lackiervorschrift);
       if (kbSpec) {
+        // Only a cycle count the wizard actually offers (its PV 1210-style
+        // Test Duration options) is taken; anything else keeps the default.
+        // Other customers' cyclic tests (BMW AA-0224, Daimler KWT, DIN 55635
+        // ...) are labelled corrosion_test_cycles and never reach this.
         const cycles = (kbSpec.keyFacts || [])
           .filter((fact) => fact.label === "cyclic_corrosion_cycles")
           .map((fact) => Number(fact.value))
-          .filter((n) => Number.isFinite(n));
+          .filter((n) => Number.isFinite(n) && CYCLE_DURATIONS.includes(n));
         if (cycles.length) durationCycles = String(Math.max(...cycles));
       }
     } catch {

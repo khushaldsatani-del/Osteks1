@@ -28,6 +28,9 @@ import "./allDocuments.css";
 // "nothing found" field in this table already reads).
 function getSpecificationLabel(spec) {
   if (!spec) return "—";
+  // Non-VW norms (BMW GS 90011, Daimler DBL, ...) carry their own full
+  // designation; VW results have no label and keep the "Ofl-x633" form.
+  if (spec.label) return spec.label;
   if (spec.code) return `Ofl-${spec.code}`;
   return spec.documentNumber || "—";
 }

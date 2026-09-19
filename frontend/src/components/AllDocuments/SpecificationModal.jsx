@@ -1,25 +1,8 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "../../i18n/LanguageContext";
+import { factLabel } from "./specificationFacts";
 import "./specificationModal.css";
-
-// requirement_type -> translation key, for the handful of KB fact types
-// that actually turn up in an Ofl-code lookup (see backend/services/
-// kb_repo.py's lookup_specification). Any type not listed here still
-// renders — just with its raw underscored name as a readable fallback —
-// so a future KB fact type can never make a row silently disappear.
-const FACT_LABEL_KEYS = {
-  coating_thickness_range: "specificationModal.factCoatingThickness",
-  cyclic_corrosion_cycles: "specificationModal.factCorrosionCycles",
-  delamination_max: "specificationModal.factDelaminationMax",
-  condensation_test_duration: "specificationModal.factCondensationDuration",
-};
-
-function factLabel(t, fact) {
-  const key = FACT_LABEL_KEYS[fact.label];
-  if (key) return t(key);
-  return fact.label.replace(/_/g, " ");
-}
 
 // Everything shown here comes straight from the record's own already-fetched
 // kbSpecification (see Documents.jsx's kbLookup.js) — no separate fetch on
@@ -38,7 +21,7 @@ const SpecificationModal = ({ specification, onClose }) => {
 
   if (!specification) return null;
 
-  const { code, documentNumber, meaning, governingDocument, thickness, keyFacts } = specification;
+  const { code, label, documentNumber, meaning, governingDocument, thickness, keyFacts } = specification;
 
   return (
     <div className="spec-modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
@@ -46,7 +29,7 @@ const SpecificationModal = ({ specification, onClose }) => {
         <div className="spec-modal-header">
           <h3 className="spec-modal-title">
             {t("specificationModal.title")}
-            {code ? ` — Ofl-${code}` : documentNumber ? ` — ${documentNumber}` : ""}
+            {label ? ` — ${label}` : code ? ` — Ofl-${code}` : documentNumber ? ` — ${documentNumber}` : ""}
           </h3>
           <button type="button" className="spec-modal-close" onClick={onClose} aria-label={t("common.close")}>
             <X size={16} />
@@ -73,7 +56,7 @@ const SpecificationModal = ({ specification, onClose }) => {
               <div className="spec-modal-meta-row">
                 <span className="spec-modal-meta-label">{t("specificationModal.thickness")}</span>
                 <span className="spec-modal-meta-value spec-modal-meta-value--strong">
-                  {thickness.min}–{thickness.max} {thickness.unit}
+                  {thickness.display || `${thickness.min}–${thickness.max} ${thickness.unit}`}
                 </span>
               </div>
             )}

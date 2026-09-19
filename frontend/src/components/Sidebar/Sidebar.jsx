@@ -3,6 +3,7 @@ import {
   House,
   FileText,
   ClipboardList,
+  BookOpen,
   ChevronDown,
   Settings,
   X,
@@ -86,6 +87,12 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
         { id: "testReportOverview", label: t("sidebar.testReportOverview") },
         { id: "testReportGenerate", label: t("sidebar.testReportGenerate") },
       ],
+    },
+    // Temporary reference page: every known coating norm and its requirements.
+    {
+      id: "normLibrary",
+      label: t("sidebar.normLibrary"),
+      icon: BookOpen,
     },
   ];
 

@@ -5,6 +5,7 @@ import Documents from "./pages/Documents";
 import AllDocuments from "./components/AllDocuments/AllDocuments";
 import TestReport from "./pages/TestReport";
 import TestReportOverview from "./pages/TestReportOverview";
+import NormLibrary from "./pages/NormLibrary";
 import { listTestReports, deleteTestReport } from "./components/TestReport/testReportsApi";
 import { useTranslation } from "./i18n/LanguageContext";
 import { BACKEND_URL } from "./config";
@@ -18,6 +19,7 @@ const PAGE_TITLE_KEYS = {
   documents: "sidebar.allDocuments",
   testReportOverview: "sidebar.testReportOverview",
   testReportGenerate: "sidebar.testReportGenerate",
+  normLibrary: "sidebar.normLibrary",
 };
 
 function App() {
@@ -156,6 +158,8 @@ function App() {
               setCurrentPage("testReportGenerate");
             }}
           />
+        ) : currentPage === "normLibrary" ? (
+          <NormLibrary />
         ) : currentPage === "testReportGenerate" ? (
           <TestReport openReportId={openTestReportId} onSaved={refreshTestReports} />
         ) : (

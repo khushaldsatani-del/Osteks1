@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from services import documents_repo, emails_repo, gcs_storage, kb_repo, test_reports_repo
+from services import documents_repo, emails_repo, gcs_storage, kb_repo, norm_catalog, test_reports_repo
 from services.db import close_db, get_pool, init_db
 from services.email_extraction import extract_calculation_from_email
 from services.email_processing import detect_email_kind, parse_email_buffer
@@ -39,6 +39,11 @@ async def lifespan(app: FastAPI):
     # Test Report records (see services/test_reports_db.py) — references
     # documents(id), so this runs after init_db() has created that table.
     await init_test_reports_schema()
+    # Coating-norm catalogue for non-VW customers (services/norm_catalog.py):
+    # creates its own two tables and loads backend/data/norm_catalog.json only
+    # when that file has changed. It never raises - if it cannot run, the
+    # lookup answers from the JSON file directly, so startup never depends on it.
+    print("norm_catalog:", await norm_catalog.init_and_sync())
     yield
     await close_db()
 
@@ -499,6 +504,39 @@ async def kb_lookup(q: str = ""):
         return {"matched": False}
     result = await kb_repo.lookup_specification(q.strip())
     return result or {"matched": False}
+
+
+# Every known norm code with its requirements, for the Norm Library page:
+# the VW 13750 codes from the knowledge base plus the other customers'
+# catalogue. Read-only. `testReportCycles` is what the test-report prefill
+# would take for that norm (only PV 1210-style cycles the wizard offers).
+@app.get("/api/norms")
+async def list_norms():
+    rows = []
+    try:
+        for norm in await kb_repo.list_vw_norms():
+            norm["testReportCycles"] = norm_catalog.wizard_cycles(norm.pop("lookupFacts"))
+            rows.append(norm)
+    except Exception as error:  # noqa: BLE001 - the catalogue half still answers
+        print("list_vw_norms failed:", repr(error))
+    for entry in await norm_catalog.all_entries():
+        spec = norm_catalog.to_specification(entry, entry["designation"])
+        rows.append(
+            {
+                "customer": entry["customer"],
+                "system": entry["system"],
+                "code": entry["code"],
+                "designation": entry["designation"],
+                "meaning": entry.get("meaning"),
+                "thickness": spec["thickness"],
+                "facts": spec["keyFacts"],
+                "source_document": entry.get("source_document"),
+                "coverage": entry.get("coverage"),
+                "notes": entry.get("notes"),
+                "testReportCycles": norm_catalog.wizard_cycles(spec["keyFacts"]),
+            }
+        )
+    return {"rows": rows, "count": len(rows)}
 
 
 # --- Test Reports (Neon-backed, images in Google Cloud Storage) ------------

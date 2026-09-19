@@ -2,6 +2,7 @@ import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
 
+from services import norm_catalog
 from services.db import get_pool
 from services.kb_extraction import normalize_document_number
 
@@ -696,6 +697,20 @@ async def lookup_specification(text: str) -> dict | None:
                 "keyFacts": key_facts[:6],
             }
 
+    # Not a VW 13750 code the KB knows: try every other customer's norm
+    # system (BMW GS 90011, Porsche PN 11011, Daimler DBL nnnn.AA, MAN M 3018,
+    # ...), see norm_catalog.py. This runs only after the VW path above has
+    # already returned for every VW code, so no VW result can change, and a
+    # specific catalogue code is still preferred over the bare document-title
+    # fallback below. Any failure here just falls through to that fallback.
+    try:
+        catalog_match = await norm_catalog.lookup(text)
+    except Exception as error:  # noqa: BLE001
+        print("norm_catalog lookup failed:", repr(error))
+        catalog_match = None
+    if catalog_match:
+        return catalog_match
+
     # No Ofl-code found — fall back to a plain document-number match so a
     # norm text naming just "TL 227" (no embedded code) still resolves to
     # at least the document's identity, not nothing at all.
@@ -733,6 +748,88 @@ async def lookup_specification(text: str) -> dict | None:
         return {"matched": False, "detectedCodes": codes, "queryText": text, "reason": "code_not_in_knowledge_base"}
 
     return None
+
+
+async def list_vw_norms() -> list[dict]:
+    """Every VW 13750 Ofl code in the KB, for the norm library page.
+
+    Same rules as lookup_specification() - meaning from the newest VW 13750
+    edition, requirements from the other documents that list the code, the
+    first coating_thickness_range as thickness - but for all codes in two
+    queries instead of one lookup per code. lookup_specification() itself is
+    deliberately left untouched; `lookupFacts` records the six facts it
+    actually returns, which is what the test-report prefill reads.
+    """
+    pool = await get_pool()
+    code_rows = await pool.fetch(
+        """
+        SELECT r.value_text AS code, d.id, d.original_document_number, d.base_document_number, d.edition, r.condition
+        FROM kb_requirements r JOIN kb_documents d ON d.id = r.document_id
+        WHERE r.requirement_type = 'surface_treatment_code'
+        ORDER BY d.id
+        """
+    )
+    by_code: dict[str, list] = {}
+    for row in code_rows:
+        by_code.setdefault(row["code"], []).append(row)
+    other_ids = sorted({r["id"] for r in code_rows if r["base_document_number"] != "VW 13750"})
+    detail_rows = await pool.fetch(
+        """
+        SELECT r.document_id, d.original_document_number, r.requirement_type, r.value_text, r.unit, r.condition
+        FROM kb_requirements r JOIN kb_documents d ON d.id = r.document_id
+        WHERE r.document_id = ANY($1::bigint[]) AND r.requirement_type != 'surface_treatment_code'
+        ORDER BY r.id
+        """,
+        other_ids,
+    )
+
+    norms = []
+    for code in sorted(by_code):
+        rows = by_code[code]
+        vw_rows = [r for r in rows if r["base_document_number"] == "VW 13750"]
+        meaning_row = max(vw_rows, key=lambda r: r["edition"] or "") if vw_rows else rows[0]
+        other_docs = [r for r in rows if r["base_document_number"] != "VW 13750"]
+        ids = {r["id"] for r in other_docs}
+        # lookup_specification matches with ILIKE '%code%'; lower() is the same test for these ASCII codes
+        details = [d for d in detail_rows if d["document_id"] in ids and code.lower() in (d["condition"] or "").lower()]
+
+        thickness = None
+        for row in details:
+            if row["requirement_type"] == "coating_thickness_range":
+                numbers = re.findall(r"\d+[.,]?\d*", row["value_text"] or "")
+                if len(numbers) >= 2:
+                    lo = float(numbers[0].replace(",", "."))
+                    hi = float(numbers[1].replace(",", "."))
+                    unit = row["unit"] or "µm"
+                    display = f"{lo:g}-{hi:g} {unit}"
+                    thickness = {"min": lo, "max": hi, "mid": round((lo + hi) / 2, 1), "unit": unit, "display": display}
+                    break
+        facts = [
+            {
+                "label": row["requirement_type"],
+                "value": row["value_text"],
+                "unit": row["unit"],
+                "detail": row["condition"],
+                "document": row["original_document_number"],
+            }
+            for row in details
+        ]
+        norms.append(
+            {
+                "customer": "VW",
+                "system": "VW 13750",
+                "code": code,
+                "designation": f"VW 13750 Ofl-{code}",
+                "meaning": meaning_row["condition"],
+                "thickness": thickness,
+                "facts": facts,
+                "lookupFacts": facts[:6],
+                "source_document": ", ".join(sorted({r["original_document_number"] for r in rows})),
+                "coverage": "full" if facts else "meaning_only",
+                "notes": "" if facts else "Nur Bedeutung aus VW 13750 – keine weiteren Dokumente mit Prüfwerten im Wissensspeicher.",
+            }
+        )
+    return norms
 
 
 async def delete_document(document_id: int) -> bool:
