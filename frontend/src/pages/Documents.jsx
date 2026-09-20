@@ -6,7 +6,8 @@ import ExtractionPreview from "../components/Extraction/ExtractionPreview";
 import Calculation from "../components/Calculation/Calculation";
 import {
   initialState as calculationInitialValues,
-  AUTO_SYNC_FIELD_NAMES,
+  TOUCHED_STORAGE_KEY,
+  inferLegacyTouched,
   computeCalcResults,
   deriveSyncedOfferFields,
 } from "../components/Calculation/calculationDefaults";
@@ -494,9 +495,18 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
         // display strings (basePricePerPart, picklingCost, etc.) — values
         // must be spread LAST so its already-correctly-rounded versions
         // win; results only contributes fields with no equivalent in
-        // values (naturalX, revenue*, etc).
+        // values (naturalX, revenue*, etc). TOUCHED_STORAGE_KEY carries the
+        // real touched flags alongside it, so reopening this exact record
+        // later (see the hydration effect below) knows precisely which
+        // fields the user actually typed into vs. which were left to
+        // auto-compute, instead of having to guess.
         const payload = image.calcState
-          ? { ...computeCalcResults(image.calcState.values, image.calcState.touched), ...image.calcState.values, notes: image.calcState.notes }
+          ? {
+              ...computeCalcResults(image.calcState.values, image.calcState.touched),
+              ...image.calcState.values,
+              notes: image.calcState.notes,
+              [TOUCHED_STORAGE_KEY]: image.calcState.touched ?? {},
+            }
           : null;
         if (!payload) continue;
         // eslint-disable-next-line no-await-in-loop
@@ -763,7 +773,12 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
   // + child images back into this workspace's state. Any Pricing Analysis
   // field the user had manually overridden is restored as-is (marked
   // touched) rather than recalculated, so reopening a record never silently
-  // replaces a saved number with a freshly-computed one.
+  // replaces a saved number with a freshly-computed one. Which fields those
+  // actually were comes from TOUCHED_STORAGE_KEY, persisted by
+  // handleCalculationSave above — a record saved before that existed falls
+  // back to inferLegacyTouched (a value of "0" was never a real override,
+  // so a still-blank field can safely recalculate instead of freezing at 0
+  // or at a stale number forever).
   useEffect(() => {
     if (!openDocumentId) return;
 
@@ -780,7 +795,15 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
           .slice()
           .sort((a, b) => a.imageSlot - b.imageSlot)
           .map((row, index) => {
-            const calcValues = row.calculationData ? { ...calculationInitialValues, ...row.calculationData } : null;
+            const { [TOUCHED_STORAGE_KEY]: savedTouched, ...calculationDataRest } = row.calculationData || {};
+            const calcValues = row.calculationData ? { ...calculationInitialValues, ...calculationDataRest } : null;
+            const touched = savedTouched
+              ? {
+                  offerPrice: !!savedTouched.offerPrice,
+                  surfaceArea: !!savedTouched.surfaceArea,
+                  autoSync: Array.isArray(savedTouched.autoSync) ? savedTouched.autoSync : [],
+                }
+              : inferLegacyTouched(calcValues);
             return {
               slot: index + 1,
               documentId: row.id,
@@ -795,7 +818,7 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
                 ? {
                     values: calcValues,
                     notes: row.calculationData.notes ?? "",
-                    touched: { offerPrice: true, surfaceArea: true, autoSync: AUTO_SYNC_FIELD_NAMES },
+                    touched,
                   }
                 : null,
               offerValues: row.offerDetailsValues ?? null,

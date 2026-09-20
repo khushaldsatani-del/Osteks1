@@ -27,6 +27,39 @@ export const AUTO_SYNC_FIELDS = [
 // over a number that was actually saved.
 export const AUTO_SYNC_FIELD_NAMES = AUTO_SYNC_FIELDS.map(([field]) => field);
 
+// Key under which a saved record's real touched flags (which Pricing
+// Analysis fields the user actually typed into, vs. which were left to
+// auto-compute) are persisted inside calculationData — see Documents.jsx's
+// handleCalculationSave (writes it) and its "Open in Workspace" hydration
+// (reads it back). A nested object under one key, rather than flat
+// top-level fields, so it can never collide with a real calculation field
+// name and is trivial to strip back out of `values` before that object is
+// fed to the form/engine.
+export const TOUCHED_STORAGE_KEY = "_touchedFields";
+
+// Fallback for a record saved BEFORE touched flags were persisted (no
+// TOUCHED_STORAGE_KEY entry in its calculationData at all — every record
+// saved before this fix shipped). Without real touched data, this can't
+// truly tell a deliberate user override apart from a value that simply
+// happened to auto-compute — but "0"/"0.0000" is never a genuine override
+// (an annual quantity, price, or surface area a user actually typed in is
+// never zero), so treating only a non-zero stored value as touched fixes
+// the "frozen at 0 forever" case for old records immediately. Saving the
+// record again (even unchanged) immediately upgrades it to the exact
+// persisted flags above.
+const hasMeaningfulValue = (value) => {
+  const numeric = Number(value);
+  return value !== undefined && value !== "" && Number.isFinite(numeric) && numeric !== 0;
+};
+
+export function inferLegacyTouched(values) {
+  return {
+    offerPrice: hasMeaningfulValue(values?.offerPrice),
+    surfaceArea: hasMeaningfulValue(values?.surfaceAreaMm2) || hasMeaningfulValue(values?.surfaceAreaM2),
+    autoSync: AUTO_SYNC_FIELDS.filter(([field]) => hasMeaningfulValue(values?.[field])).map(([field]) => field),
+  };
+}
+
 // Everything starts at zero/unselected — nothing is calculated until the
 // user actually fills in the fields a given formula depends on. Firma
 // Information (companyName/address/offerNumber/enquiryDate) is NOT part of
