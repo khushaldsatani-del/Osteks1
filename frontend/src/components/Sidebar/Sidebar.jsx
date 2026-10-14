@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   House,
-  FileText,
-  ClipboardList,
+  Files,
+  FlaskConical,
+  ShieldAlert,
   BookOpen,
+  CalendarClock,
   ChevronDown,
   Settings,
   X,
@@ -73,12 +75,12 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
     {
       id: "documents",
       label: t("sidebar.allDocuments"),
-      icon: FileText,
+      icon: Files,
     },
     {
       id: "testReport",
       label: t("sidebar.testReport"),
-      icon: ClipboardList,
+      icon: FlaskConical,
       // Nested pages — Overview (a searchable/paginated list of every
       // created report) and Generate Report (the existing 5-step wizard,
       // unchanged). The parent row itself never navigates anywhere; it
@@ -88,6 +90,24 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
         { id: "testReportGenerate", label: t("sidebar.testReportGenerate") },
       ],
     },
+    {
+      id: "eightDReport",
+      label: t("sidebar.eightDReport"),
+      icon: ShieldAlert,
+      // Same nested-pages shape as Test Report above (Overview + a
+      // create-new wizard) — frontend-only for now, no backend persistence.
+      children: [
+        { id: "eightDReportOverview", label: t("sidebar.eightDReportOverview") },
+        { id: "eightDReportGenerate", label: t("sidebar.eightDReportGenerate") },
+      ],
+    },
+    // Placeholder until its sub-pages are specified - then it becomes an
+    // accordion entry like Test Report / 8D Report above.
+    {
+      id: "shiftPlanning",
+      label: t("sidebar.shiftPlanning"),
+      icon: CalendarClock,
+    },
     // Temporary reference page: every known coating norm and its requirements.
     {
       id: "normLibrary",
@@ -96,24 +116,36 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
     },
   ];
 
-  // Auto-expand "Test Report" if the page we're currently on is one of its
-  // own children (e.g. after a parent re-render triggered by navigating
-  // straight to a child elsewhere), so the submenu is never hidden while
-  // one of its own pages is what's actually showing.
-  const testReportItem = menuItems.find((item) => item.id === "testReport");
-  const isOnTestReportChild = testReportItem?.children?.some((child) => child.id === activeItem) ?? false;
-  const [testReportExpanded, setTestReportExpanded] = useState(isOnTestReportChild);
-  const expanded = testReportExpanded || isOnTestReportChild;
+  // Accordion expand/collapse state, one entry per parent item id — a plain
+  // map rather than one bool per group (the previous shape, from when Test
+  // Report was the only accordion item) so any number of independent
+  // accordion groups works the same way without each one needing its own
+  // hand-written state/effect pair.
+  const accordionItems = menuItems.filter((item) => item.children?.length);
+  const isOnChildOf = (item) => item.children?.some((child) => child.id === activeItem) ?? false;
+  const [expandedGroups, setExpandedGroups] = useState(() =>
+    Object.fromEntries(accordionItems.map((item) => [item.id, isOnChildOf(item)]))
+  );
+  const isExpanded = (item) => expandedGroups[item.id] || isOnChildOf(item);
+  const toggleExpanded = (itemId) => setExpandedGroups((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
 
-  // Auto-close the submenu the moment navigation actually lands on a
-  // DIFFERENT top-level page (e.g. All Documents) — only reacts to
-  // activeItem changing, not to the manual toggle below, so opening the
+  // Auto-close a submenu the moment navigation actually lands on a page
+  // that isn't one of its own children (e.g. All Documents) — only reacts
+  // to activeItem changing, not to the manual toggle above, so opening a
   // menu to look at it (without picking a child yet) is never immediately
-  // undone by this same effect.
+  // undone by this same effect. Runs for every accordion group at once.
   useEffect(() => {
-    if (!isOnTestReportChild) {
-      setTestReportExpanded(false);
-    }
+    setExpandedGroups((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      accordionItems.forEach((item) => {
+        if (!isOnChildOf(item) && next[item.id]) {
+          next[item.id] = false;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeItem]);
 
@@ -158,24 +190,25 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
           const isActive = !hasChildren && activeItem === item.id;
 
           if (hasChildren) {
+            const groupExpanded = isExpanded(item);
             return (
               <div key={item.id} className="sidebar-menu-group">
                 <button
                   type="button"
-                  className={`sidebar-menu-item sidebar-menu-item--parent ${isOnTestReportChild ? "active" : ""}`}
-                  onClick={() => setTestReportExpanded((open) => !open)}
-                  aria-expanded={expanded}
+                  className={`sidebar-menu-item sidebar-menu-item--parent ${isOnChildOf(item) ? "active" : ""}`}
+                  onClick={() => toggleExpanded(item.id)}
+                  aria-expanded={groupExpanded}
                 >
                   <Icon className="menu-icon" />
                   <span className="menu-label">{item.label}</span>
-                  <ChevronDown className={`menu-chevron ${expanded ? "expanded" : ""}`} />
+                  <ChevronDown className={`menu-chevron ${groupExpanded ? "expanded" : ""}`} />
                 </button>
 
                 {/* Always mounted (never conditionally rendered) so the
                     expand/collapse is a real CSS transition — animating
                     max-height/opacity — rather than the submenu just
                     instantly appearing/disappearing. */}
-                <div className={`sidebar-submenu ${expanded ? "expanded" : ""}`}>
+                <div className={`sidebar-submenu ${groupExpanded ? "expanded" : ""}`}>
                   {item.children.map((child) => (
                     <button
                       key={child.id}

@@ -1,0 +1,1118 @@
+/* =========================================
+   8D REPORT — same card shell, field styling,
+   stepper and button pair as Test Report's own
+   theme (testReport.css): #ffffff cards with
+   #e3e7ef border/18px radius/two-layer shadow,
+   26px/8px-radius teal icon badge (#0f8a7c on
+   #e1f7f3), 36px inputs with #e1e5ec border and
+   teal focus glow, outline "Back" / solid teal
+   "Next" buttons. Kept as its own file/prefix
+   (eightd-*) rather than importing testReport.css
+   directly — same reasoning as Norm Library's
+   own normLibrary.css: an independent feature
+   page shouldn't be coupled to another feature's
+   stylesheet just because the values match today.
+========================================= */
+
+.eightd-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.eightd-page-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1c2333;
+  margin: 0 0 18px;
+}
+
+/* =========================================
+   OVERVIEW PAGE HEADER — a records-list page
+   (Overview), so this uses the exact same
+   icon-badge/title/subtitle sizing as All
+   Documents' and Test Report Overview's own
+   page-header block (22px/7px-radius icon,
+   13.5px/700 title, 11px subtitle), not the
+   bare 17px page-title above, which is only
+   for the wizard (Create Report).
+========================================= */
+
+.eightd-ov-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.eightd-ov-header-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #e1f7f3;
+  color: #0f8a7c;
+}
+
+.eightd-ov-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.eightd-ov-subtitle {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+/* Overview header: title block grows, "Create Report" sits on the right. */
+.eightd-ov-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.eightd-ov-create {
+  flex-shrink: 0;
+}
+
+/* Overview list: search box + table, same recipe as Test Report Overview
+   (#e8ebf0 frame, #f8f9fc header, 10px/600 headings, 36px rows). */
+.eightd-ov-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  max-width: 420px;
+  padding: 0 12px;
+  margin-bottom: 14px;
+  border: 1px solid #e1e5ec;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #8992a1;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eightd-ov-search:focus-within {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+.eightd-ov-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: #262e3d;
+}
+
+.eightd-ov-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e8ebf0;
+  border-radius: 11px;
+}
+
+.eightd-ov-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #3f4755;
+}
+
+.eightd-ov-table thead {
+  background: #f8f9fc;
+}
+
+.eightd-ov-table th {
+  height: 35px;
+  padding: 0 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  color: #667085;
+  white-space: nowrap;
+}
+
+.eightd-ov-table td {
+  height: 36px;
+  padding: 0 12px;
+  border-top: 1px solid #edf0f4;
+  font-size: 10.5px;
+  color: #3f4755;
+  white-space: nowrap;
+}
+
+.eightd-ov-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.eightd-ov-table td.eightd-ov-strong {
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.eightd-ov-table td.eightd-ov-empty {
+  height: 64px;
+  text-align: center;
+  color: #8992a1;
+}
+
+.eightd-ov-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eightd-ov-action {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #8992a1;
+  cursor: pointer;
+}
+
+.eightd-ov-action:hover {
+  background: #f1f3f8;
+  color: #333c4c;
+}
+
+.eightd-ov-action--danger:hover {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.eightd-ov-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.eightd-ov-count {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+/* Opening a saved report: same loading block as Test Report's. */
+.eightd-loading {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.eightd-loading-text {
+  font-size: 13.5px;
+  color: #626b7c;
+  margin: 0 0 16px;
+}
+
+.eightd-load-error {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #b3261e;
+}
+
+/* =========================================
+   STEPPER
+========================================= */
+
+.eightd-stepper {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.eightd-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eightd-step-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1.5px solid #d7dbe4;
+  color: #8992a1;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.eightd-step-circle.active {
+  background: #14b8a6;
+  border-color: #14b8a6;
+  color: #ffffff;
+}
+
+.eightd-step-circle.done {
+  background: #e1f7f3;
+  border-color: #14b8a6;
+  color: #0f8a7c;
+}
+
+.eightd-step-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #8992a1;
+  white-space: nowrap;
+}
+
+.eightd-step-label.active {
+  color: #1c2333;
+}
+
+.eightd-step-connector {
+  flex: 1;
+  height: 1.5px;
+  background: #d7dbe4;
+  margin: 0 14px;
+  min-width: 24px;
+  align-self: center;
+}
+
+.eightd-step-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* =========================================
+   CARD
+========================================= */
+
+.eightd-card {
+  background: #ffffff;
+  border: 1px solid #e3e7ef;
+  border-radius: 18px;
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+  box-sizing: border-box;
+  padding: 18px 20px 20px;
+  margin-bottom: 18px;
+}
+
+.eightd-card-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+.eightd-card-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #e1f7f3;
+  color: #0f8a7c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.eightd-card-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.eightd-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1c2333;
+  margin: 0;
+  flex: 1;
+}
+
+/* Same size/colour as the list pages' header subtitle. */
+.eightd-card-subtitle {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+.eightd-collapse-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #8992a1;
+  display: flex;
+  align-items: center;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.eightd-collapse-btn:hover {
+  color: #0f8a7c;
+}
+
+.eightd-collapse-btn.collapsed {
+  transform: rotate(180deg);
+}
+
+/* =========================================
+   FORM GRID
+========================================= */
+
+.eightd-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 16px;
+}
+
+.eightd-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 16px;
+}
+
+.eightd-grid-3 + .eightd-grid-3,
+.eightd-grid-3 + .eightd-grid-2 {
+  margin-top: 14px;
+}
+
+.eightd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.eightd-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #626b7c;
+}
+
+.eightd-field input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e1e5ec;
+  border-radius: 9px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #262e3d;
+  background: #ffffff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eightd-field input::placeholder {
+  color: #a4abb9;
+}
+
+.eightd-field input:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+.eightd-field textarea {
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid #e1e5ec;
+  border-radius: 9px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #262e3d;
+  background: #ffffff;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eightd-field textarea::placeholder {
+  color: #a4abb9;
+}
+
+.eightd-field textarea:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+/* =========================================
+   COMPLAINT — two-option checkbox-style toggle
+   (Accepted / Rejected), mutually exclusive.
+========================================= */
+
+.eightd-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 36px;
+}
+
+.eightd-checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #333c4c;
+  user-select: none;
+}
+
+.eightd-checkbox-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1.5px solid #d7dbe4;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.eightd-checkbox-option.checked .eightd-checkbox-box {
+  background: #14b8a6;
+  border-color: #14b8a6;
+}
+
+/* =========================================
+   STEP 2: 3D REPORT INFORMATION
+========================================= */
+
+.eightd-section-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1c2333;
+  margin: 0 0 16px;
+}
+
+/* Label beside the input instead of above it. */
+.eightd-field.eightd-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.eightd-field--inline label {
+  white-space: nowrap;
+}
+
+.eightd-field--inline input {
+  width: 170px;
+}
+
+.eightd-field textarea.eightd-textarea--tall {
+  min-height: 84px;
+}
+
+/* One action per row: a wide description, then person / due / completion. */
+.eightd-grid-action {
+  display: grid;
+  grid-template-columns: 2.2fr 1.2fr 1fr 1fr;
+  gap: 14px 16px;
+  align-items: start;
+}
+
+/* Growable list of those rows: grid + a delete button pinned to the input
+   line. From the second row on the field labels are dropped on wide
+   screens (the first row's labels act as column headers); once the grid
+   wraps they come back, since the columns no longer line up. */
+.eightd-action-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.eightd-action-row + .eightd-action-row {
+  margin-top: 10px;
+}
+
+.eightd-action-row .eightd-grid-action {
+  flex: 1;
+  min-width: 0;
+}
+
+.eightd-action-row .eightd-row-remove {
+  flex-shrink: 0;
+  height: 36px;
+}
+
+@media (min-width: 1101px) {
+  .eightd-action-row + .eightd-action-row label {
+    display: none;
+  }
+}
+
+/* Keeps the other fields at their own height when one textarea in the
+   row is dragged taller. */
+.eightd-grid--top {
+  align-items: start;
+}
+
+/* A textarea that starts at the normal 36px input height (same idea as
+   Test Report's Description field) but can still be dragged taller. */
+.eightd-field textarea.eightd-textarea--line {
+  height: 36px;
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+/* Name field with suggestions (PersonInput): a normal input/textarea with
+   a chevron button inside its right edge that opens the list. */
+.eightd-person {
+  position: relative;
+  width: 100%;
+}
+
+.eightd-field .eightd-person input,
+.eightd-field .eightd-person textarea,
+.eightd-table td .eightd-person input {
+  padding-right: 34px;
+}
+
+.eightd-person-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: #626b7c;
+  cursor: pointer;
+}
+
+.eightd-person-btn:hover {
+  background: #effbf8;
+  color: #0f8a7c;
+}
+
+/* Date-or-calendar-week field: a text input with a calendar button inside
+   its right edge. The native date input behind the button is invisible and
+   1px at the field's bottom-right corner, only so the browser's date picker
+   opens anchored to the field. */
+.eightd-date-week {
+  width: 100%;
+}
+
+.eightd-date-week-box {
+  position: relative;
+}
+
+.eightd-field .eightd-date-week input[type="text"],
+.eightd-table td .eightd-date-week input[type="text"] {
+  padding-right: 34px;
+}
+
+.eightd-date-week-btn {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: #626b7c;
+  cursor: pointer;
+}
+
+.eightd-date-week-btn:hover {
+  background: #effbf8;
+  color: #0f8a7c;
+}
+
+/* Invalid value: red frame (also while focused) and a short message under
+   the field, in the app's existing error red. */
+.eightd-field .eightd-date-week--error input[type="text"],
+.eightd-table td .eightd-date-week--error input[type="text"],
+.eightd-field .eightd-date-week--error input[type="text"]:focus,
+.eightd-table td .eightd-date-week--error input[type="text"]:focus {
+  border-color: #b3261e;
+  box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.15);
+}
+
+.eightd-date-week-error {
+  margin: 4px 0 0;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #b3261e;
+}
+
+.eightd-date-week input.eightd-date-week-native {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A collapsed card keeps only its header; drop the header's bottom gap so
+   the card doesn't end with empty space under it. */
+.eightd-card-header--collapsed {
+  margin-bottom: 0;
+}
+
+/* 2. Failure Description: 2.1 / 2.2 side by side, then the "parts
+   affected?" rows below a divider, all inside the one card. */
+.eightd-failure-grid textarea {
+  min-height: 84px;
+}
+
+/* Tables — same shell as Test Report's results tables (12px-radius
+   #e3e7ef frame, #f6f7fa header, 11px/600 header text). */
+.eightd-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e3e7ef;
+  border-radius: 12px;
+}
+
+.eightd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.eightd-table--team {
+  min-width: 640px;
+}
+
+.eightd-table--actions {
+  min-width: 760px;
+}
+
+.eightd-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: #f6f7fa;
+  color: #626b7c;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+  border-bottom: 1px solid #e3e7ef;
+}
+
+.eightd-table td {
+  padding: 8px 6px 8px 14px;
+  border-bottom: 1px solid #edf0f5;
+  vertical-align: middle;
+}
+
+.eightd-table tr:last-child td {
+  border-bottom: none;
+}
+
+.eightd-table--actions th:nth-child(1) {
+  width: 44%;
+}
+
+.eightd-table--actions th:nth-child(2) {
+  width: 20%;
+}
+
+.eightd-table td input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e1e5ec;
+  border-radius: 9px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #262e3d;
+  background: #ffffff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eightd-table td input:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+.eightd-table .eightd-table-action-col {
+  width: 34px;
+  padding: 8px 8px 8px 2px;
+}
+
+.eightd-row-remove {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #b3261e;
+  cursor: pointer;
+}
+
+.eightd-row-remove:hover:not(:disabled) {
+  background: #fdecea;
+}
+
+.eightd-row-remove:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.eightd-add-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #0f8a7c;
+  cursor: pointer;
+}
+
+.eightd-add-row:hover {
+  color: #0c6f64;
+}
+
+.eightd-affected {
+  margin-top: 16px;
+  border-top: 1px solid #edf0f5;
+}
+
+.eightd-affected-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.eightd-affected-row:last-child {
+  border-bottom: none;
+}
+
+.eightd-affected-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 12px 0;
+}
+
+/* Question and field labels in these rows share the weight/colour of the
+   No / Yes text beside them (600, #333c4c), not a heavier near-black. */
+.eightd-affected-label {
+  flex: 0 0 210px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #333c4c;
+}
+
+.eightd-affected-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 36px;
+}
+
+.eightd-affected-extra {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  padding: 12px 0 12px 20px;
+  border-left: 1px solid #edf0f5;
+}
+
+/* FMEA block: no divider between its two rows, one closing line after
+   the last instead. */
+.eightd-affected--fmea .eightd-affected-row {
+  border-bottom: none;
+}
+
+.eightd-affected--fmea .eightd-affected-row:last-child {
+  border-bottom: 1px solid #edf0f5;
+}
+
+/* The follow-up checks come straight after the FMEA block's closing line,
+   so they need no top line or gap of their own. */
+.eightd-affected.eightd-affected--follow-up {
+  margin-top: 0;
+  border-top: none;
+}
+
+/* No divider lines between the follow-up rows either. */
+.eightd-affected--follow-up .eightd-affected-row {
+  border-bottom: none;
+}
+
+/* FMEA rows: the reason field sits at the row's right edge and takes the
+   leftover width, with no divider line before it. */
+.eightd-affected-extra.eightd-affected-extra--plain {
+  flex: 1 1 320px;
+  border-left: none;
+  justify-content: flex-end;
+}
+
+.eightd-affected-extra--plain .eightd-field--inline {
+  flex: 1;
+  max-width: 460px;
+}
+
+/* Same label width on every row, so the inputs line up in one column
+   whether the label is "Begruendung No/Nr.:" or the shorter "Result:". */
+.eightd-affected-extra.eightd-affected-extra--plain .eightd-field--inline label {
+  flex: 0 0 118px;
+}
+
+.eightd-affected-extra.eightd-affected-extra--plain .eightd-field--inline input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.eightd-affected-extra .eightd-field--inline label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333c4c;
+}
+
+.eightd-affected-extra .eightd-field--inline input {
+  width: 150px;
+}
+
+/* =========================================
+   PLACEHOLDER STEPS (3/4) — real, navigable
+   stepper stops whose own field layout hasn't
+   been specified yet; see eightDReportConstants.js's
+   STEPS comment.
+========================================= */
+
+.eightd-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 56px 24px;
+  text-align: center;
+  color: #8992a1;
+}
+
+.eightd-placeholder-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #e1f7f3;
+  color: #0f8a7c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eightd-placeholder-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1c2333;
+  margin: 0;
+}
+
+.eightd-placeholder-text {
+  font-size: 12px;
+  color: #8992a1;
+  max-width: 360px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =========================================
+   VIEW REPORT (step 4) — read-only summary
+========================================= */
+
+.eightd-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eef0f5;
+  font-size: 12.5px;
+}
+
+.eightd-summary-row:last-child {
+  border-bottom: none;
+}
+
+.eightd-summary-label {
+  color: #626b7c;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.eightd-summary-value {
+  color: #1c2333;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* =========================================
+   FOOTER NAV
+========================================= */
+
+.eightd-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.eightd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #e1e5ec;
+  background: #ffffff;
+  color: #333c4c;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.eightd-btn:hover {
+  border-color: #c7cbd6;
+}
+
+.eightd-btn--solid {
+  border: none;
+  background: #14b8a6;
+  color: #ffffff;
+}
+
+.eightd-btn--solid:hover {
+  background: #0f9c8c;
+}
+
+.eightd-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+  .eightd-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .eightd-step-label {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .eightd-grid-action {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .eightd-action-row + .eightd-action-row {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #edf0f5;
+  }
+
+  .eightd-affected-row {
+    flex-direction: column;
+  }
+
+  .eightd-affected-extra {
+    border-left: none;
+    padding: 0 0 12px;
+  }
+
+  /* Stacked, the row is a column, where the wide-screen flex-basis above
+     would act as a HEIGHT - reset it so the field takes only its own. */
+  .eightd-affected-extra.eightd-affected-extra--plain {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+  }
+
+  .eightd-affected-extra--plain .eightd-field--inline {
+    max-width: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .eightd-grid-3,
+  .eightd-grid-2,
+  .eightd-grid-action {
+    grid-template-columns: 1fr;
+  }
+
+  .eightd-affected-label {
+    flex-basis: 100%;
+  }
+
+  .eightd-affected-extra .eightd-field--inline {
+    width: 100%;
+  }
+
+  .eightd-affected-extra .eightd-field--inline input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .eightd-step-connector {
+    margin: 0 6px;
+  }
+
+  .eightd-summary-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .eightd-summary-value {
+    text-align: left;
+  }
+}

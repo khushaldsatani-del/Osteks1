@@ -241,6 +241,21 @@
 }
 
 
+/* This input is a `.tro-field input` too (it's nested inside one), so
+   `.tro-field input:focus`'s own border-color/box-shadow (meant for the
+   plain date inputs) was also landing directly on this inner input -
+   stacking a second teal ring just inside the wrapper's own
+   :focus-within ring from a few rules up. Same specificity as that rule
+   (one class + :focus + element), placed after it, so this wins and the
+   inner input stays borderless/shadowless at every state - only the
+   wrapper ever shows a ring, same as .alldocs-search's equivalent field. */
+.tro-input-with-icon input:focus {
+  border: none;
+
+  box-shadow: none;
+}
+
+
 .tro-input-with-icon input::placeholder {
   color: #a4abb9;
 }

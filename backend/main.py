@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from services import documents_repo, emails_repo, gcs_storage, kb_repo, norm_catalog, test_reports_repo
+from services import documents_repo, eightd_reports_repo, emails_repo, gcs_storage, kb_repo, norm_catalog, test_reports_repo
 from services.db import close_db, get_pool, init_db
 from services.email_extraction import extract_calculation_from_email
 from services.email_processing import detect_email_kind, parse_email_buffer
@@ -21,6 +21,7 @@ from services.kb_db import init_kb_schema
 from services.openai_client import describe_extraction_error, extract_drawing_info
 from services.file_processing import convert_to_image_pages, detect_file_kind
 from services.test_reports_db import init_test_reports_schema
+from services.eightd_reports_db import init_eightd_reports_schema
 
 MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024  # 30 MB, same cap as the Node backend's multer config
 MAX_IMAGE_SLOTS = 4  # keep in sync with frontend/src/pages/Documents.jsx's MAX_IMAGES
@@ -39,6 +40,9 @@ async def lifespan(app: FastAPI):
     # Test Report records (see services/test_reports_db.py) — references
     # documents(id), so this runs after init_db() has created that table.
     await init_test_reports_schema()
+    # 8D Report records (see services/eightd_reports_db.py) - standalone
+    # table, no foreign keys.
+    await init_eightd_reports_schema()
     # Coating-norm catalogue for non-VW customers (services/norm_catalog.py):
     # creates its own two tables and loads backend/data/norm_catalog.json only
     # when that file has changed. It never raises - if it cannot run, the
@@ -537,6 +541,57 @@ async def list_norms():
             }
         )
     return {"rows": rows, "count": len(rows)}
+
+
+# --- 8D Reports (Neon-backed) ---------------------------------------------
+# See services/eightd_reports_db.py / eightd_reports_repo.py. The wizard
+# creates a row on its first download (PDF or Word) and PATCHes the whole
+# wizardState snapshot on every later one; the 8D Report Overview lists,
+# reopens and deletes them. The summary fields are copies of wizard values
+# for the list, all plain text (dates may be calendar weeks, e.g. "KW34").
+
+
+class EightDReportBody(BaseModel):
+    reportNo: str | None = None
+    customerReference: str | None = None
+    partName: str | None = None
+    customer: str | None = None
+    complaintDate: str | None = None
+    wizardState: dict | None = None
+
+
+@app.get("/api/eightd-reports")
+async def list_eightd_reports():
+    return await eightd_reports_repo.list_reports()
+
+
+@app.get("/api/eightd-reports/{report_id}")
+async def get_eightd_report(report_id: int):
+    report = await eightd_reports_repo.get_report(report_id)
+    if report is None:
+        return JSONResponse(status_code=404, content={"error": "8D report not found."})
+    return report
+
+
+@app.post("/api/eightd-reports")
+async def create_eightd_report(body: EightDReportBody):
+    return await eightd_reports_repo.create_report(body.model_dump())
+
+
+@app.patch("/api/eightd-reports/{report_id}")
+async def update_eightd_report(report_id: int, body: EightDReportBody):
+    updated = await eightd_reports_repo.update_report(report_id, body.model_dump())
+    if updated is None:
+        return JSONResponse(status_code=404, content={"error": "8D report not found."})
+    return updated
+
+
+@app.delete("/api/eightd-reports/{report_id}")
+async def delete_eightd_report(report_id: int):
+    deleted = await eightd_reports_repo.delete_report(report_id)
+    if not deleted:
+        return JSONResponse(status_code=404, content={"error": "8D report not found."})
+    return {"ok": True}
 
 
 # --- Test Reports (Neon-backed, images in Google Cloud Storage) ------------

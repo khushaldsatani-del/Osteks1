@@ -18,17 +18,22 @@
   padding: 20px 22px 22px;
 }
 
+/* Icon/title/subtitle sizing here matches All Documents' and Test Report
+   Overview's own page-header block exactly (22px/7px-radius icon badge,
+   13.5px/700 title, 11px subtitle in #8992a1) - these three pages share
+   the same header pattern and must read as the same visual weight when
+   switching between them, not independently-sized. */
 .normlib-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .normlib-header-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,15 +44,15 @@
 
 .normlib-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #1c2333;
 }
 
 .normlib-subtitle {
   margin: 2px 0 0;
-  font-size: 11.5px;
-  color: #667085;
+  font-size: 11px;
+  color: #8992a1;
 }
 
 .normlib-toolbar {

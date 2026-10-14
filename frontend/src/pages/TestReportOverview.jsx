@@ -93,7 +93,7 @@ const TestReportOverview = ({ records = [], onDelete, onOpen }) => {
       <div className="tro-card">
         <div className="tro-header">
           <span className="tro-header-icon">
-            <FileText size={20} />
+            <FileText size={13} />
           </span>
           <div>
             <h2 className="tro-title">{t("testReportOverview.title")}</h2>

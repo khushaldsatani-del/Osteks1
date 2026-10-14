@@ -5,8 +5,12 @@ import Documents from "./pages/Documents";
 import AllDocuments from "./components/AllDocuments/AllDocuments";
 import TestReport from "./pages/TestReport";
 import TestReportOverview from "./pages/TestReportOverview";
+import EightDReport from "./pages/EightDReport";
+import EightDReportOverview from "./pages/EightDReportOverview";
 import NormLibrary from "./pages/NormLibrary";
+import ShiftPlanning from "./pages/ShiftPlanning";
 import { listTestReports, deleteTestReport } from "./components/TestReport/testReportsApi";
+import { listEightDReports, deleteEightDReport } from "./components/EightDReport/eightDReportsApi";
 import { useTranslation } from "./i18n/LanguageContext";
 import { BACKEND_URL } from "./config";
 import "./App.css";
@@ -19,6 +23,9 @@ const PAGE_TITLE_KEYS = {
   documents: "sidebar.allDocuments",
   testReportOverview: "sidebar.testReportOverview",
   testReportGenerate: "sidebar.testReportGenerate",
+  eightDReportOverview: "sidebar.eightDReportOverview",
+  eightDReportGenerate: "sidebar.eightDReportGenerate",
+  shiftPlanning: "sidebar.shiftPlanning",
   normLibrary: "sidebar.normLibrary",
 };
 
@@ -61,6 +68,37 @@ function App() {
     refreshTestReports();
   }, [refreshTestReports]);
 
+  // 8D Report Overview's saved-record list - same "lives in App so it
+  // survives switching pages, refetched after every change" pattern as the
+  // Test Report records above (backend: services/eightd_reports_repo.py).
+  const [eightDRecords, setEightDRecords] = useState([]);
+  const [eightDLoading, setEightDLoading] = useState(true);
+  const [openEightDReportId, setOpenEightDReportId] = useState(null);
+
+  const refreshEightDReports = useCallback(async () => {
+    try {
+      setEightDRecords(await listEightDReports());
+    } catch {
+      // Backend not running yet - the Overview just stays empty until it is.
+    } finally {
+      setEightDLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshEightDReports();
+  }, [refreshEightDReports]);
+
+  // Throws on failure so the Overview can tell the user the delete didn't
+  // happen; the list is refetched either way.
+  const deleteEightDRecord = async (id) => {
+    try {
+      await deleteEightDReport(id);
+    } finally {
+      refreshEightDReports();
+    }
+  };
+
   const deleteTestReportRecord = async (id) => {
     await deleteTestReport(id);
     refreshTestReports();
@@ -72,6 +110,7 @@ function App() {
   // fresh report rather than reopening the last one viewed.
   const handleSelectItem = (pageId) => {
     if (pageId === "testReportGenerate") setOpenTestReportId(null);
+    if (pageId === "eightDReportGenerate") setOpenEightDReportId(null);
     setCurrentPage(pageId);
   };
 
@@ -158,6 +197,30 @@ function App() {
               setCurrentPage("testReportGenerate");
             }}
           />
+        ) : currentPage === "eightDReportOverview" ? (
+          <EightDReportOverview
+            records={eightDRecords}
+            loading={eightDLoading}
+            onDelete={deleteEightDRecord}
+            onOpen={(id) => {
+              setOpenEightDReportId(id);
+              setCurrentPage("eightDReportGenerate");
+            }}
+            onCreate={() => {
+              setOpenEightDReportId(null);
+              setCurrentPage("eightDReportGenerate");
+            }}
+          />
+        ) : currentPage === "eightDReportGenerate" ? (
+          // Keyed by the record being edited, so switching from one report
+          // (or a fresh one) to another always starts the wizard clean.
+          <EightDReport
+            key={openEightDReportId ?? "new"}
+            openReportId={openEightDReportId}
+            onSaved={refreshEightDReports}
+          />
+        ) : currentPage === "shiftPlanning" ? (
+          <ShiftPlanning />
         ) : currentPage === "normLibrary" ? (
           <NormLibrary />
         ) : currentPage === "testReportGenerate" ? (

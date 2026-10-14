@@ -116,7 +116,7 @@ const NormLibrary = () => {
       <div className="normlib-card">
         <div className="normlib-header">
           <span className="normlib-header-icon">
-            <BookOpen size={15} />
+            <BookOpen size={13} />
           </span>
           <div>
             <h2 className="normlib-title">{t("normLibrary.title")}</h2>
