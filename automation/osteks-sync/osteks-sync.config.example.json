@@ -1,0 +1,8 @@
+{
+  "sourceFolder": "\\\\cgn-fs01\\Auswertungen",
+  "filePattern": "OSTEKS-Auswertungen-*.xlsx",
+  "serverUrl": "https://osteks1-xxxx.europe-west1.run.app",
+  "importKey": "PASTE-THE-SECRET-KEY-HERE",
+  "retryEveryMinutes": 30,
+  "giveUpAt": "08:00"
+}

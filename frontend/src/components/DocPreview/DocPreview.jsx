@@ -1,11 +1,12 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FileText, Download, FileType2 } from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import { getDocPreviewContent } from "./docPreviewContent";
-import { buildDocxBlob } from "./buildDocx";
 import { formatEUR } from "../Calculation/format";
 import { useTranslation } from "../../i18n/LanguageContext";
+
+// The export libraries (jsPDF, html2canvas, docx) are loaded only when a
+// download is clicked - they are most of the app's JavaScript and nobody
+// needs them to look at a page.
 import "./docPreview.css";
 
 // ===========================================================================
@@ -515,6 +516,7 @@ const DocPreview = ({
       // html2canvas reads them: two frames guarantees the new layout is
       // painted, and on a wide screen the zoom was already 1, so this is free.
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
       const pageEls = surfaceRef.current.querySelectorAll(".dp-page");
       const pdf = new jsPDF({ unit: "px", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -545,6 +547,7 @@ const DocPreview = ({
   // anymore — see buildDocx.js), so it lands on the same page count as this
   // preview for the same content.
   const handleDownloadDoc = async () => {
+    const { buildDocxBlob } = await import("./buildDocx");
     const blob = await buildDocxBlob(
       specMode,
       { recipientLines, headingRows, salutation, introLines, offerDetailsRows: flatOfferDetailsRows, angebotsgueltigkeitDigits },

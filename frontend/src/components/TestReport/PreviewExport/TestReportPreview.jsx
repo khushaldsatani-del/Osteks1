@@ -2,7 +2,6 @@ import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FileType2, Save } from "lucide-react";
 import ResizableImageFrame from "./ResizableImageFrame";
 import ProgressButton from "./ProgressButton";
-import { buildTestReportDocxBlob } from "./buildTestReportDocx";
 import { buildDocData, collectDocImageUrls, ENTHAFTUNG_TEXT } from "./testReportDocData";
 import {
   groupColumns,
@@ -303,6 +302,8 @@ const TestReportPreview = ({
   // and lets a failure propagate as a rejected promise, which is exactly
   // what flips that button into its error state.
   const handleDownloadDocx = async () => {
+    // docx is loaded only when the download is clicked
+    const { buildTestReportDocxBlob } = await import("./buildTestReportDocx");
     const blob = await buildTestReportDocxBlob({
       reportInfo,
       subjectTask,

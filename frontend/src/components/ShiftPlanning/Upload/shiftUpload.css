@@ -1,0 +1,531 @@
+/* =========================================
+   SHIFT PLANNING - UPLOAD
+   Page header, card shell and tables come
+   from ../shared/shiftShared.css; this file
+   only has the upload cards, validation box
+   and history extras. ERP is teal (the theme
+   colour), ZWZ violet; green / amber / red
+   only for a file's check result.
+========================================= */
+
+.supl-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.supl-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- card heading ---------- */
+
+.supl-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.supl-type-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.supl-type-icon--erp {
+  background: #e1f7f3;
+  color: #0f8a7c;
+}
+
+.supl-type-icon--zwz {
+  background: #f1ecfe;
+  color: #7c3aed;
+}
+
+/* ---------- drop zone ---------- */
+
+.supl-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 148px;
+  padding: 16px;
+  box-sizing: border-box;
+  border: 1.5px dashed #b9e6df;
+  border-radius: 13px;
+  background: #f7fdfc;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.supl-drop.is-dragging {
+  border-color: #14b8a6;
+  background: #e9f8f5;
+}
+
+.supl-drop-icon {
+  color: #14b8a6;
+}
+
+.supl-drop-title {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.supl-drop-or {
+  margin: 2px 0 6px;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+.supl-select {
+  height: 32px;
+  min-width: 128px;
+  padding: 0 16px;
+  border-radius: 9px;
+  border: 1px solid #14b8a6;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f8a7c;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.supl-select:hover {
+  background: #effbf8;
+}
+
+.supl-select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+}
+
+.supl-drop-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+.supl-spin {
+  animation: supl-spin 0.9s linear infinite;
+}
+
+@keyframes supl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- current file ---------- */
+
+.supl-current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid;
+}
+
+.supl-current--green {
+  background: #effaf3;
+  border-color: #cdeed8;
+}
+
+.supl-current--amber {
+  background: #fff8ec;
+  border-color: #fbe3bd;
+}
+
+.supl-current--red {
+  background: #fef3f3;
+  border-color: #f9d4d4;
+}
+
+.supl-current-icon {
+  display: flex;
+  flex-shrink: 0;
+}
+
+/* filled circle with a white tick / cross, as in the design */
+.supl-current--green .supl-current-icon {
+  color: #ffffff;
+  fill: #16a34a;
+}
+
+.supl-current--amber .supl-current-icon {
+  color: #d97706;
+}
+
+.supl-current--red .supl-current-icon {
+  color: #ffffff;
+  fill: #dc2626;
+}
+
+.supl-current--green .supl-current-icon svg,
+.supl-current--red .supl-current-icon svg {
+  fill: inherit;
+}
+
+.supl-current-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.supl-current-name {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1c2333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supl-current-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 22px;
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: #667085;
+}
+
+.supl-current-empty {
+  margin: 12px 0 0;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed #dfe3ea;
+  font-size: 11.5px;
+  color: #8992a1;
+  text-align: center;
+}
+
+/* ---------- status badge (card + history) ---------- */
+
+.supl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.supl-badge--green {
+  background: #dcf5e5;
+  color: #15803d;
+}
+
+.supl-badge--amber {
+  background: #fdefd7;
+  color: #b45309;
+}
+
+.supl-badge--red {
+  background: #fde2e2;
+  color: #b91c1c;
+}
+
+/* ---------- validation box ---------- */
+
+.supl-validation {
+  margin-top: 12px;
+  border: 1px solid #e8ebf0;
+  border-radius: 12px;
+}
+
+.supl-validation-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1c2333;
+  cursor: pointer;
+}
+
+.supl-validation-chevron {
+  color: #8992a1;
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
+.supl-validation.is-closed .supl-validation-chevron {
+  transform: none;
+}
+
+.supl-validation-body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.supl-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin: 0;
+  padding: 4px 0 0;
+  list-style: none;
+}
+
+.supl-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 11.5px;
+  line-height: 16px;
+  color: #3f4755;
+}
+
+.supl-check svg {
+  flex-shrink: 0;
+}
+
+.supl-check--ok svg {
+  color: #ffffff;
+  fill: #16a34a;
+}
+
+.supl-check--warn svg {
+  color: #d97706;
+}
+
+.supl-check--bad svg {
+  color: #ffffff;
+  fill: #dc2626;
+}
+
+.supl-check--skip {
+  color: #8992a1;
+}
+
+.supl-check--skip svg {
+  color: #b5bcc8;
+}
+
+.supl-columns {
+  padding: 11px 12px 12px;
+  border-radius: 10px;
+  background: #f8f9fc;
+}
+
+.supl-columns-title {
+  margin: 0 0 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.supl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.supl-chip {
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: #e1f7f3;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #0b6e63;
+}
+
+.supl-chip--missing {
+  background: #fff8ec;
+  border: 1px dashed #f4c47a;
+  color: #b45309;
+}
+
+.supl-columns-empty {
+  margin: 0;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+/* ---------- upload history ---------- */
+
+.supl-range {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e1e5ec;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.supl-range:hover {
+  border-color: #c7cbd6;
+}
+
+.supl-range:focus-within {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+
+.supl-range > svg {
+  position: absolute;
+  left: 12px;
+  color: #0f8a7c;
+  pointer-events: none;
+}
+
+.supl-range .supl-range-chevron {
+  left: auto;
+  right: 11px;
+  color: #8992a1;
+}
+
+.supl-range select {
+  height: 100%;
+  padding: 0 34px 0 36px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1c2333;
+  cursor: pointer;
+  appearance: none;
+}
+
+.supl-file-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.supl-file-type--erp svg {
+  color: #0f8a7c;
+}
+
+.supl-file-type--zwz svg {
+  color: #7c3aed;
+}
+
+.sp-table td.supl-history-name {
+  color: #1c2333;
+}
+
+.sp-table td.supl-history-empty {
+  height: 64px;
+  text-align: center;
+  color: #8992a1;
+}
+
+.sp-table td.supl-history-actions {
+  width: 1%;
+  text-align: right;
+}
+
+.supl-row-button {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #667085;
+  cursor: pointer;
+}
+
+.supl-row-button:hover,
+.supl-row-button[aria-expanded="true"] {
+  background: #effbf8;
+  color: #0f8a7c;
+}
+
+.supl-menu {
+  position: fixed;
+  z-index: 1300;
+  min-width: 170px;
+  padding: 5px;
+  border-radius: 11px;
+  border: 1px solid #e3e7ef;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(20, 30, 55, 0.14);
+}
+
+.supl-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: #333c4c;
+  text-align: left;
+  cursor: pointer;
+}
+
+.supl-menu button:hover {
+  background: #effbf8;
+  color: #0f8a7c;
+}
+
+.supl-menu button.supl-menu-danger:hover {
+  background: #fef3f3;
+  color: #dc2626;
+}
+
+.supl-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 1250px) {
+  .supl-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .supl-validation-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .supl-current {
+    flex-wrap: wrap;
+  }
+}

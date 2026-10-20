@@ -32,10 +32,20 @@
 
   z-index: 1000;
 
-  overflow: hidden;
+  /* Scrolls only when an open group makes the menu taller than a short
+     laptop screen, so the language card is never cut off - by wheel,
+     touch or keyboard, with no visible scrollbar. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Chrome / Safari / Edge counterpart of scrollbar-width: none. */
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 /* =========================================================
@@ -236,10 +246,11 @@
 
 
 .sidebar-submenu.expanded {
-  /* Comfortably larger than the two rows' real height so the transition
-     always has room to complete — .sidebar-submenu's own overflow:hidden
-     means nothing beyond the real content ever actually shows. */
-  max-height: 140px;
+  /* Comfortably larger than the tallest group's real height (Shift
+     Planning: six rows, 44px each on a phone) so the rows never get squeezed
+     and the transition always has room to complete — .sidebar-submenu's own
+     overflow:hidden means nothing beyond the real content ever shows. */
+  max-height: 320px;
 
   opacity: 1;
 
@@ -250,6 +261,9 @@
 .sidebar-submenu-item {
   width: 100%;
   height: 40px;
+
+  /* keep the full row height however many rows a group has */
+  flex-shrink: 0;
 
   display: flex;
   align-items: center;
@@ -310,6 +324,9 @@
   width: 100%;
 
   height: 105px;
+
+  /* keep its height when the menu above makes the sidebar scroll */
+  flex-shrink: 0;
 
   margin-top: auto;
 

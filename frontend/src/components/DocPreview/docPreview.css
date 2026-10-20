@@ -492,7 +492,7 @@
 }
 
 
-.dp-pricing-row > span {
+.dp-pricing-row>span {
   width: 280px;
 
   flex-shrink: 0;
@@ -503,7 +503,7 @@
 }
 
 
-.dp-pricing-row > strong {
+.dp-pricing-row>strong {
   font-weight: 700;
 }
 

@@ -1,12 +1,12 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import { FileDown, FileSpreadsheet, FileType2, ZoomIn, ZoomOut } from "lucide-react";
 import { useTranslation } from "../../../i18n/LanguageContext";
 import ProgressButton from "../../TestReport/PreviewExport/ProgressButton";
-import { buildEightDDocx } from "./buildEightDDocx";
-import { buildEightDXlsx } from "./buildEightDXlsx";
 import "./viewReport.css";
+
+// The export libraries (jsPDF, html2canvas, docx) are loaded only when a
+// download is clicked - they are most of the app's JavaScript and nobody
+// needs them to look at a page.
 
 const A4_PAGE_WIDTH_PX = 794;
 const A4_PAGE_HEIGHT_PX = 1123;
@@ -255,6 +255,7 @@ const ViewReport = ({ generalInfo, threeDInfo, eightDInfo, onSaveRecord }) => {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       // 3x and lossless PNG: small black text stays crisp and fully black
       // instead of being softened to grey by JPEG compression.
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
       for (let index = 0; index < pages.length; index += 1) {
         // eslint-disable-next-line no-await-in-loop
@@ -722,8 +723,14 @@ const ViewReport = ({ generalInfo, threeDInfo, eightDInfo, onSaveRecord }) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadWord = async () => saveBlob(await buildEightDDocx(exportInput()), "docx");
-  const handleDownloadExcel = async () => saveBlob(await buildEightDXlsx(exportInput()), "xlsx");
+  const handleDownloadWord = async () => {
+    const { buildEightDDocx } = await import("./buildEightDDocx");
+    saveBlob(await buildEightDDocx(exportInput()), "docx");
+  };
+  const handleDownloadExcel = async () => {
+    const { buildEightDXlsx } = await import("./buildEightDXlsx");
+    saveBlob(await buildEightDXlsx(exportInput()), "xlsx");
+  };
 
   // Every download also saves the report (creates its 8D Report Overview
   // record the first time, updates it afterwards). The file is produced

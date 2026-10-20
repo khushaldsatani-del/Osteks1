@@ -1,0 +1,778 @@
+/* =========================================
+   SHIFT PLANNING - SHIFT PLANNING (the plan)
+   Page header, card shell and tables come
+   from ../shared/shiftShared.css. Shift
+   colours: Früh teal (the theme colour), Spät
+   amber, Nacht violet; lines KTL blue, Pulver
+   teal (same as the dashboard). Red / amber
+   pills only for open or over-planned pieces.
+========================================= */
+
+/* ---------- header buttons ---------- */
+
+.splan-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.splan-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 15px;
+  border-radius: 10px;
+  border: 1px solid #e1e5ec;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #333c4c;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.splan-btn:hover {
+  border-color: #c7cbd6;
+}
+
+.splan-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.splan-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+}
+
+.splan-btn--solid {
+  border: none;
+  background: #14b8a6;
+  color: #ffffff;
+}
+
+.splan-btn--solid:hover {
+  background: #0f9c8c;
+}
+
+.splan-btn--outline-teal {
+  height: 34px;
+  border-color: #14b8a6;
+  color: #0f8a7c;
+}
+
+.splan-btn--outline-teal:hover {
+  border-color: #14b8a6;
+  background: #effbf8;
+}
+
+.splan-btn--small {
+  height: 28px;
+  padding: 0 11px;
+  font-size: 11.5px;
+  color: #0f8a7c;
+}
+
+.splan-btn--small:hover {
+  border-color: #14b8a6;
+  background: #effbf8;
+}
+
+.splan-excel-icon {
+  color: #1d7a45;
+}
+
+.splan-spin {
+  animation: splan-spin 0.9s linear infinite;
+}
+
+@keyframes splan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- notice (auto-plan result) ---------- */
+
+.splan-notice-slot:empty {
+  display: none;
+}
+
+.splan-notice {
+  margin: -4px 0 0;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.splan-notice--ok {
+  background: #e9f8f5;
+  color: #0b6e63;
+}
+
+.splan-notice--info {
+  background: #f3f5f9;
+  color: #3f4755;
+}
+
+.splan-notice--warn {
+  background: #fff8ec;
+  color: #b45309;
+}
+
+/* ---------- shift summary ---------- */
+
+.splan-shifts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.splan-shift {
+  --shift: #14b8a6;
+  --shift-soft: #e1f7f3;
+  --shift-text: #0f8a7c;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  min-height: 102px;
+}
+
+.splan-shift--spaet {
+  --shift: #f59e0b;
+  --shift-soft: #fef3e2;
+  --shift-text: #d97706;
+}
+
+.splan-shift--nacht {
+  --shift: #8b5cf6;
+  --shift-soft: #f1ecfe;
+  --shift-text: #7c3aed;
+}
+
+.splan-shift-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--shift-soft);
+  color: var(--shift-text);
+}
+
+.splan-shift-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.splan-shift-top,
+.splan-shift-bottom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.splan-shift-top {
+  justify-content: space-between;
+}
+
+.splan-shift-name {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.splan-shift-load {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3f4755;
+  white-space: nowrap;
+}
+
+.splan-shift-bottom {
+  margin-top: 6px;
+}
+
+.splan-shift-time {
+  margin: 0;
+  font-size: 11.5px;
+  color: #667085;
+  white-space: nowrap;
+}
+
+.splan-shift-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #edf0f5;
+  overflow: hidden;
+}
+
+.splan-shift-bar > div {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--shift);
+}
+
+.splan-shift-percent {
+  min-width: 34px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--shift-text);
+}
+
+.splan-shift.is-over .splan-shift-bar > div {
+  background: #ef4444;
+}
+
+.splan-shift.is-over .splan-shift-percent,
+.splan-shift.is-over .splan-shift-load {
+  color: #dc2626;
+}
+
+/* ---------- parts card toolbar ---------- */
+
+.splan-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.splan-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 240px;
+  height: 34px;
+  padding: 0 11px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid #e1e5ec;
+  background: #ffffff;
+  color: #8992a1;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.splan-search:focus-within {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+
+.splan-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: #1c2333;
+}
+
+/* ---------- add part form ---------- */
+
+.splan-add {
+  margin-bottom: 14px;
+  padding: 12px 14px 14px;
+  border-radius: 12px;
+  border: 1px dashed #b9e6df;
+  background: #f7fdfc;
+}
+
+.splan-add-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.splan-add-fields {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
+.splan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 170px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3f4755;
+}
+
+.splan-field--small {
+  width: 110px;
+}
+
+.splan-field input,
+.splan-field select {
+  height: 34px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  border: 1px solid #e1e5ec;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  color: #1c2333;
+  outline: none;
+}
+
+.splan-field input:focus,
+.splan-field select:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+
+.splan-field input[aria-invalid="true"] {
+  border-color: #ef4444;
+}
+
+.splan-add-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.splan-add-actions .splan-btn {
+  height: 34px;
+}
+
+.splan-add-error {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: #dc2626;
+}
+
+/* ---------- plan tables ---------- */
+
+.sp-table.splan-table th {
+  height: 42px;
+  line-height: 1.25;
+  vertical-align: middle;
+}
+
+/* the "(Stück)" line under a column title */
+.sp-table.splan-table th span {
+  display: block;
+  font-weight: 500;
+  color: #8992a1;
+}
+
+.sp-table.splan-table td {
+  height: 42px;
+  font-size: 11px;
+}
+
+.sp-table .splan-center {
+  text-align: center;
+}
+
+.sp-table td.splan-part {
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.sp-table td.splan-strong {
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.splan-muted {
+  color: #b5bcc8;
+}
+
+.sp-table td.splan-empty {
+  height: 64px;
+  text-align: center;
+  color: #8992a1;
+}
+
+.sp-table.splan-table tfoot td {
+  height: 42px;
+  background: #f3f5f9;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.sp-table.splan-table tbody tr.is-dragging {
+  opacity: 0.45;
+}
+
+.sp-table.splan-table tbody tr.is-drop-target td {
+  box-shadow: inset 0 2px 0 #14b8a6;
+}
+
+.splan-grip-col {
+  width: 28px;
+  padding: 0 0 0 8px !important;
+}
+
+.splan-grip {
+  width: 22px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: #b5bcc8;
+  cursor: grab;
+}
+
+.splan-grip:hover,
+.splan-grip:focus-visible {
+  outline: none;
+  background: #effbf8;
+  color: #0f8a7c;
+}
+
+.splan-grip:disabled {
+  cursor: default;
+  opacity: 0.4;
+  background: none;
+  color: #b5bcc8;
+}
+
+.splan-line {
+  display: inline-block;
+  min-width: 40px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.splan-line--ktl {
+  background: #e7f0fe;
+  color: #2563eb;
+}
+
+.splan-line--pulver {
+  background: #e1f7f3;
+  color: #0f8a7c;
+}
+
+.splan-tag {
+  margin-left: 7px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f3f5f9;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #667085;
+}
+
+.splan-qty {
+  width: 66px;
+  height: 28px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #e1e5ec;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 11px;
+  color: #1c2333;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.splan-qty:hover {
+  border-color: #c7cbd6;
+}
+
+.splan-qty:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+
+.splan-pill {
+  display: inline-block;
+  min-width: 48px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-weight: 700;
+}
+
+.splan-pill--red {
+  background: #fde2e2;
+  color: #dc2626;
+}
+
+.splan-pill--amber {
+  background: #fdefd7;
+  color: #b45309;
+}
+
+.splan-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.splan-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #3f4755;
+  cursor: pointer;
+}
+
+.splan-icon-btn:hover {
+  background: #effbf8;
+  color: #0f8a7c;
+}
+
+.splan-icon-btn--danger {
+  color: #dc2626;
+}
+
+.splan-icon-btn--danger:hover {
+  background: #fef3f3;
+  color: #dc2626;
+}
+
+.splan-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+.splan-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- waiting list ---------- */
+
+.splan-waiting-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.splan-waiting-title > span:first-child {
+  font-weight: 400;
+  color: #667085;
+}
+
+.splan-count {
+  min-width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e1f7f3;
+  color: #0f8a7c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sp-table.splan-table--waiting td {
+  height: 38px;
+}
+
+.splan-reason {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.splan-reason--overdue {
+  background: #fde2e2;
+  color: #dc2626;
+}
+
+.splan-reason--dueSoon {
+  background: #fdefd7;
+  color: #b45309;
+}
+
+.splan-reason--removed {
+  background: #f3f5f9;
+  color: #667085;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 1100px) {
+  .splan-shifts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .splan-header-actions,
+  .splan-toolbar,
+  .splan-search {
+    width: 100%;
+  }
+
+  .splan-header-actions .splan-btn {
+    flex: 1;
+  }
+
+  .splan-field,
+  .splan-field--small {
+    width: 100%;
+  }
+}
+
+/* ---------- print: one sheet per shift ---------- */
+
+.splan-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  body > *:not(.splan-print) {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+
+  .splan-print {
+    display: block;
+    font-family: Arial, sans-serif;
+    color: #000000;
+  }
+
+  .splan-print-page {
+    break-after: page;
+  }
+
+  .splan-print-page:last-child {
+    break-after: auto;
+  }
+
+  .splan-print-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #000000;
+  }
+
+  .splan-print-kicker {
+    margin: 0 0 2px;
+    font-size: 10pt;
+    color: #444444;
+  }
+
+  .splan-print h1 {
+    margin: 0;
+    font-size: 18pt;
+  }
+
+  .splan-print h1 span {
+    font-size: 12pt;
+    font-weight: 400;
+  }
+
+  .splan-print-date {
+    margin: 0;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .splan-print table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+
+  .splan-print th,
+  .splan-print td {
+    padding: 6px 7px;
+    border: 1px solid #000000;
+    text-align: left;
+  }
+
+  .splan-print th {
+    background: #eeeeee;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .splan-print .num {
+    text-align: right;
+  }
+
+  .splan-print .strong {
+    font-weight: 700;
+  }
+
+  .splan-print .done {
+    width: 12mm;
+    text-align: center;
+  }
+
+  .splan-print .notes {
+    width: 45mm;
+  }
+
+  .splan-print tfoot td {
+    font-weight: 700;
+  }
+
+  .splan-print-empty {
+    font-size: 11pt;
+  }
+
+  .splan-print-sign {
+    display: flex;
+    gap: 20mm;
+    margin-top: 18mm;
+    font-size: 10pt;
+  }
+
+  .splan-print-sign span {
+    flex: 1;
+    padding-top: 4px;
+    border-top: 1px solid #000000;
+  }
+}

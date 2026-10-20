@@ -1,14 +1,36 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { LoaderCircle, Menu, X } from "lucide-react";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Documents from "./pages/Documents";
-import AllDocuments from "./components/AllDocuments/AllDocuments";
-import TestReport from "./pages/TestReport";
-import TestReportOverview from "./pages/TestReportOverview";
-import EightDReport from "./pages/EightDReport";
-import EightDReportOverview from "./pages/EightDReportOverview";
-import NormLibrary from "./pages/NormLibrary";
-import ShiftPlanning from "./pages/ShiftPlanning";
+
+// Every page except Work Place (the landing page) is its own JavaScript
+// file, loaded when first opened - so the app starts with a fraction of the
+// code. PAGE_LOADERS are also run once the app is idle (see the effect in
+// App), so by the time a page is clicked it is usually already there.
+const PAGE_LOADERS = {
+  AllDocuments: () => import("./components/AllDocuments/AllDocuments"),
+  TestReport: () => import("./pages/TestReport"),
+  TestReportOverview: () => import("./pages/TestReportOverview"),
+  EightDReport: () => import("./pages/EightDReport"),
+  EightDReportOverview: () => import("./pages/EightDReportOverview"),
+  NormLibrary: () => import("./pages/NormLibrary"),
+  ShiftPlanning: () => import("./pages/ShiftPlanning"),
+  ProductionView: () => import("./pages/ProductionView"),
+};
+const AllDocuments = lazy(PAGE_LOADERS.AllDocuments);
+const TestReport = lazy(PAGE_LOADERS.TestReport);
+const TestReportOverview = lazy(PAGE_LOADERS.TestReportOverview);
+const EightDReport = lazy(PAGE_LOADERS.EightDReport);
+const EightDReportOverview = lazy(PAGE_LOADERS.EightDReportOverview);
+const NormLibrary = lazy(PAGE_LOADERS.NormLibrary);
+const ShiftPlanning = lazy(PAGE_LOADERS.ShiftPlanning);
+const ProductionView = lazy(PAGE_LOADERS.ProductionView);
+
+const PageLoading = () => (
+  <div className="page-loading" role="status">
+    <LoaderCircle size={22} className="page-loading-spin" />
+  </div>
+);
 import { listTestReports, deleteTestReport } from "./components/TestReport/testReportsApi";
 import { listEightDReports, deleteEightDReport } from "./components/EightDReport/eightDReportsApi";
 import { useTranslation } from "./i18n/LanguageContext";
@@ -25,8 +47,33 @@ const PAGE_TITLE_KEYS = {
   testReportGenerate: "sidebar.testReportGenerate",
   eightDReportOverview: "sidebar.eightDReportOverview",
   eightDReportGenerate: "sidebar.eightDReportGenerate",
-  shiftPlanning: "sidebar.shiftPlanning",
+  shiftDashboard: "sidebar.shiftDashboard",
+  shiftPlan: "sidebar.shiftPlan",
+  shiftOrders: "sidebar.shiftOrders",
+  shiftProductionReport: "sidebar.shiftProductionReport",
+  shiftUpload: "sidebar.shiftUpload",
+  shiftSettings: "sidebar.shiftSettings",
+  productionDashboard: "sidebar.productionDashboard",
+  productionUpload: "sidebar.productionUpload",
   normLibrary: "sidebar.normLibrary",
+};
+
+// Shift Planning's sub-pages: sidebar page id -> the section ShiftPlanning
+// shows (see pages/ShiftPlanning.jsx).
+const SHIFT_PAGE_SECTIONS = {
+  shiftDashboard: "dashboard",
+  shiftPlan: "planning",
+  shiftOrders: "orders",
+  shiftProductionReport: "productionReport",
+  shiftUpload: "upload",
+  shiftSettings: "settings",
+};
+
+// Production View's sub-pages: sidebar page id -> the section
+// ProductionView shows (see pages/ProductionView.jsx).
+const PRODUCTION_PAGE_SECTIONS = {
+  productionDashboard: "dashboard",
+  productionUpload: "upload",
 };
 
 function App() {
@@ -104,6 +151,16 @@ function App() {
     refreshTestReports();
   };
 
+  // Fetch the other pages' code in the background once the app has
+  // settled, so switching pages doesn't wait for a download.
+  useEffect(() => {
+    const prefetch = () => Object.values(PAGE_LOADERS).forEach((load) => load().catch(() => {}));
+    const idle = window.requestIdleCallback ?? ((cb) => window.setTimeout(cb, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const handle = idle(prefetch, { timeout: 4000 });
+    return () => cancel(handle);
+  }, []);
+
   // Wraps Sidebar's plain onSelectItem — the only extra behavior needed is
   // clearing openTestReportId when "Generate Report" is clicked directly
   // (not via Overview's "Open"), so the sidebar entry always starts a
@@ -178,6 +235,7 @@ function App() {
       </header>
 
        <main className="main-content">
+        <Suspense fallback={<PageLoading />}>
         {currentPage === "documents" ? (
           <AllDocuments
             records={documentRecords}
@@ -219,8 +277,10 @@ function App() {
             openReportId={openEightDReportId}
             onSaved={refreshEightDReports}
           />
-        ) : currentPage === "shiftPlanning" ? (
-          <ShiftPlanning />
+        ) : SHIFT_PAGE_SECTIONS[currentPage] ? (
+          <ShiftPlanning key={currentPage} section={SHIFT_PAGE_SECTIONS[currentPage]} />
+        ) : PRODUCTION_PAGE_SECTIONS[currentPage] ? (
+          <ProductionView key={currentPage} section={PRODUCTION_PAGE_SECTIONS[currentPage]} onNavigate={handleSelectItem} />
         ) : currentPage === "normLibrary" ? (
           <NormLibrary />
         ) : currentPage === "testReportGenerate" ? (
@@ -232,6 +292,7 @@ function App() {
             onTestReportCreated={refreshTestReports}
           />
         )}
+        </Suspense>
       </main>
     </div>
   );

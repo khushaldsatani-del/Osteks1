@@ -1,20 +1,24 @@
 import asyncio
+import hmac
 import json
 import os
 from contextlib import asynccontextmanager
+from datetime import date
 from urllib.parse import quote
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, File, Form, Request, UploadFile
+from fastapi import FastAPI, File, Form, Header, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from services import documents_repo, eightd_reports_repo, emails_repo, gcs_storage, kb_repo, norm_catalog, test_reports_repo
+from services import documents_repo, eightd_reports_repo, emails_repo, gcs_storage, kb_repo, norm_catalog, production_repo, test_reports_repo
 from services.db import close_db, get_pool, init_db
+from services.memo import TTLCache
 from services.email_extraction import extract_calculation_from_email
 from services.email_processing import detect_email_kind, parse_email_buffer
 from services.kb_db import init_kb_schema
@@ -22,6 +26,7 @@ from services.openai_client import describe_extraction_error, extract_drawing_in
 from services.file_processing import convert_to_image_pages, detect_file_kind
 from services.test_reports_db import init_test_reports_schema
 from services.eightd_reports_db import init_eightd_reports_schema
+from services.production_db import init_production_schema
 
 MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024  # 30 MB, same cap as the Node backend's multer config
 MAX_IMAGE_SLOTS = 4  # keep in sync with frontend/src/pages/Documents.jsx's MAX_IMAGES
@@ -43,16 +48,28 @@ async def lifespan(app: FastAPI):
     # 8D Report records (see services/eightd_reports_db.py) - standalone
     # table, no foreign keys.
     await init_eightd_reports_schema()
+    # Production View data - the daily "Auswertungen" workbook (see
+    # services/production_db.py). Standalone tables, no foreign keys out.
+    await init_production_schema()
+    # Load the dashboard's data into memory now, so the first visitor
+    # doesn't pay the database round trips (production_repo._cache).
+    await production_repo.warm_cache()
+    # Same for the Norm Library list (~0.9-1.5 s to build) - in the
+    # background, so startup doesn't wait for it.
+    norms_warmup = asyncio.create_task(list_norms())
     # Coating-norm catalogue for non-VW customers (services/norm_catalog.py):
     # creates its own two tables and loads backend/data/norm_catalog.json only
     # when that file has changed. It never raises - if it cannot run, the
     # lookup answers from the JSON file directly, so startup never depends on it.
     print("norm_catalog:", await norm_catalog.init_and_sync())
     yield
+    norms_warmup.cancel()
     await close_db()
 
 
 app = FastAPI(lifespan=lifespan)
+# JSON lists (backlog series, upload history) shrink ~5x compressed.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 _allowed_origins = [origin.strip() for origin in os.environ.get("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 app.add_middleware(
@@ -502,12 +519,24 @@ async def download_attachment(attachment_id: int):
 # a drawing/email as the surface-treatment/spec designation (e.g.
 # "VW 13750 - Ofl-x633 TL227") and returns only the handful of cost-relevant
 # facts, or {"matched": false} when nothing in the KB matches.
+# The knowledge base and the norm catalogue don't change while the server
+# runs (the catalogue syncs at startup), so lookups and the Norm Library
+# list are answered from memory after the first time - /api/norms is ~450 KB
+# built from several queries, a lookup ~0.4 s of database round trips.
+_kb_lookup_cache = TTLCache(ttl_seconds=3600, max_entries=1000)
+_norms_cache = TTLCache(ttl_seconds=3600, max_entries=1)
+
+
 @app.get("/api/kb/lookup")
 async def kb_lookup(q: str = ""):
-    if not q.strip():
+    query = q.strip()
+    if not query:
         return {"matched": False}
-    result = await kb_repo.lookup_specification(q.strip())
-    return result or {"matched": False}
+    cached = _kb_lookup_cache.get(query)
+    if cached is not None:
+        return cached
+    result = await kb_repo.lookup_specification(query)
+    return _kb_lookup_cache.set(query, result or {"matched": False})
 
 
 # Every known norm code with its requirements, for the Norm Library page:
@@ -516,11 +545,16 @@ async def kb_lookup(q: str = ""):
 # would take for that norm (only PV 1210-style cycles the wizard offers).
 @app.get("/api/norms")
 async def list_norms():
+    cached = _norms_cache.get("all")
+    if cached is not None:
+        return cached
     rows = []
+    kb_ok = False
     try:
         for norm in await kb_repo.list_vw_norms():
             norm["testReportCycles"] = norm_catalog.wizard_cycles(norm.pop("lookupFacts"))
             rows.append(norm)
+        kb_ok = True
     except Exception as error:  # noqa: BLE001 - the catalogue half still answers
         print("list_vw_norms failed:", repr(error))
     for entry in await norm_catalog.all_entries():
@@ -540,7 +574,11 @@ async def list_norms():
                 "testReportCycles": norm_catalog.wizard_cycles(spec["keyFacts"]),
             }
         )
-    return {"rows": rows, "count": len(rows)}
+    result = {"rows": rows, "count": len(rows)}
+    # only keep a complete answer - if the KB half failed, try again next time
+    if kb_ok:
+        _norms_cache.set("all", result)
+    return result
 
 
 # --- 8D Reports (Neon-backed) ---------------------------------------------
@@ -726,6 +764,99 @@ async def delete_test_report_image(report_id: int, object_path: str):
     if not deleted:
         return JSONResponse(status_code=404, content={"error": "Image not found on this report."})
     return {"ok": True}
+
+
+# --- Production View (daily "Auswertungen" workbook) ------------------------
+# See services/production_import.py (parser), production_db.py (tables),
+# production_repo.py. Upload is two-step: POST /import parses the file and
+# returns a preview (nothing written yet), POST /import/{id}/commit writes
+# it, DELETE /import/{id} drops the preview. The dashboard reads
+# /backlog; /metrics lists everything stored.
+
+
+@app.post("/api/production/import")
+async def preview_production_import(file: UploadFile = File(...)):
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        return JSONResponse(status_code=413, content={"error": "File is too large."})
+    if not (file.filename or "").lower().endswith((".xlsx", ".xlsm")):
+        return JSONResponse(status_code=400, content={"error": "Please upload an Excel file (.xlsx)."})
+    try:
+        return await production_repo.preview_import(content, file.filename or "upload.xlsx")
+    except Exception as error:  # a corrupt or non-Excel file
+        print("Production import failed:", repr(error))
+        return JSONResponse(status_code=400, content={"error": "The file could not be read as an Excel workbook."})
+
+
+# The daily automatic feed: automation/osteks-sync/osteks-sync.ps1 runs on
+# the machine that can see the \\cgn-fs01\Auswertungen share and posts the
+# workbook here every morning. Guarded by a shared secret in the
+# X-Import-Key header (PRODUCTION_IMPORT_KEY in the server's environment) -
+# without that variable set, the endpoint is switched off. ?final=true marks
+# the sender's last attempt of the morning (see production_repo.auto_import).
+@app.post("/api/production/import/auto")
+async def auto_production_import(
+    file: UploadFile = File(...),
+    final: bool = False,
+    x_import_key: str | None = Header(default=None),
+):
+    expected = os.environ.get("PRODUCTION_IMPORT_KEY", "")
+    if not expected:
+        return JSONResponse(status_code=503, content={"error": "Automatic import is not configured on this server."})
+    if not x_import_key or not hmac.compare_digest(x_import_key.encode(), expected.encode()):
+        print("auto import: rejected a request with a wrong or missing key")
+        return JSONResponse(status_code=401, content={"error": "Invalid import key."})
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        return JSONResponse(status_code=413, content={"error": "File is too large."})
+    if not (file.filename or "").lower().endswith((".xlsx", ".xlsm")):
+        return JSONResponse(status_code=400, content={"error": "Please send an Excel file (.xlsx)."})
+    result = await production_repo.auto_import(content, file.filename or "auto.xlsx", final)
+    print(f"auto import: {file.filename} -> {result['status']}")
+    return JSONResponse(status_code=422 if result["status"] == "failed" else 200, content=result)
+
+
+@app.get("/api/production/import/pending")
+async def pending_production_import():
+    return {"upload": await production_repo.latest_pending_preview()}
+
+
+@app.post("/api/production/import/{upload_id}/commit")
+async def commit_production_import(upload_id: int):
+    try:
+        upload = await production_repo.commit_import(upload_id)
+    except ValueError as error:
+        return JSONResponse(status_code=409, content={"error": str(error)})
+    if upload is None:
+        return JSONResponse(status_code=404, content={"error": "Upload not found."})
+    return upload
+
+
+@app.delete("/api/production/import/{upload_id}")
+async def discard_production_import(upload_id: int):
+    if not await production_repo.discard_import(upload_id):
+        return JSONResponse(status_code=404, content={"error": "No pending preview with this id."})
+    return {"ok": True}
+
+
+@app.get("/api/production/uploads")
+async def list_production_uploads():
+    return await production_repo.list_uploads()
+
+
+@app.get("/api/production/backlog")
+async def production_backlog(date_from: str | None = None, date_to: str | None = None):
+    try:
+        start = date.fromisoformat(date_from) if date_from else None
+        end = date.fromisoformat(date_to) if date_to else None
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Dates must be YYYY-MM-DD."})
+    return await production_repo.backlog_series(start, end)
+
+
+@app.get("/api/production/metrics")
+async def production_metrics():
+    return await production_repo.metric_coverage()
 
 
 @app.exception_handler(Exception)

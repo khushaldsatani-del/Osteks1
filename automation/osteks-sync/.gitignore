@@ -1,0 +1,5 @@
+# holds the secret import key - stays on the machine that runs the sync
+osteks-sync.config.json
+# written by the script on every run
+osteks-sync.log
+osteks-sync.log.old

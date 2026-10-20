@@ -198,3 +198,22 @@ body {
     z-index: 1300;
   }
 }
+
+/* Shown for a moment while a page's code loads the first time (App.jsx). */
+.page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  color: #14b8a6;
+}
+
+.page-loading-spin {
+  animation: page-loading-spin 0.9s linear infinite;
+}
+
+@keyframes page-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

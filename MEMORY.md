@@ -117,6 +117,15 @@ The sidebar's EN/DE toggle (`Sidebar.jsx`, bottom-left) used to be dead UI — a
 - **Per explicit decision, €-amount number *formatting* (comma decimal separator) always stays German-style regardless of language** — `format.js`'s `formatEUR`/`formatNumber` were deliberately left untouched; only text/labels translate, not the numeral convention.
 - `Stk` (Stück/pieces) is treated as a translatable unit (`common.unitPieces` → "Stk"/"pcs"), unlike `€`/`%`/`m²`/`mm`/`kg`/`g` which are genuinely language-neutral symbols and stay literal in the JSX.
 
+## Production View — backlog dashboard + daily import (added 2026-10-19 to 2026-10-21)
+
+- **Source:** the daily `OSTEKS-Auswertungen-<year>.xlsx` (one sheet per month, 34 metric rows). Upload imports *every* row into `production_daily_values` (long format), but only the backlog ("Auftragsbestand" KTL / Pulver / Schäumen) is charted so far. Backlog rows are only filled in the source file from 19.08.2026; Jan–Jul are empty there, not missing in the import.
+- **User decisions, don't re-litigate:** a week/month value is the **sum of all its days incl. weekend copies** (switched from closing value on 20.10. after explaining it double-counts; the user chose it explicitly, and it matches the workbook's own "Summe" column). Amounts are whole T€. Shares are of the *selected* categories. Default views: last 7 days / 5 weeks / 5 months. The four KPI cards were removed as repetitive. The date filter is one compact picker (presets + own calendar, Apply / Clear) — the native `<select>`/date inputs were rejected as ugly.
+- **Clicking a week/month** (not hovering) switches "Values per period" to that period's days, with a total row equal to the bar.
+- **Daily automatic import:** `automation/osteks-sync/` — a PowerShell script on a machine that can see `\\cgn-fs01\Auswertungen`, run by Task Scheduler at 05:00, posts the file to `POST /api/production/import/auto` (header `X-Import-Key` = env `PRODUCTION_IMPORT_KEY`; unset = switched off). Re-saved files with unchanged numbers count as "no new data", so it keeps retrying until 08:00. Setup guide for the user/IT: `automation/osteks-sync/SETUP.md`.
+- **Speed** (whole app, 2026-10-21): see "Performance rules" in `Architecture.md` — pages are code-split, export libraries load on click, read-only data is cached in memory, lists send summaries only.
+- **Shift Planning** (sidebar section) is frontend-only so far: its pages run on sample data and browser state, with no backend yet.
+
 ## Theme
 
 Current: **"light teal"**, primary accent `#14B8A6`. Full color history (5 theme iterations, with reasoning for each swap) lives in Claude's own memory system, not this repo — ask a new session to check its memory for `theme-history-osteks` if you need the palette details. **No file backups exist anymore** (a `theme-backups/` folder used to hold them; deleted 2026-08-13 per explicit request) — reverting to an old theme now means manually reapplying hex values from that memory record, not copying files back.

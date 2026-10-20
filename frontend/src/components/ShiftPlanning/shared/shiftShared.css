@@ -1,0 +1,379 @@
+/* =========================================
+   SHIFT PLANNING - shared by its pages
+   (Dashboard, Upload, ...): page header with
+   the date button, card shell, link button,
+   tables. Same values as the rest of the app:
+   #fff card, 1px #e3e7ef border, 18px radius,
+   two-layer shadow; 17px/700 bare page title
+   like the wizards; 13.5px/700 card titles;
+   8D-Overview table values; teal (#14b8a6 /
+   #0f8a7c) as the brand colour.
+========================================= */
+
+.sp-page {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- page header ---------- */
+
+/* Same height on every page (the tallest header control is the 46px
+   labelled date / shift picker), so the first card always starts at the
+   same place. */
+.sp-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  min-height: 46px;
+}
+
+.sp-heading {
+  flex: 1;
+  min-width: 220px;
+}
+
+.sp-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.sp-subtitle {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: #8992a1;
+}
+
+/* ---------- date button ---------- */
+
+.sp-date {
+  position: relative;
+}
+
+.sp-date-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding: 0 12px 0 13px;
+  border-radius: 10px;
+  border: 1px solid #e1e5ec;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c2333;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sp-date-button svg {
+  color: #0f8a7c;
+}
+
+.sp-date-button .sp-date-chevron {
+  margin-left: 6px;
+  color: #8992a1;
+}
+
+.sp-date-button:hover {
+  border-color: #c7cbd6;
+}
+
+.sp-date-button:focus-visible {
+  outline: none;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+
+/* Two-line variant: small label above the value (also used by the
+   Production Report's shift picker). */
+.sp-date-button--labelled {
+  height: 46px;
+  min-width: 190px;
+  padding: 0 12px 0 14px;
+}
+
+.sp-field-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.sp-field-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #8992a1;
+}
+
+.sp-field-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.sp-date-button--labelled .sp-date-chevron {
+  margin-left: auto;
+}
+
+.sp-date-native {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- card shell ---------- */
+
+.sp-card {
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e3e7ef;
+  border-radius: 18px;
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+  box-sizing: border-box;
+  padding: 16px 18px 18px;
+}
+
+.sp-card-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-height: 28px;
+  margin-bottom: 14px;
+}
+
+.sp-card--collapsed .sp-card-header {
+  margin-bottom: 0;
+}
+
+.sp-card-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.sp-card-subtitle {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #8992a1;
+}
+
+.sp-card-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Link-style action ("View all", "View details"). */
+.sp-link {
+  padding: 4px 2px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f8a7c;
+  cursor: pointer;
+}
+
+.sp-link:hover {
+  text-decoration: underline;
+}
+
+/* ---------- figure cards (Dashboard, Production Report, ...) ----------
+   One size for every page: 18px padding, 50px icon tile, 24px value. */
+
+.sp-figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sp-figure {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  min-height: 102px;
+}
+
+.sp-figure-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sp-figure-icon--teal {
+  background: #e1f7f3;
+  color: #0f8a7c;
+}
+
+.sp-figure-icon--green {
+  background: #e7f7ed;
+  color: #16a34a;
+}
+
+.sp-figure-icon--amber {
+  background: #fef3e2;
+  color: #d97706;
+}
+
+.sp-figure-icon--red {
+  background: #fdecec;
+  color: #dc2626;
+}
+
+.sp-figure-text {
+  min-width: 0;
+}
+
+.sp-figure-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3f4755;
+}
+
+.sp-figure-value {
+  margin: 3px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #1c2333;
+}
+
+.sp-figure-value span {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8992a1;
+}
+
+.sp-figure-value--red {
+  color: #dc2626;
+}
+
+.sp-figure-value--green {
+  color: #15803d;
+}
+
+.sp-figure-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #8992a1;
+}
+
+.sp-figure-note--red {
+  color: #dc2626;
+}
+
+.sp-figure-note--amber {
+  color: #d97706;
+}
+
+/* ---------- tables (8D Overview values) ---------- */
+
+.sp-table-wrap {
+  /* positioned, so visually-hidden labels inside a scrolled table stay in
+     this box instead of widening the page */
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e8ebf0;
+  border-radius: 11px;
+}
+
+.sp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #3f4755;
+}
+
+.sp-table thead {
+  background: #f8f9fc;
+}
+
+.sp-table th {
+  height: 35px;
+  padding: 0 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  color: #667085;
+  white-space: nowrap;
+}
+
+.sp-table td {
+  height: 36px;
+  padding: 0 12px;
+  border-top: 1px solid #edf0f4;
+  font-size: 10.5px;
+  color: #3f4755;
+  white-space: nowrap;
+}
+
+.sp-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.sp-table .sp-num {
+  text-align: right;
+}
+
+.sp-table td.sp-negative {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 1250px) {
+  .sp-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .sp-card {
+    padding: 14px 12px 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .sp-figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sp-date,
+  .sp-date-button {
+    width: 100%;
+  }
+
+  .sp-date-button .sp-date-chevron {
+    margin-left: auto;
+  }
+}

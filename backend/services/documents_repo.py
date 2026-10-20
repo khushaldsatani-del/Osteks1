@@ -18,8 +18,23 @@ _SELECT_FIELDS = """
 # rows fetched together via get_document_with_images, never listed on their
 # own, so All Documents / Uploaded Files keep showing exactly one row per
 # offer regardless of how many images it has.
+#
+# The list carries only what All Documents / Uploaded Files show - not the
+# big per-offer JSON (calculation_data, offer details, firma_info), which
+# only the Work Place needs and gets from get_document_with_images(). That
+# keeps the app's start-up request small however many offers pile up.
+_LIST_FIELDS = """
+    d.id, d.file_name, d.file_kind, d.extraction_summary,
+    d.norm, d.customer_name, d.customer_number,
+    d.price_per_stk, d.annual_quantity, d.status,
+    d.kb_specification,
+    d.parent_document_id, d.image_slot,
+    d.uploaded_at, d.updated_at,
+    e.id AS mail_email_id, e.subject AS mail_subject
+"""
+
 _LIST_SQL = f"""
-SELECT {_SELECT_FIELDS}
+SELECT {_LIST_FIELDS}
 FROM documents d
 LEFT JOIN emails e ON e.document_id = d.id
 WHERE d.parent_document_id IS NULL
@@ -33,13 +48,20 @@ LEFT JOIN emails e ON e.document_id = d.id
 WHERE d.id = $1
 """
 
-_GET_CHILDREN_SQL = f"""
+# An offer and all its images in one round trip: whichever row was asked
+# for (the offer or one of its images), resolve to the offer, then return it
+# first and its images after it in slot order.
+_GET_WITH_IMAGES_SQL = f"""
+WITH target AS (
+    SELECT COALESCE(parent_document_id, id) AS offer_id FROM documents WHERE id = $1
+)
 SELECT {_SELECT_FIELDS}
 FROM documents d
 LEFT JOIN emails e ON e.document_id = d.id
-WHERE d.parent_document_id = $1
-ORDER BY d.image_slot
+WHERE d.id = (SELECT offer_id FROM target) OR d.parent_document_id = (SELECT offer_id FROM target)
+ORDER BY (d.parent_document_id IS NOT NULL), d.image_slot
 """
+
 
 
 def _row_to_dict(row) -> dict:
@@ -54,10 +76,11 @@ def _row_to_dict(row) -> dict:
         "pricePerStk": float(row["price_per_stk"]),
         "annualQuantity": float(row["annual_quantity"]),
         "status": row["status"],
-        "firmaInfo": row["firma_info"],
-        "calculationData": row["calculation_data"],
-        "offerDetailsRows": row["offer_details_rows"],
-        "offerDetailsValues": row["offer_details_values"],
+        # absent from list rows (_LIST_FIELDS) - None there
+        "firmaInfo": row.get("firma_info"),
+        "calculationData": row.get("calculation_data"),
+        "offerDetailsRows": row.get("offer_details_rows"),
+        "offerDetailsValues": row.get("offer_details_values"),
         "kbSpecification": row["kb_specification"],
         "parentDocumentId": row["parent_document_id"],
         "imageSlot": row["image_slot"],
@@ -190,18 +213,11 @@ async def get_document(document_id: int) -> dict | None:
 # frontend can rebuild the full 1-4 image workspace state in one call.
 async def get_document_with_images(document_id: int) -> dict | None:
     pool = await get_pool()
-    row = await pool.fetchrow(_GET_BY_ID_SQL, document_id)
-    if row is None:
+    rows = await pool.fetch(_GET_WITH_IMAGES_SQL, document_id)
+    if not rows:
         return None
-
-    parent_id = row["parent_document_id"] or row["id"]
-    if row["parent_document_id"] is not None:
-        row = await pool.fetchrow(_GET_BY_ID_SQL, parent_id)
-
-    parent = _row_to_dict(row)
-    child_rows = await pool.fetch(_GET_CHILDREN_SQL, parent_id)
-    images = [parent] + [_row_to_dict(child) for child in child_rows]
-    return {**parent, "images": images}
+    images = [_row_to_dict(row) for row in rows]
+    return {**images[0], "images": images}
 
 
 async def update_status(document_id: int, status: str) -> dict | None:

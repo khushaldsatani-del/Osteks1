@@ -1,0 +1,378 @@
+/* =========================================
+   SHIFT PLANNING - DASHBOARD
+   Page header, card shell and tables come
+   from ../shared/shiftShared.css; this file
+   only has the dashboard's own sections.
+   Line colours: KTL blue, Pulver teal (the
+   theme colour). Red / amber only where they
+   carry meaning.
+========================================= */
+
+/* ---------- line colours ---------- */
+
+.sdash-line--ktl {
+  --line: #3b82f6;
+}
+
+.sdash-line--pulver {
+  --line: #14b8a6;
+}
+
+/* ---------- collapsible card title ---------- */
+
+.sdash-card-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sdash-toggle-chevron {
+  color: #8992a1;
+  transition: transform 0.2s ease;
+}
+
+.sdash-toggle-chevron.is-closed {
+  transform: rotate(-90deg);
+}
+
+.sdash-card-toggle:hover .sdash-toggle-chevron {
+  color: #0f8a7c;
+}
+
+/* ---------- legend ---------- */
+
+.sdash-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11.5px;
+  color: #3f4755;
+}
+
+.sdash-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sdash-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  background: var(--line, #c3cad6);
+}
+
+.sdash-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  background: var(--line);
+}
+
+.sdash-swatch + .sdash-swatch {
+  margin-left: -5px;
+}
+
+.sdash-swatch--planned {
+  background: #c3cad6;
+}
+
+/* ---------- capacity by shift and line ---------- */
+
+.sdash-capacity-row {
+  display: grid;
+  grid-template-columns: 170px repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 14px 48px;
+  padding: 14px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.sdash-capacity-row:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.sdash-capacity-row:last-child {
+  padding-bottom: 2px;
+}
+
+.sdash-shift {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.sdash-shift-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sdash-shift-icon--day {
+  background: #fef3e2;
+  color: #f59e0b;
+}
+
+.sdash-shift-icon--night {
+  background: #e1f7f3;
+  color: #0f8a7c;
+}
+
+.sdash-shift-name {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.sdash-shift-time {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: #667085;
+}
+
+.sdash-load {
+  min-width: 0;
+}
+
+.sdash-load-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.sdash-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #edf0f5;
+  overflow: hidden;
+}
+
+.sdash-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--line);
+}
+
+.sdash-load-figures {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #667085;
+}
+
+.sdash-load-figures strong {
+  color: #1c2333;
+}
+
+/* ---------- bottom row ---------- */
+
+.sdash-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  gap: 16px;
+}
+
+/* ---------- warnings type column ---------- */
+
+.sdash-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sdash-type-label {
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.sdash-type--red svg {
+  color: #dc2626;
+}
+
+.sdash-type--amber svg {
+  color: #d97706;
+}
+
+/* ---------- yesterday chart ---------- */
+
+.sdash-legend--chart {
+  justify-content: flex-end;
+  margin: -4px 0 10px;
+}
+
+.sdash-chart {
+  display: grid;
+  grid-template-columns: 16px 24px minmax(0, 1fr);
+  grid-template-rows: 150px auto;
+  column-gap: 6px;
+}
+
+.sdash-chart-axis-title {
+  grid-row: 1;
+  grid-column: 1;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  justify-self: center;
+  align-self: center;
+  font-size: 10.5px;
+  color: #667085;
+  white-space: nowrap;
+}
+
+/* Tick labels: spread over the plot height, each centred on its line. */
+.sdash-chart-ticks {
+  grid-row: 1;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: -6px 0;
+  text-align: right;
+  font-size: 10.5px;
+  line-height: 12px;
+  color: #8992a1;
+}
+
+.sdash-chart-plot {
+  grid-row: 1;
+  grid-column: 3;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  border-bottom: 1px solid #d5dae3;
+}
+
+.sdash-chart-grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed #e6e9ef;
+}
+
+.sdash-chart-group {
+  position: relative;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.sdash-chart-bar {
+  position: relative;
+  width: min(40px, 30%);
+  border-radius: 5px 5px 0 0;
+}
+
+.sdash-chart-bar--planned {
+  background: #c9d0db;
+}
+
+.sdash-chart-bar--coated {
+  background: var(--line);
+}
+
+.sdash-chart-bar span {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  padding-bottom: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1c2333;
+  white-space: nowrap;
+}
+
+.sdash-chart-labels {
+  grid-row: 2;
+  grid-column: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 7px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.sdash-details {
+  margin-top: 14px;
+}
+
+.sdash-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  background: #f8f9fc;
+  border: 1px solid #edf0f4;
+  font-size: 11.5px;
+  color: #3f4755;
+}
+
+.sdash-summary-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sdash-summary-total svg {
+  color: #ffffff;
+  fill: #14b8a6;
+  flex-shrink: 0;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 1400px) {
+  .sdash-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .sdash-capacity-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+
+  .sdash-shift {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .sdash-capacity-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

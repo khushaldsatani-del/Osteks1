@@ -6,6 +6,7 @@ import {
   ShieldAlert,
   BookOpen,
   CalendarClock,
+  Factory,
   ChevronDown,
   Settings,
   X,
@@ -101,12 +102,31 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
         { id: "eightDReportGenerate", label: t("sidebar.eightDReportGenerate") },
       ],
     },
-    // Placeholder until its sub-pages are specified - then it becomes an
-    // accordion entry like Test Report / 8D Report above.
+    // Shift Planning area - accordion like Test Report / 8D Report above;
+    // every sub-page is a "still in development" placeholder for now.
     {
       id: "shiftPlanning",
       label: t("sidebar.shiftPlanning"),
       icon: CalendarClock,
+      children: [
+        { id: "shiftDashboard", label: t("sidebar.shiftDashboard") },
+        { id: "shiftPlan", label: t("sidebar.shiftPlan") },
+        { id: "shiftOrders", label: t("sidebar.shiftOrders") },
+        { id: "shiftProductionReport", label: t("sidebar.shiftProductionReport") },
+        { id: "shiftUpload", label: t("sidebar.shiftUpload") },
+        { id: "shiftSettings", label: t("sidebar.shiftSettings") },
+      ],
+    },
+    // Production View - backlog dashboard and the workbook upload that
+    // feeds it (components/ProductionView/).
+    {
+      id: "productionView",
+      label: t("sidebar.productionView"),
+      icon: Factory,
+      children: [
+        { id: "productionDashboard", label: t("sidebar.productionDashboard") },
+        { id: "productionUpload", label: t("sidebar.productionUpload") },
+      ],
     },
     // Temporary reference page: every known coating norm and its requirements.
     {
