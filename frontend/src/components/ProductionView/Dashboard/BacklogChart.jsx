@@ -91,16 +91,16 @@ const Pill = ({ x, y, text }) => {
   const below = y - 46 < 0;
   return below ? (
     <g transform={`translate(${x},${y + 16})`}>
-      <rect x={-width / 2} y={2} width={width} height={26} rx={8} fill="#1e1b39" />
-      <path d="M -5 2.5 L 0 -3 L 5 2.5 Z" fill="#1e1b39" />
+      <rect x={-width / 2} y={2} width={width} height={26} rx={8} fill="#0f8a7c" />
+      <path d="M -5 2.5 L 0 -3 L 5 2.5 Z" fill="#0f8a7c" />
       <text y={19} textAnchor="middle" className="bl-pill-text">
         {text}
       </text>
     </g>
   ) : (
     <g transform={`translate(${x},${y - 16})`}>
-      <rect x={-width / 2} y={-28} width={width} height={26} rx={8} fill="#1e1b39" />
-      <path d="M -5 -2.5 L 0 3 L 5 -2.5 Z" fill="#1e1b39" />
+      <rect x={-width / 2} y={-28} width={width} height={26} rx={8} fill="#0f8a7c" />
+      <path d="M -5 -2.5 L 0 3 L 5 -2.5 Z" fill="#0f8a7c" />
       <text y={-11} textAnchor="middle" className="bl-pill-text">
         {text}
       </text>

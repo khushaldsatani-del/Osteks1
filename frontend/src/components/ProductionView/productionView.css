@@ -3,10 +3,12 @@
    and Upload. Builds on the Shift Planning
    shells (shiftShared.css: .sp-page, .sp-card,
    .sp-table; shiftUpload.css: drop zone).
-   Chart colours follow the backlog design:
-   KTL #7b93ff, Pulver #cfa6fb, Schäumen
-   #9b51fa, indigo #4a3aff for "all", dark
-   #1e1b39 for active toggles and the pill.
+   UI accents use the app's teal theme
+   (#14b8a6 buttons, #0f8a7c text / active
+   toggles / value pill, #e1f7f3 light fills).
+   Only the chart's data series keep their
+   own colours: KTL #7b93ff, Pulver #cfa6fb,
+   Schäumen #9b51fa.
 ========================================= */
 
 /* ---------- shared bits ---------- */
@@ -119,8 +121,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #edebff;
-  color: #4a3aff;
+  background: #e1f7f3;
+  color: #0f8a7c;
 }
 
 /* ---------- Tables (dashboard values table) ---------- */
@@ -203,13 +205,13 @@
 
 .bl-seg--dark button.is-active,
 .bl-seg--icons button.is-active {
-  background: #1e1b39;
+  background: #0f8a7c;
   color: #ffffff;
   box-shadow: none;
 }
 
 .bl-seg button:focus-visible {
-  outline: 2px solid #4a3aff;
+  outline: 2px solid #0f8a7c;
   outline-offset: 1px;
 }
 
@@ -369,10 +371,10 @@
   align-items: center;
   gap: 1px;
   padding: 3px 6px;
-  border: 1px solid #e2defe;
+  border: 1px solid #b9e6df;
   border-radius: 7px;
-  background: #f6f5ff;
-  color: #4a3aff;
+  background: #f0fbf9;
+  color: #0f8a7c;
   cursor: pointer;
 }
 
@@ -383,27 +385,27 @@
   gap: 10px;
   height: 40px;
   padding: 0 18px 0 16px;
-  border: 1px solid #c9c4ff;
+  border: 1px solid #b9e6df;
   border-radius: 999px;
   background: #ffffff;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-  color: #4a3aff;
+  color: #0f8a7c;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .bl-all.is-active {
-  background: #f3f2ff;
-  border-color: #4a3aff;
+  background: #f0fbf9;
+  border-color: #0f8a7c;
 }
 
 .bl-all-dot {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: #4a3aff;
+  background: #0f8a7c;
 }
 
 .bl-cats {
@@ -441,7 +443,7 @@
 .bl-cat:focus-visible,
 .bl-chip:focus-visible,
 .bl-all:focus-visible {
-  outline: 2px solid #4a3aff;
+  outline: 2px solid #0f8a7c;
   outline-offset: 1px;
 }
 
@@ -700,7 +702,7 @@
 .bl-chart-scroll {
   padding-bottom: 6px;
   scrollbar-width: thin;
-  scrollbar-color: #a99fff #f1f0fa;
+  scrollbar-color: #8fd5cb #eef7f5;
 }
 
 .bl-chart-scroll::-webkit-scrollbar {
@@ -710,21 +712,21 @@
 .bl-chart-scroll::-webkit-scrollbar-track {
   margin: 0 4px;
   border-radius: 999px;
-  background: #f3f2fa;
+  background: #eef7f5;
 }
 
 .bl-chart-scroll::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: linear-gradient(90deg, #b9b2ff, #8b7dff);
-  border: 2px solid #f3f2fa;
+  background: linear-gradient(90deg, #9adbd2, #5fc9bb);
+  border: 2px solid #eef7f5;
 }
 
 .bl-chart-scroll::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, #8b7dff, #4a3aff);
+  background: linear-gradient(90deg, #5fc9bb, #0f8a7c);
 }
 
 .bl-default-note {
-  color: #4a3aff;
+  color: #0f8a7c;
   font-weight: 500;
 }
 
@@ -768,8 +770,8 @@
 
 .rp-trigger:focus-visible {
   outline: none;
-  border-color: #4a3aff;
-  box-shadow: 0 0 0 3px rgba(74, 58, 255, 0.12);
+  border-color: #0f8a7c;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
 }
 
 .rp-tag {
@@ -782,8 +784,8 @@
 }
 
 .rp-tag.is-applied {
-  background: #edebff;
-  color: #4a3aff;
+  background: #e1f7f3;
+  color: #0f8a7c;
 }
 
 .rp-dates {
@@ -869,8 +871,8 @@
 }
 
 .rp-presets .is-active {
-  background: #edebff;
-  color: #4a3aff;
+  background: #e1f7f3;
+  color: #0f8a7c;
   font-weight: 600;
 }
 
@@ -945,7 +947,7 @@
 }
 
 .rp-day:hover:not(:disabled):not(.is-start):not(.is-end) {
-  background: #f1f0fe;
+  background: #f0fbf9;
   border-radius: 8px;
 }
 
@@ -960,13 +962,13 @@
 
 /* the selected range: a light band with solid start/end days */
 .rp-day.in-range {
-  background: #f1f0fe;
+  background: #f0fbf9;
   border-radius: 0;
 }
 
 .rp-day.is-start,
 .rp-day.is-end {
-  background: #4a3aff;
+  background: #0f8a7c;
   color: #ffffff;
   font-weight: 600;
 }
@@ -1021,12 +1023,12 @@
 }
 
 .rp-btn--primary {
-  background: #4a3aff;
+  background: #14b8a6;
   color: #ffffff;
 }
 
 .rp-btn--primary:hover:not(:disabled) {
-  background: #3b2de0;
+  background: #0f9f90;
 }
 
 @media (max-width: 640px) {
@@ -1066,9 +1068,9 @@
 /* ---------- Dashboard: table showing one clicked week/month's days ---------- */
 
 .bl-table--detail {
-  border-color: #d9d4ff;
+  border-color: #b9e6df;
   box-shadow:
-    0 0 0 3px rgba(74, 58, 255, 0.06),
+    0 0 0 3px rgba(20, 184, 166, 0.06),
     0 8px 22px rgba(20, 30, 55, 0.05);
 }
 
@@ -1094,8 +1096,8 @@
 
 .bl-row-total td {
   height: 38px;
-  border-top: 1px solid #d9d4ff;
-  background: #f6f5ff;
+  border-top: 1px solid #b9e6df;
+  background: #f0fbf9;
   font-weight: 700;
   color: #1c2333;
 }
@@ -1167,8 +1169,8 @@
 }
 
 .up-drop.is-dragging {
-  border-color: #4a3aff;
-  background: #f6f5ff;
+  border-color: #0f8a7c;
+  background: #f0fbf9;
 }
 
 .up-drop.has-error {
@@ -1204,7 +1206,7 @@
   font-family: inherit;
   font-size: inherit;
   font-weight: 600;
-  color: #4a3aff;
+  color: #0f8a7c;
   cursor: pointer;
 }
 
@@ -1473,8 +1475,8 @@
 }
 
 .up-source--auto {
-  background: #f1f0ff;
-  color: #4a3aff;
+  background: #e1f7f3;
+  color: #0f8a7c;
 }
 
 .up-file-cell {
@@ -1607,12 +1609,12 @@
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: #4a3aff;
+  color: #0f8a7c;
   cursor: pointer;
 }
 
 .up-more:hover {
-  background: #f6f5ff;
+  background: #f0fbf9;
 }
 
 @media (max-width: 640px) {
