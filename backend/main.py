@@ -774,18 +774,38 @@ async def delete_test_report_image(report_id: int, object_path: str):
 # /backlog; /metrics lists everything stored.
 
 
+# Every error below answers {"error": <English text>, "code": <stable id>} -
+# the Upload page shows its own (translated) message per code.
+def _production_error(status: int, code: str, message: str) -> JSONResponse:
+    return JSONResponse(status_code=status, content={"error": message, "code": code})
+
+
+def _check_upload(file: UploadFile, content: bytes) -> JSONResponse | None:
+    if not content:
+        return _production_error(400, "empty_file", "The file is empty.")
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        return _production_error(413, "too_large", "The file is larger than 30 MB.")
+    if not (file.filename or "").lower().endswith((".xlsx", ".xlsm")):
+        return _production_error(400, "wrong_type", "Please upload an Excel file (.xlsx).")
+    return None
+
+
 @app.post("/api/production/import")
 async def preview_production_import(file: UploadFile = File(...)):
     content = await file.read()
-    if len(content) > MAX_FILE_SIZE_BYTES:
-        return JSONResponse(status_code=413, content={"error": "File is too large."})
-    if not (file.filename or "").lower().endswith((".xlsx", ".xlsm")):
-        return JSONResponse(status_code=400, content={"error": "Please upload an Excel file (.xlsx)."})
+    rejected = _check_upload(file, content)
+    if rejected:
+        return rejected
+    file_name = file.filename or "upload.xlsx"
     try:
-        return await production_repo.preview_import(content, file.filename or "upload.xlsx")
-    except Exception as error:  # a corrupt or non-Excel file
-        print("Production import failed:", repr(error))
-        return JSONResponse(status_code=400, content={"error": "The file could not be read as an Excel workbook."})
+        return await production_repo.preview_import(content, file_name)
+    except production_repo.ImportFileError as error:
+        # a bad file is part of the history too, like the automatic feed's
+        await production_repo.record_upload(file_name, content, "manual", "failed", {"error": error.message, "code": error.code})
+        return _production_error(400, error.code, error.message)
+    except Exception as error:
+        print("production preview failed:", repr(error))
+        return _production_error(500, "server_error", "The file could not be checked because of a server problem. Please try again.")
 
 
 # The daily automatic feed: automation/osteks-sync/osteks-sync.ps1 runs on
@@ -807,11 +827,14 @@ async def auto_production_import(
         print("auto import: rejected a request with a wrong or missing key")
         return JSONResponse(status_code=401, content={"error": "Invalid import key."})
     content = await file.read()
-    if len(content) > MAX_FILE_SIZE_BYTES:
-        return JSONResponse(status_code=413, content={"error": "File is too large."})
-    if not (file.filename or "").lower().endswith((".xlsx", ".xlsm")):
-        return JSONResponse(status_code=400, content={"error": "Please send an Excel file (.xlsx)."})
-    result = await production_repo.auto_import(content, file.filename or "auto.xlsx", final)
+    rejected = _check_upload(file, content)
+    if rejected:
+        return rejected
+    try:
+        result = await production_repo.auto_import(content, file.filename or "auto.xlsx", final)
+    except Exception as error:  # database / server problem - the sender retries
+        print("auto import failed:", repr(error))
+        return _production_error(500, "server_error", "Server problem while importing - will be retried.")
     print(f"auto import: {file.filename} -> {result['status']}")
     return JSONResponse(status_code=422 if result["status"] == "failed" else 200, content=result)
 
@@ -826,9 +849,13 @@ async def commit_production_import(upload_id: int):
     try:
         upload = await production_repo.commit_import(upload_id)
     except ValueError as error:
-        return JSONResponse(status_code=409, content={"error": str(error)})
+        return _production_error(409, "already_processed", str(error))
+    except Exception as error:
+        # the save runs in one transaction - on any failure nothing is written
+        print("production commit failed:", repr(error))
+        return _production_error(500, "save_failed", "Saving failed - nothing was changed. Please try again.")
     if upload is None:
-        return JSONResponse(status_code=404, content={"error": "Upload not found."})
+        return _production_error(404, "not_found", "This upload no longer exists - please upload the file again.")
     return upload
 
 

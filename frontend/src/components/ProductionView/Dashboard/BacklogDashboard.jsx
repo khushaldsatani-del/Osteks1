@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, LineChart, LoaderCircle, Upload } from "lucide-react";
 import { useTranslation } from "../../../i18n/LanguageContext";
-import { cachedBacklog, getBacklog } from "../productionApi";
+import { cachedBacklog, getBacklog, importErrorMessage } from "../productionApi";
 import BacklogChart from "./BacklogChart";
 import BacklogTable from "./BacklogTable";
 import CategoryPanel from "./CategoryPanel";
@@ -65,7 +65,7 @@ const BacklogDashboard = ({ onNavigate }) => {
       setData((current) => (current && JSON.stringify(current) === JSON.stringify(fresh) ? current : fresh));
     } catch (err) {
       // with a cached copy on screen, a failed refresh isn't worth an error page
-      if (!cachedBacklog()) setError(err.message);
+      if (!cachedBacklog()) setError(importErrorMessage(t, err));
     }
   }, []);
 

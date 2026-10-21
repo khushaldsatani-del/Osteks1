@@ -1,424 +1,477 @@
-import React, { forwardRef, useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, CloudUpload, FileSpreadsheet, Info, LoaderCircle, X } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CloudUpload,
+  FileSpreadsheet,
+  Hand,
+  Info,
+  LoaderCircle,
+  RefreshCw,
+  Zap,
+} from "lucide-react";
 import { useTranslation } from "../../../i18n/LanguageContext";
-import ShiftCard from "../../ShiftPlanning/shared/ShiftCard";
-import { formatDateTimeDots, formatFileSize, formatNumber } from "../../ShiftPlanning/shared/shiftFormat";
-import { commitImport, discardImport, getPendingImport, listMetrics, listUploads, previewImport } from "../productionApi";
-import "../../ShiftPlanning/Upload/shiftUpload.css";
+import { formatFileSize, formatNumber } from "../../ShiftPlanning/shared/shiftFormat";
+import {
+  ImportError,
+  commitImport,
+  discardImport,
+  getPendingImport,
+  importErrorMessage,
+  listUploads,
+  previewImport,
+} from "../productionApi";
 import "../productionView.css";
 
-// Production View > Upload: import the whole "Auswertungen" workbook.
-// Two steps - the file is parsed on the server and shown as a preview
-// (months found, new / changed / unchanged values, warnings); only "Save to
-// database" writes it. Every row of every month sheet is stored, not just
-// the backlog. Below: what the database holds per metric, and the history.
+// Production View > Upload. Normally the workbook arrives by itself every
+// morning (automation/osteks-sync) - "Automatic" mode, the default, shows
+// only the history of what came in. "Manual" is the fallback for a day the
+// automatic feed fails: one upload box that checks the file, shows what it
+// would change, and saves it on confirmation. Both write the same history.
+//
+// Every failure is shown where it happened (in the upload box, or in the
+// table) with a translated reason and a way to retry; nothing on the page
+// ever just stops responding.
 
+const MAX_FILE_BYTES = 30 * 1024 * 1024; // same cap as the server (MAX_FILE_SIZE_BYTES)
+const PAGE_SIZE = 15;
+
+const pad = (n) => String(n).padStart(2, "0");
 const isoToDots = (iso) => (iso ? iso.split("-").reverse().join(".") : "–");
+const dateDots = (d) => `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+const timeOf = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-const Warnings = ({ warnings }) => {
+// committed = imported; unchanged = the automatic feed found no new data
+// that morning; failed = the file couldn't be imported (reason in summary)
+const STATUS = {
+  committed: { tone: "green", key: "status_committed" },
+  unchanged: { tone: "amber", key: "status_unchanged" },
+  failed: { tone: "red", key: "status_failed" },
+};
+
+// Checks the browser can do before sending anything.
+function checkFile(file) {
+  if (!/\.(xlsx|xlsm)$/i.test(file.name)) return new ImportError("wrong_type");
+  if (file.size === 0) return new ImportError("empty_file");
+  if (file.size > MAX_FILE_BYTES) return new ImportError("too_large");
+  return null;
+}
+
+const ModeToggle = ({ mode, onChange }) => {
   const { t } = useTranslation();
-  if (!warnings?.length) return null;
-  const noBacklog = warnings.filter((w) => w.code === "noBacklog").map((w) => w.sheet);
-  const mismatch = warnings.filter((w) => w.code === "totalMismatch").map((w) => isoToDots(w.date));
-  const duplicates = warnings.filter((w) => w.code === "duplicateDay");
-  const other = warnings.filter((w) => ["noDayColumns", "noValues"].includes(w.code));
   return (
-    <ul className="pv-warnings">
-      {noBacklog.length > 0 && (
-        <li className="pv-warning pv-warning--info">
-          <Info size={15} />
-          <span>{t("productionUpload.warnNoBacklog", { sheets: noBacklog.join(", ") })}</span>
-        </li>
-      )}
-      {mismatch.length > 0 && (
-        <li className="pv-warning">
-          <AlertTriangle size={15} />
-          <span>{t("productionUpload.warnTotalMismatch", { count: mismatch.length, dates: mismatch.slice(0, 6).join(", ") })}</span>
-        </li>
-      )}
-      {duplicates.length > 0 && (
-        <li className="pv-warning">
-          <AlertTriangle size={15} />
-          <span>{t("productionUpload.warnDuplicate", { count: duplicates.length })}</span>
-        </li>
-      )}
-      {other.map((w, i) => (
-        <li key={i} className="pv-warning">
-          <AlertTriangle size={15} />
-          <span>{t(`productionUpload.warn_${w.code}`, { sheet: w.sheet ?? "" })}</span>
-        </li>
+    <div className="bl-seg bl-seg--dark up-toggle" role="radiogroup" aria-label={t("productionUpload.modeLabel")}>
+      {[
+        ["auto", Zap],
+        ["manual", Hand],
+      ].map(([value, Icon]) => (
+        <button key={value} type="button" role="radio" aria-checked={mode === value} className={mode === value ? "is-active" : ""} onClick={() => onChange(value)}>
+          <Icon size={14} />
+          {t(`productionUpload.mode_${value}`)}
+        </button>
       ))}
-    </ul>
+    </div>
   );
 };
 
-const PreviewPanel = forwardRef(function PreviewPanel({ upload, busy, onCommit, onDiscard }, ref) {
+// The manual upload box: drop zone -> checking -> confirm -> saved, with
+// errors shown inside the box.
+const UploadBox = ({ preview, phase, error, saved, onFile, onSave, onDiscard, onReset }) => {
   const { t, language } = useTranslation();
-  const s = upload.summary;
-  const months = s.months.filter((m) => !m.skipped);
-  const stats = [
-    { label: t("productionUpload.statMonths"), value: months.length },
-    { label: t("productionUpload.statDays"), value: s.dayCount },
-    { label: t("productionUpload.statMetrics"), value: s.metricCount },
-    { label: t("productionUpload.statValues"), value: formatNumber(language, s.valueCount) },
-  ];
-  return (
-    <div ref={ref} className="pv-preview-anchor">
-    <ShiftCard
-      title={t("productionUpload.previewTitle")}
-      subtitle={t("productionUpload.previewSubtitle", { file: upload.fileName })}
-      className="pv-preview"
-    >
-      <p className="pv-note pv-note--unsaved">
-        <AlertTriangle size={15} />
-        {t("productionUpload.unsavedNote", { date: formatDateTimeDots(new Date(upload.uploadedAt)) })}
-      </p>
-      {s.duplicateOf && (
-        <p className="pv-note">
-          <Info size={15} />
-          {t("productionUpload.duplicateNote", { date: formatDateTimeDots(new Date(s.duplicateOf.uploadedAt)) })}
-        </p>
-      )}
+  const inputRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
 
-      <div className="pv-stats">
-        {stats.map((stat) => (
-          <div key={stat.label} className="pv-stat">
-            <span className="pv-stat-value">{stat.value}</span>
-            <span className="pv-stat-label">{stat.label}</span>
-          </div>
-        ))}
-        <div className="pv-stat pv-stat--changes">
-          <span className="pv-change pv-change--new">{t("productionUpload.valuesNew", { count: formatNumber(language, s.values.new) })}</span>
-          <span className="pv-change pv-change--changed">
-            {t("productionUpload.valuesChanged", { count: formatNumber(language, s.values.changed) })}
+  if (phase === "preview" || phase === "saving") {
+    const s = preview.summary;
+    const warnings = s.warnings ?? [];
+    const mismatches = warnings.filter((w) => w.code === "totalMismatch").length;
+    const noBacklog = warnings.filter((w) => w.code === "noBacklog").length;
+    return (
+      <section className="up-box up-box--confirm" aria-live="polite">
+        <div className="up-confirm-head">
+          <span className="up-file-icon">
+            <FileSpreadsheet size={18} />
           </span>
-          <span className="pv-change">{t("productionUpload.valuesUnchanged", { count: formatNumber(language, s.values.unchanged) })}</span>
+          <div className="up-confirm-text">
+            <p className="up-file-name" title={preview.fileName}>
+              {preview.fileName}
+            </p>
+            <p className="up-file-meta">
+              {t("productionUpload.confirmMeta", {
+                from: isoToDots(s.firstDate),
+                to: isoToDots(s.lastDate),
+                values: formatNumber(language, s.valueCount),
+              })}
+            </p>
+          </div>
         </div>
+
+        <div className="up-changes">
+          <span className="up-change up-change--new">{t("productionUpload.valuesNew", { count: formatNumber(language, s.values.new) })}</span>
+          <span className="up-change up-change--changed">{t("productionUpload.valuesChanged", { count: formatNumber(language, s.values.changed) })}</span>
+          <span className="up-change">{t("productionUpload.valuesUnchanged", { count: formatNumber(language, s.values.unchanged) })}</span>
+        </div>
+
+        {(s.duplicateOf || mismatches > 0 || noBacklog > 0) && (
+          <ul className="up-notes">
+            {s.duplicateOf && (
+              <li>
+                <Info size={14} />
+                {t("productionUpload.duplicateNoteShort")}
+              </li>
+            )}
+            {mismatches > 0 && (
+              <li className="is-warn">
+                <AlertTriangle size={14} />
+                {t("productionUpload.mismatchShort", { count: mismatches })}
+              </li>
+            )}
+            {noBacklog > 0 && (
+              <li>
+                <Info size={14} />
+                {t("productionUpload.noBacklogShort", { count: noBacklog })}
+              </li>
+            )}
+          </ul>
+        )}
+
+        {error && (
+          <p className="up-error" role="alert">
+            <AlertTriangle size={15} />
+            {error}
+          </p>
+        )}
+
+        <div className="up-actions">
+          <span className="up-hint">{t("productionUpload.notSavedYet")}</span>
+          <button type="button" className="pv-btn pv-btn--ghost" onClick={onDiscard} disabled={phase === "saving"}>
+            {t("productionUpload.discard")}
+          </button>
+          <button type="button" className="pv-btn pv-btn--primary" onClick={onSave} disabled={phase === "saving"}>
+            {phase === "saving" ? <LoaderCircle size={15} className="up-spin" /> : <CheckCircle2 size={15} />}
+            {t("productionUpload.save")}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={`up-box up-drop ${dragging ? "is-dragging" : ""} ${error ? "has-error" : ""}`}
+      onDragOver={(event) => {
+        event.preventDefault();
+        if (phase !== "checking") setDragging(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        if (phase !== "checking") onFile(event.dataTransfer.files?.[0]);
+      }}
+      aria-live="polite"
+    >
+      {phase === "checking" ? (
+        <>
+          <LoaderCircle size={26} className="up-drop-icon up-spin" />
+          <p className="up-drop-title">{t("productionUpload.checking")}</p>
+          <p className="up-drop-hint">{t("productionUpload.checkingHint")}</p>
+        </>
+      ) : saved ? (
+        <>
+          <CheckCircle2 size={26} className="up-drop-icon up-drop-icon--ok" />
+          <p className="up-drop-title">
+            {t("productionUpload.savedShort", {
+              newCount: formatNumber(language, saved.summary.values.new),
+              changedCount: formatNumber(language, saved.summary.values.changed),
+            })}
+          </p>
+          <button type="button" className="up-link" onClick={onReset}>
+            {t("productionUpload.uploadAnother")}
+          </button>
+        </>
+      ) : (
+        <>
+          <CloudUpload size={26} className="up-drop-icon" />
+          <p className="up-drop-title">{t("productionUpload.drop")}</p>
+          <p className="up-drop-hint">
+            {t("productionUpload.dropHint")}{" "}
+            <button type="button" className="up-link" onClick={() => inputRef.current?.click()}>
+              {t("productionUpload.browse")}
+            </button>
+          </p>
+          {error && (
+            <p className="up-error" role="alert">
+              <AlertTriangle size={15} />
+              {error}
+            </p>
+          )}
+        </>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".xlsx,.xlsm"
+        hidden
+        onChange={(event) => {
+          onFile(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+    </section>
+  );
+};
+
+const HistoryTable = ({ history, loading, error, onRetry }) => {
+  const { t, language } = useTranslation();
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const rows = history.slice(0, visible);
+
+  return (
+    <section className="sp-card up-history">
+      <div className="up-history-head">
+        <h3 className="sp-card-title">{t("productionUpload.historyTitle")}</h3>
+        <button type="button" className="up-icon-btn" onClick={onRetry} disabled={loading} title={t("productionUpload.refresh")} aria-label={t("productionUpload.refresh")}>
+          <RefreshCw size={14} className={loading ? "up-spin" : ""} />
+        </button>
       </div>
 
-      <div className="sp-table-wrap">
-        <table className="sp-table pv-table">
+      <div className="up-table-wrap">
+        <table className="up-table">
           <thead>
             <tr>
-              <th>{t("productionUpload.colSheet")}</th>
-              <th>{t("productionUpload.colRange")}</th>
-              <th className="sp-num">{t("productionUpload.colDays")}</th>
-              <th className="sp-num">{t("productionUpload.colMetrics")}</th>
-              <th className="sp-num">{t("productionUpload.colValues")}</th>
-              <th className="sp-num">{t("productionUpload.colBacklogDays")}</th>
+              <th>{t("productionUpload.colDate")}</th>
+              <th>{t("productionUpload.colSource")}</th>
+              <th>{t("productionUpload.colFile")}</th>
+              <th>{t("productionUpload.colDataUpTo")}</th>
+              <th className="up-num">{t("productionUpload.colChanges")}</th>
+              <th>{t("productionUpload.colStatus")}</th>
             </tr>
           </thead>
           <tbody>
-            {months.map((m) => (
-              <tr key={m.sheet}>
-                <td className="pv-strong">{m.sheet}</td>
-                <td>
-                  {isoToDots(m.firstDate)} – {isoToDots(m.lastDate)}
-                </td>
-                <td className="sp-num">{m.days}</td>
-                <td className="sp-num">{m.metrics}</td>
-                <td className="sp-num">{formatNumber(language, m.values)}</td>
-                <td className="sp-num">
-                  {m.backlogDays ? m.backlogDays : <span className="pv-muted">–</span>}
+            {error ? (
+              <tr>
+                <td colSpan={6} className="up-table-message up-table-message--error">
+                  <AlertTriangle size={15} />
+                  {error}
+                  <button type="button" className="up-link" onClick={onRetry}>
+                    {t("productionUpload.retry")}
+                  </button>
                 </td>
               </tr>
-            ))}
+            ) : loading && history.length === 0 ? (
+              Array.from({ length: 4 }, (_, i) => (
+                <tr key={i} className="up-skeleton">
+                  {Array.from({ length: 6 }, (__, j) => (
+                    <td key={j}>
+                      <span />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : history.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="up-table-message">
+                  {t("productionUpload.historyEmpty")}
+                </td>
+              </tr>
+            ) : (
+              rows.map((u) => {
+                const when = new Date(u.uploadedAt);
+                const status = STATUS[u.status] ?? { tone: "grey", key: `status_${u.status}` };
+                const values = u.summary.values;
+                return (
+                  <tr key={u.id}>
+                    <td>
+                      <span className="up-date">{dateDots(when)}</span>
+                      <span className="up-time">{timeOf(when)}</span>
+                    </td>
+                    <td>
+                      <span className={`up-source up-source--${u.source}`}>
+                        {u.source === "auto" ? <Zap size={12} /> : <Hand size={12} />}
+                        {t(`productionUpload.source_${u.source}`)}
+                      </span>
+                    </td>
+                    <td className="up-file-cell" title={u.fileName}>
+                      <span className="up-file">{u.fileName}</span>
+                      <span className="up-size">{formatFileSize(language, u.fileSize)}</span>
+                    </td>
+                    <td>{u.summary.lastDate ? isoToDots(u.summary.lastDate) : <span className="up-muted">–</span>}</td>
+                    <td className="up-num">
+                      {values ? (
+                        <>
+                          {values.new > 0 && <span className="up-count up-count--new">+{formatNumber(language, values.new)}</span>}
+                          {values.changed > 0 && <span className="up-count up-count--changed">~{formatNumber(language, values.changed)}</span>}
+                          {values.new === 0 && values.changed === 0 && <span className="up-muted">0</span>}
+                        </>
+                      ) : (
+                        <span className="up-muted">–</span>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className={`up-status up-status--${status.tone}`}
+                        title={u.status === "unchanged" ? t("productionUpload.unchangedHint") : undefined}
+                      >
+                        <span className="up-status-dot" />
+                        {t(`productionUpload.${status.key}`)}
+                      </span>
+                      {u.summary.error && (
+                        <span className="up-reason">
+                          {u.summary.code ? importErrorMessage(t, { code: u.summary.code, detail: u.summary.error }) : u.summary.error}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
 
-      <Warnings warnings={s.warnings} />
-
-      <div className="pv-actions">
-        <button type="button" className="pv-btn pv-btn--ghost" onClick={onDiscard} disabled={busy}>
-          {t("productionUpload.discard")}
+      {!error && history.length > visible && (
+        <button type="button" className="up-more" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+          {t("productionUpload.showMore", { count: Math.min(PAGE_SIZE, history.length - visible) })}
         </button>
-        <button type="button" className="pv-btn pv-btn--primary" onClick={onCommit} disabled={busy || s.valueCount === 0}>
-          {busy ? <LoaderCircle size={15} className="supl-spin" /> : <CheckCircle2 size={15} />}
-          {t("productionUpload.save")}
-        </button>
-      </div>
-    </ShiftCard>
-    </div>
+      )}
+    </section>
   );
-});
-
-// committed = imported; unchanged = the automatic feed found no new file
-// that morning; failed = unreadable file (reason in summary.error)
-const STATUS_TONE = { committed: "green", discarded: "grey", failed: "red", unchanged: "amber" };
+};
 
 const ProductionUpload = () => {
-  const { t, language } = useTranslation();
-  const inputRef = useRef(null);
-  const [dragging, setDragging] = useState(false);
-  const [phase, setPhase] = useState("idle"); // idle | reading | preview | saving
+  const { t } = useTranslation();
+  const [mode, setMode] = useState("auto");
+  const [phase, setPhase] = useState("idle"); // idle | checking | preview | saving
   const [preview, setPreview] = useState(null);
-  const [result, setResult] = useState(null); // last committed upload
-  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(null);
+  // errors are kept as ImportError objects and turned into text when shown,
+  // so they follow a language switch
+  const [uploadError, setUploadError] = useState(null);
   const [history, setHistory] = useState([]);
-  const [metrics, setMetrics] = useState([]);
-  const [listError, setListError] = useState("");
-  const previewRef = useRef(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(null);
 
-  const refreshLists = useCallback(async () => {
+  const refreshHistory = useCallback(async () => {
+    setHistoryLoading(true);
     try {
-      const [uploads, coverage] = await Promise.all([listUploads(), listMetrics()]);
-      setHistory(uploads);
-      setMetrics(coverage);
-      setListError("");
+      setHistory(await listUploads());
+      setHistoryError(null);
     } catch (err) {
-      setListError(err.message);
+      setHistoryError(err);
+    } finally {
+      setHistoryLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshLists();
-  }, [refreshLists]);
+    refreshHistory();
+  }, [refreshHistory]);
 
-  // A file previewed earlier but never saved comes back here, so it can
-  // still be saved (or discarded) instead of silently missing from the
-  // dashboard.
+  // A file checked earlier but never saved comes back in Manual mode, so it
+  // can still be saved or discarded.
   useEffect(() => {
     let cancelled = false;
     getPendingImport()
       .then((pending) => {
         if (cancelled || !pending) return;
-        setPreview((current) => current ?? pending);
-        setPhase((current) => (current === "idle" ? "preview" : current));
+        setPreview(pending);
+        setPhase("preview");
+        setMode("manual");
       })
-      .catch(() => {});
+      .catch(() => {}); // nothing pending to recover - not worth an error
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // bring the "Check before saving" card into view when a preview appears
-  useEffect(() => {
-    if (preview?.id) previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [preview?.id]);
+  const resetBox = () => {
+    setPhase("idle");
+    setPreview(null);
+    setSaved(null);
+    setUploadError(null);
+  };
 
   const handleFile = async (file) => {
-    if (!file || phase === "reading" || phase === "saving") return;
-    if (preview) discardImport(preview.id).catch(() => {});
-    setError("");
-    setResult(null);
-    setPreview(null);
-    setPhase("reading");
+    if (!file || phase === "checking" || phase === "saving") return;
+    setSaved(null);
+    const problem = checkFile(file);
+    if (problem) {
+      setUploadError(problem);
+      return;
+    }
+    setUploadError(null);
+    setPhase("checking");
     try {
       setPreview(await previewImport(file));
       setPhase("preview");
     } catch (err) {
-      setError(err.message);
+      setUploadError(err);
       setPhase("idle");
+      refreshHistory(); // a rejected file is listed as Failed
     }
   };
 
-  const handleCommit = async () => {
+  const handleSave = async () => {
     setPhase("saving");
+    setUploadError(null);
     try {
-      const saved = await commitImport(preview.id);
-      setResult(saved);
+      const result = await commitImport(preview.id);
+      setSaved(result);
       setPreview(null);
       setPhase("idle");
-      refreshLists();
     } catch (err) {
-      setError(err.message);
-      setPhase("preview");
+      if (err.code === "already_processed" || err.code === "not_found") {
+        // saved/discarded meanwhile (e.g. in another tab) - start over
+        resetBox();
+        setUploadError(err);
+      } else {
+        // network / server problem - the preview is still there, try again
+        setUploadError(err);
+        setPhase("preview");
+      }
+    } finally {
+      refreshHistory();
     }
   };
 
   const handleDiscard = async () => {
     const id = preview.id;
-    setPreview(null);
-    setPhase("idle");
+    resetBox();
     try {
       await discardImport(id);
     } catch {
-      // already gone - nothing to undo
+      // already gone, or the server is unreachable - an unsaved preview
+      // changes nothing either way
     }
   };
 
   return (
-    <main className="sp-page">
+    <main className="sp-page up-page">
       <div className="sp-header">
         <div className="sp-heading">
           <h2 className="sp-title">{t("productionUpload.title")}</h2>
-          <p className="sp-subtitle">{t("productionUpload.subtitle")}</p>
+          <p className="sp-subtitle">{t(`productionUpload.subtitle_${mode}`)}</p>
         </div>
+        <ModeToggle mode={mode} onChange={setMode} />
       </div>
 
-      <ShiftCard
-        heading={
-          <div className="supl-card-heading">
-            <span className="supl-type-icon pv-type-icon">
-              <FileSpreadsheet size={20} />
-            </span>
-            <div>
-              <h3 className="sp-card-title">{t("productionUpload.cardTitle")}</h3>
-              <p className="sp-card-subtitle">{t("productionUpload.cardHint")}</p>
-            </div>
-          </div>
-        }
-      >
-        <div
-          className={`supl-drop ${dragging ? "is-dragging" : ""}`}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false);
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            setDragging(false);
-            handleFile(event.dataTransfer.files?.[0]);
-          }}
-        >
-          {phase === "reading" ? (
-            <>
-              <LoaderCircle size={28} className="supl-drop-icon supl-spin" />
-              <p className="supl-drop-title">{t("productionUpload.reading")}</p>
-            </>
-          ) : (
-            <>
-              <CloudUpload size={30} className="supl-drop-icon" />
-              <p className="supl-drop-title">{t("productionUpload.drop")}</p>
-              <p className="supl-drop-or">{t("shiftUpload.or")}</p>
-              <button type="button" className="supl-select" onClick={() => inputRef.current?.click()}>
-                {t("shiftUpload.selectFile")}
-              </button>
-              <p className="supl-drop-hint">{t("productionUpload.supported")}</p>
-            </>
-          )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".xlsx,.xlsm"
-            hidden
-            onChange={(event) => {
-              handleFile(event.target.files?.[0]);
-              event.target.value = "";
-            }}
-          />
-        </div>
-
-        {error && (
-          <p className="pv-banner pv-banner--error">
-            <AlertTriangle size={16} />
-            <span>{error}</span>
-            <button type="button" className="pv-banner-close" onClick={() => setError("")} aria-label={t("productionUpload.close")}>
-              <X size={14} />
-            </button>
-          </p>
-        )}
-        {result && (
-          <p className="pv-banner pv-banner--success">
-            <CheckCircle2 size={16} />
-            <span>
-              {t("productionUpload.savedNote", {
-                file: result.fileName,
-                newCount: formatNumber(language, result.summary.values.new),
-                changedCount: formatNumber(language, result.summary.values.changed),
-              })}
-            </span>
-          </p>
-        )}
-      </ShiftCard>
-
-      {preview && (phase === "preview" || phase === "saving") && (
-        <PreviewPanel ref={previewRef} upload={preview} busy={phase === "saving"} onCommit={handleCommit} onDiscard={handleDiscard} />
+      {mode === "manual" && (
+        <UploadBox
+          preview={preview}
+          phase={phase}
+          error={uploadError && importErrorMessage(t, uploadError)}
+          saved={saved}
+          onFile={handleFile}
+          onSave={handleSave}
+          onDiscard={handleDiscard}
+          onReset={resetBox}
+        />
       )}
 
-      {listError && (
-        <p className="pv-banner pv-banner--error">
-          <AlertTriangle size={16} />
-          <span>{listError}</span>
-        </p>
-      )}
-
-      <div className="pv-two-col">
-        <ShiftCard title={t("productionUpload.storedTitle")} subtitle={t("productionUpload.storedSubtitle", { count: metrics.length })}>
-          {metrics.length === 0 ? (
-            <p className="pv-empty">{t("productionUpload.storedEmpty")}</p>
-          ) : (
-            <div className="sp-table-wrap pv-scroll">
-              <table className="sp-table pv-table">
-                <thead>
-                  <tr>
-                    <th>{t("productionUpload.colMetric")}</th>
-                    <th className="sp-num">{t("productionUpload.colDays")}</th>
-                    <th>{t("productionUpload.colFrom")}</th>
-                    <th>{t("productionUpload.colTo")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metrics.map((m) => (
-                    <tr key={m.key} className={m.key.startsWith("auftragsbestand") || m.key === "summe_auftragsbestand" ? "pv-row-accent" : ""}>
-                      <td className="pv-strong">{m.label}</td>
-                      <td className="sp-num">{m.days}</td>
-                      <td>{isoToDots(m.firstDate)}</td>
-                      <td>{isoToDots(m.lastDate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </ShiftCard>
-
-        <ShiftCard title={t("productionUpload.historyTitle")} subtitle={t("productionUpload.historySubtitle")}>
-          {history.length === 0 ? (
-            <p className="pv-empty">{t("productionUpload.historyEmpty")}</p>
-          ) : (
-            <div className="sp-table-wrap pv-scroll">
-              <table className="sp-table pv-table">
-                <thead>
-                  <tr>
-                    <th>{t("productionUpload.colFile")}</th>
-                    <th>{t("productionUpload.colUploaded")}</th>
-                    <th>{t("productionUpload.colSource")}</th>
-                    <th>{t("productionUpload.colRange")}</th>
-                    <th className="sp-num">{t("productionUpload.colChanges")}</th>
-                    <th>{t("productionUpload.colStatus")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((u) => (
-                    <tr key={u.id}>
-                      <td className="pv-strong pv-file" title={u.fileName}>
-                        {u.fileName}
-                        <span className="pv-muted"> · {formatFileSize(language, u.fileSize)}</span>
-                      </td>
-                      <td>{formatDateTimeDots(new Date(u.uploadedAt))}</td>
-                      <td>
-                        <span className={`pv-source pv-source--${u.source}`}>{t(`productionUpload.source_${u.source}`)}</span>
-                      </td>
-                      <td>
-                        {u.summary.firstDate ? `${isoToDots(u.summary.firstDate)} – ${isoToDots(u.summary.lastDate)}` : "–"}
-                      </td>
-                      <td className="sp-num">
-                        {u.summary.values
-                          ? `+${formatNumber(language, u.summary.values.new)} / ~${formatNumber(language, u.summary.values.changed)}`
-                          : "–"}
-                      </td>
-                      <td>
-                        <span
-                          className={`pv-status pv-status--${STATUS_TONE[u.status] ?? "grey"}`}
-                          title={u.summary.error ?? (u.status === "unchanged" ? t("productionUpload.unchangedHint") : undefined)}
-                        >
-                          {t(`productionUpload.status_${u.status}`)}
-                        </span>
-                        {u.summary.error && <span className="pv-status-reason">{u.summary.error}</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </ShiftCard>
-      </div>
+      <HistoryTable history={history} loading={historyLoading} error={historyError && importErrorMessage(t, historyError)} onRetry={refreshHistory} />
     </main>
   );
 };

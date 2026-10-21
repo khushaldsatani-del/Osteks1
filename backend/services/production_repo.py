@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import time
 from datetime import date
@@ -14,6 +15,36 @@ from services.production_import import BACKLOG_METRICS, carry_forward_days, pars
 # daily feed go through these two functions.
 
 _TOLERANCE = 1e-6
+
+
+class ImportFileError(Exception):
+    """The uploaded file can't be imported - with a stable `code` the
+    Upload page translates, and a plain-English `message` for logs/history.
+    Raised before anything is written, so the stored data is never touched."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def _parse_or_reject(content: bytes) -> dict:
+    try:
+        parsed = parse_workbook(content)
+    except Exception as error:  # not a zip / not xlsx / damaged
+        raise ImportFileError(
+            "invalid_file",
+            f"The file could not be read as an Excel workbook (.xlsx) - it may be damaged or in another format ({type(error).__name__}).",
+        ) from error
+    if not any(not month.get("skipped") for month in parsed["months"]):
+        raise ImportFileError(
+            "not_auswertungen",
+            "No monthly sheets found - this does not look like the OSTEKS-Auswertungen workbook "
+            "(sheets named like 'Oktober 2026' with an 'Auswertungen' header row).",
+        )
+    if not parsed["values"]:
+        raise ImportFileError("no_values", "The workbook has monthly sheets, but no values in them.")
+    return parsed
 
 # The dashboard's data changes only when an upload is saved, while every
 # database round trip to Neon costs ~200-300 ms (more after an idle pause,
@@ -55,7 +86,10 @@ def _upload(row) -> dict:
 
 
 async def preview_import(content: bytes, file_name: str, source: str = "manual") -> dict:
-    parsed = parse_workbook(content)
+    """Raises ImportFileError for a file that can't be imported."""
+    # parsing takes ~0.5 s of CPU - off the event loop, so other requests
+    # aren't held up meanwhile
+    parsed = await asyncio.to_thread(_parse_or_reject, content)
     values = parsed["values"]
     file_hash = hashlib.sha256(content).hexdigest()
     pool = await get_pool()
@@ -207,9 +241,9 @@ async def discard_import(upload_id: int) -> bool:
     return result.endswith(" 1")
 
 
-async def _record_upload(file_name: str, content: bytes, source: str, status: str, summary: dict) -> dict:
+async def record_upload(file_name: str, content: bytes, source: str, status: str, summary: dict) -> dict:
     """A history row for an upload that wasn't imported (failed / no new
-    data) - so the Upload page shows what the automatic feed did each day."""
+    data) - so the Upload page shows what happened to every file."""
     pool = await get_pool()
     row = await pool.fetchrow(
         f"""
@@ -246,23 +280,18 @@ async def auto_import(content: bytes, file_name: str, final: bool) -> dict:
     if already:
         if not final:
             return {"status": "unchanged"}
-        upload = await _record_upload(
+        upload = await record_upload(
             file_name, content, "auto", "unchanged", {"note": "The file had not changed since the last import.", "sameAs": already}
         )
         return {"status": "unchanged", "upload": upload}
 
+    # Only a bad *file* is recorded as failed. A database/server problem
+    # propagates instead (HTTP 500), so the sender simply tries again later.
     try:
         preview = await preview_import(content, file_name, source="auto")
-    except Exception as error:  # an unreadable / non-Excel file
-        reason = f"The file could not be read as an Excel workbook ({type(error).__name__})."
-        upload = await _record_upload(file_name, content, "auto", "failed", {"error": reason})
-        return {"status": "failed", "error": reason, "upload": upload}
-
-    if preview["summary"]["valueCount"] == 0:
-        await discard_import(preview["id"])
-        reason = "No values were found in the file."
-        upload = await _record_upload(file_name, content, "auto", "failed", {"error": reason})
-        return {"status": "failed", "error": reason, "upload": upload}
+    except ImportFileError as error:
+        upload = await record_upload(file_name, content, "auto", "failed", {"error": error.message, "code": error.code})
+        return {"status": "failed", "error": error.message, "code": error.code, "upload": upload}
 
     # Re-saved but with the same numbers (e.g. opened and saved before the
     # morning's values were filled in) - not new data yet, so the sender
@@ -272,7 +301,7 @@ async def auto_import(content: bytes, file_name: str, final: bool) -> dict:
         await discard_import(preview["id"])
         if not final:
             return {"status": "unchanged"}
-        upload = await _record_upload(
+        upload = await record_upload(
             file_name, content, "auto", "unchanged", {"note": "The file was saved again, but no values had changed."}
         )
         return {"status": "unchanged", "upload": upload}
