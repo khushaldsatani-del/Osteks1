@@ -88,9 +88,12 @@ function Copy-WhenStable($file) {
         Start-Sleep -Seconds 15
         $after = Get-Item -LiteralPath $file.FullName
         if ($before.Length -eq $after.Length -and $before.LastWriteTime -eq $after.LastWriteTime -and $after.Length -gt 0) {
-            $copy = Join-Path $env:TEMP ("osteks-sync-" + [guid]::NewGuid().ToString("N") + ".xlsx")
+            # .NET file calls, not Copy-Item/Remove-Item: on some machines the
+            # temp folder is a short "C:\Users\K3C05~1.SAT\..." path that the
+            # PowerShell cmdlets fail to resolve
+            $copy = [IO.Path]::Combine([IO.Path]::GetTempPath(), "osteks-sync-" + [guid]::NewGuid().ToString("N") + ".xlsx")
             try {
-                Copy-Item -LiteralPath $after.FullName -Destination $copy -Force
+                [IO.File]::Copy($after.FullName, $copy, $true)
                 return $copy
             } catch {
                 Write-Log "file is locked, waiting ($($_.Exception.Message))"
@@ -186,7 +189,10 @@ while ($true) {
         $exitCode = if ($exitCode -eq 5) { 5 } else { 4 }
         $retry = $true
     } finally {
-        if ($copy -and (Test-Path $copy)) { Remove-Item $copy -Force }
+        # cleanup must never turn a successful run into a failed one
+        if ($copy) {
+            try { [IO.File]::Delete($copy) } catch { Write-Log "note: could not delete the temporary copy $copy" }
+        }
     }
 
     if (-not $retry -or $final) { break }
