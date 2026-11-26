@@ -11,7 +11,8 @@ _SELECT_FIELDS = """
     d.kb_specification,
     d.parent_document_id, d.image_slot,
     d.uploaded_at, d.updated_at,
-    e.id AS mail_email_id, e.subject AS mail_subject
+    e.id AS mail_email_id, e.subject AS mail_subject,
+    d.calculation_data #>> '{offerBuilder,process}' AS offer_process
 """
 
 # Only top-level rows (one per offer) — an offer's 2nd/3rd images are child
@@ -30,7 +31,8 @@ _LIST_FIELDS = """
     d.kb_specification,
     d.parent_document_id, d.image_slot,
     d.uploaded_at, d.updated_at,
-    e.id AS mail_email_id, e.subject AS mail_subject
+    e.id AS mail_email_id, e.subject AS mail_subject,
+    d.calculation_data #>> '{offerBuilder,process}' AS offer_process
 """
 
 _LIST_SQL = f"""
@@ -88,6 +90,10 @@ def _row_to_dict(row) -> dict:
         "updatedAt": row["updated_at"].isoformat(),
         "mailEmailId": row["mail_email_id"],
         "mailSubject": row["mail_subject"],
+        # "ktl" / "pulver" for an offer saved by Work Place's offer builder
+        # (All Offers' KTL / Powder column); None for older records, which
+        # were all KTL, and for create_document's shorter RETURNING list
+        "offerProcess": row.get("offer_process"),
     }
 
 

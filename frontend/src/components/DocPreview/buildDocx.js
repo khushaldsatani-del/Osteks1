@@ -5,7 +5,6 @@ import {
   TextRun,
   Header,
   Footer,
-  PageNumber,
   AlignmentType,
   Table,
   TableRow,
@@ -76,6 +75,26 @@ function cell(children, { widthTwips } = {}) {
   });
 }
 
+// Width of one footer line in Calibri 8 pt, in twips (1 px at 96 dpi = 15
+// twips) - measured with the browser's own font when there is one, else
+// estimated (average Calibri character ~0.5 em). A little slack keeps a
+// line from wrapping in Word if its font measures a hair wider.
+const FOOTER_FONT_PX = 32 / 3; // 8 pt
+const FOOTER_SLACK_TWIPS = 120;
+let footerCanvas = null;
+function footerTextTwips(text) {
+  try {
+    if (typeof document !== "undefined") {
+      footerCanvas ??= document.createElement("canvas").getContext("2d");
+      footerCanvas.font = `${FOOTER_FONT_PX}px Calibri, Carlito, Arial, sans-serif`;
+      return Math.ceil(footerCanvas.measureText(text).width * 15);
+    }
+  } catch {
+    // no canvas - estimate below
+  }
+  return Math.ceil(text.length * FOOTER_FONT_PX * 0.5 * 15);
+}
+
 function labelValueTable(rows, { labelWidthPt, bold = false, indentPt = 0, size = BODY_SIZE } = {}) {
   const labelWidthTwips = twips(labelWidthPt);
   const tableWidthTwips = CONTENT_WIDTH_TWIPS - twips(indentPt);
@@ -115,6 +134,8 @@ function labelValueTable(rows, { labelWidthPt, bold = false, indentPt = 0, size 
 // already translated (DocPreview.jsx resolves them from field keys at
 // export time), so this file itself never needs to know the language for
 // those — only for the rest of the letter content below.
+// `overrides.content` replaces parts of that standard content (same keys as
+// docPreviewContent.js) - Work Place's Powder letter / edited letter texts.
 export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
   const {
     LETTERHEAD,
@@ -134,7 +155,8 @@ export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
     PRICE_VALIDITY_LABEL,
     getPriceValidityDateLine,
     CLOSING_LINE,
-  } = getDocPreviewContent(language);
+    FOOTER_COLUMNS,
+  } = { ...getDocPreviewContent(language), ...overrides.content };
 
   // The With/Without Specification toggle only changes this one paragraph
   // now — the Coating/Pre-treatment/etc. field list below is always
@@ -159,25 +181,67 @@ export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
   const salutation = overrides.salutation ?? SALUTATION;
   const introLines = overrides.introLines ?? INTRO_LINES;
 
+  // The company header, as on the company's letter template: grey
+  // "OSTEKS GMBH" 20 pt over the 8 pt subline, both lines starting at one
+  // left edge 127 mm (5 in) right of the left margin - the same as the
+  // preview's .dp-letterhead.
+  const headerIndent = { left: convertMillimetersToTwip(127) };
   const header = new Header({
     children: [
       new Paragraph({
-        alignment: AlignmentType.RIGHT,
-        spacing: { after: 0 },
-        children: [new TextRun({ text: LETTERHEAD.company, size: halfPt(20), font: FONT_FAMILY })],
+        alignment: AlignmentType.LEFT,
+        indent: headerIndent,
+        spacing: { before: 0, after: 0 },
+        children: [new TextRun({ text: LETTERHEAD.company, size: halfPt(20), color: "7F7F7F", font: FONT_FAMILY })],
       }),
       new Paragraph({
-        alignment: AlignmentType.RIGHT,
-        children: [new TextRun({ text: LETTERHEAD.sub, size: halfPt(8), font: FONT_FAMILY })],
+        alignment: AlignmentType.LEFT,
+        indent: headerIndent,
+        spacing: { before: 0, after: 0 },
+        children: [new TextRun({ text: LETTERHEAD.sub, size: halfPt(8), color: "7F7F7F", font: FONT_FAMILY })],
       }),
     ],
   });
 
+  // The company footer: three grey blocks of left-aligned lines, 8 pt,
+  // spread over the full width with equal gaps as in the preview. Word has
+  // no "space between", so the footer is a five-column table - block, gap,
+  // block, gap, block - with each block as wide as its longest line.
+  const blockWidths = FOOTER_COLUMNS.map((lines) => Math.max(...lines.map((line) => footerTextTwips(line))) + FOOTER_SLACK_TWIPS);
+  const gap = Math.floor((CONTENT_WIDTH_TWIPS - blockWidths.reduce((a, b) => a + b, 0)) / 2);
+  const footerWidths =
+    gap > 0
+      ? [blockWidths[0], gap, blockWidths[1], gap, CONTENT_WIDTH_TWIPS - blockWidths[0] - blockWidths[1] - 2 * gap]
+      : [Math.floor(CONTENT_WIDTH_TWIPS / 3), 0, Math.floor(CONTENT_WIDTH_TWIPS / 3), 0, CONTENT_WIDTH_TWIPS - 2 * Math.floor(CONTENT_WIDTH_TWIPS / 3)];
+  const footerCells = [FOOTER_COLUMNS[0], [], FOOTER_COLUMNS[1], [], FOOTER_COLUMNS[2]];
   const footer = new Footer({
     children: [
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [new TextRun({ children: [PageNumber.CURRENT], size: 18, font: FONT_FAMILY })],
+      new Table({
+        width: { size: CONTENT_WIDTH_TWIPS, type: WidthType.DXA },
+        columnWidths: footerWidths,
+        layout: TableLayoutType.FIXED,
+        borders: NO_BORDERS,
+        rows: [
+          new TableRow({
+            children: footerCells.map(
+              (lines, i) =>
+                new TableCell({
+                  width: { size: footerWidths[i], type: WidthType.DXA },
+                  margins: { top: 0, bottom: 0, left: 0, right: 0 },
+                  borders: NO_BORDERS,
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.LEFT,
+                      spacing: { before: 0, after: 0 },
+                      children: lines.map(
+                        (line, j) => new TextRun({ text: line, size: halfPt(8), color: "7F7F7F", font: FONT_FAMILY, break: j > 0 ? 1 : 0 })
+                      ),
+                    }),
+                  ],
+                })
+            ),
+          }),
+        ],
       }),
     ],
   });
@@ -259,9 +323,11 @@ export async function buildDocxBlob(specMode, overrides = {}, language = "DE") {
               height: convertMillimetersToTwip(297),
             },
             margin: {
-              top: convertMillimetersToTwip(24),
+              // 34 mm: the text starts below the header (which ends
+              // ~27 mm down) - the same 128px as in the preview.
+              top: convertMillimetersToTwip(34),
               right: convertMillimetersToTwip(MARGIN_RIGHT_MM),
-              bottom: convertMillimetersToTwip(22),
+              bottom: convertMillimetersToTwip(29),
               left: convertMillimetersToTwip(MARGIN_LEFT_MM),
               header: convertMillimetersToTwip(11),
               footer: convertMillimetersToTwip(10),

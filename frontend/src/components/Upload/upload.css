@@ -656,6 +656,24 @@
 }
 
 
+/* "Try again" after a failed extraction */
+.upload-retry {
+  margin-left: 8px;
+  padding: 3px 10px;
+  border: 1px solid #14b8a6;
+  border-radius: 6px;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f8a7c;
+  cursor: pointer;
+}
+
+.upload-retry:hover {
+  background: #f0fbf9;
+}
+
 .status-check--error {
   border-color: #d64545;
 }

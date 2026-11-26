@@ -11,14 +11,15 @@ import "./docPreview.css";
 
 // ===========================================================================
 // A4 PAGE GEOMETRY — must match the .dp-page / .dp-letterhead--small rules in
-// docPreview.css exactly (794 x 1123px ≈ A4 at 96dpi, padding 78/72/90px).
+// docPreview.css exactly (794 x 1123px ≈ A4 at 96dpi, padding 78/72/110px -
+// the bottom 110px = 29 mm keeps the text clear of the 3-column footer).
 // Used to figure out, from REAL measured content height, how many pages are
 // needed and where each one breaks — see the pagination block below.
 // ===========================================================================
 const PAGE_WIDTH = 794;
 const PAGE_HEIGHT = 1123;
 const PAGE_PADDING_TOP = 78;
-const PAGE_PADDING_BOTTOM = 90;
+const PAGE_PADDING_BOTTOM = 110;
 const PAGE_CONTENT_HEIGHT = PAGE_HEIGHT - PAGE_PADDING_TOP - PAGE_PADDING_BOTTOM;
 // Small cushion against sub-pixel layout rounding — never fill a page down
 // to the very last pixel of the budget, so nothing can spill over into the
@@ -71,6 +72,11 @@ const DocPreview = ({
   angebotsgueltigkeitDigits = "",
   onTestRequiredChange,
   testRequired: testRequiredFromParent = false,
+  // Replacements for parts of the standard text (spec rows, paragraphs,
+  // terms ...) - how Work Place's offer builder prints a Powder offer, or a
+  // KTL offer whose texts were edited, in this exact layout. Same keys as
+  // docPreviewContent.js; undefined = the standard KTL letter.
+  contentOverrides,
 }) => {
   const { t, language } = useTranslation();
   // Defaults to "Without Specification" on load — see the docpreview-spec-
@@ -141,7 +147,8 @@ const DocPreview = ({
     PRICE_VALIDITY_LABEL,
     getPriceValidityDateLine,
     CLOSING_LINE,
-  } = getDocPreviewContent(language);
+    FOOTER_COLUMNS,
+  } = { ...getDocPreviewContent(language), ...contentOverrides };
 
   // Address is entered as one line per line of the address (a textarea, not
   // a single-line input, specifically so this split is possible) — falls
@@ -415,11 +422,11 @@ const DocPreview = ({
 
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, specMode, JSON.stringify(recipientLines), JSON.stringify(headingRows), salutation, JSON.stringify(introLines), dateLine, JSON.stringify(offerDetailsRowsList), angebotsgueltigkeitDigits]);
+  }, [language, specMode, JSON.stringify(recipientLines), JSON.stringify(headingRows), salutation, JSON.stringify(introLines), dateLine, JSON.stringify(offerDetailsRowsList), angebotsgueltigkeitDigits, JSON.stringify(contentOverrides), contentOverrides?.getPriceValidityDateLine]);
 
   const continuationHeader = (
     <div className="dp-letterhead dp-letterhead--small">
-      <div className="dp-letterhead-company dp-letterhead-company--small">{LETTERHEAD.company}</div>
+      <div className="dp-letterhead-company">{LETTERHEAD.company}</div>
       <div className="dp-letterhead-sub">{LETTERHEAD.sub}</div>
     </div>
   );
@@ -550,7 +557,7 @@ const DocPreview = ({
     const { buildDocxBlob } = await import("./buildDocx");
     const blob = await buildDocxBlob(
       specMode,
-      { recipientLines, headingRows, salutation, introLines, offerDetailsRows: flatOfferDetailsRows, angebotsgueltigkeitDigits },
+      { recipientLines, headingRows, salutation, introLines, offerDetailsRows: flatOfferDetailsRows, angebotsgueltigkeitDigits, content: contentOverrides },
       language
     );
     const url = URL.createObjectURL(blob);
@@ -645,7 +652,17 @@ const DocPreview = ({
             {pageBlocks.map((block) => (
               <React.Fragment key={block.key}>{block.node}</React.Fragment>
             ))}
-            <div className="dp-page-number">{pageIndex + 1}</div>
+            {/* the company footer, on every page (as on the company's
+                letters - no page number) */}
+            <div className="dp-footer">
+              {FOOTER_COLUMNS.map((lines) => (
+                <div className="dp-footer-col" key={lines[0]}>
+                  {lines.map((line) => (
+                    <div key={line}>{line}</div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>

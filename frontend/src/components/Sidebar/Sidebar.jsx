@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  House,
-  Files,
+  FileText,
   FlaskConical,
   ShieldAlert,
   BookOpen,
@@ -68,15 +67,17 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
   };
 
   const menuItems = [
+    // Offers - the KTL / Powder offer builder (Work Place, the landing
+    // page) and the list of every stored offer (All Documents). Grouped
+    // like Test Report below; the page ids and addresses are unchanged.
     {
-      id: "workplace",
-      label: t("sidebar.workPlace"),
-      icon: House,
-    },
-    {
-      id: "documents",
-      label: t("sidebar.allDocuments"),
-      icon: Files,
+      id: "offers",
+      label: t("sidebar.offers"),
+      icon: FileText,
+      children: [
+        { id: "workplace", label: t("sidebar.workPlace") },
+        { id: "documents", label: t("sidebar.allDocuments") },
+      ],
     },
     {
       id: "testReport",

@@ -1,7 +1,13 @@
 // English dictionary. See LanguageContext.jsx for how these are looked up
 // (dot-path keys, e.g. t("offerDetails.teilebezeichnung")) and interpolated
 // (e.g. t("emailModal.attachments", { count: 3 })).
+import offerBuilder from "./offerBuilder.en";
+
+// "offerBuilder" holds the Work Place offer builder's texts (KTL / Powder
+// calculation and offer), kept in their own file for size.
 export default {
+  offerBuilder,
+
   common: {
     delete: "Delete",
     close: "Close",
@@ -10,8 +16,9 @@ export default {
   },
 
   sidebar: {
-    workPlace: "Work Place",
-    allDocuments: "All Documents",
+    offers: "Offers",
+    workPlace: "KTL & Pulver Offer",
+    allDocuments: "All Offers",
     testReport: "Test Report",
     testReportOverview: "Overview",
     testReportGenerate: "Generate Report",
@@ -582,6 +589,8 @@ export default {
     errorExtractionFailed: "Extraction request failed ({status}).",
     errorBackendUnreachable: "Could not reach the extraction backend. Is it running? See backend/README.md.",
     errorNoEmailCalculationData: "No calculation data could be found in this email.",
+    retryFailed: "Try again",
+    retryFailedCount: "Try again ({count})",
   },
 
   uploadedFiles: {
@@ -612,7 +621,7 @@ export default {
       "With no drawing selected for this record, confirming an email instead sends the email itself to the AI as the calculation source — it reads the subject, body text, and any embedded images directly, in the same two-pass way as a drawing, and can produce more than one part if the email describes several distinct components.",
     row5Title: "What happens next",
     row5Body:
-      "AI reads the source in two passes — first listing every candidate value it can find, then validating each one before committing to a final answer — to avoid guessing at unclear text. Results appear below in Extracted Drawing Details, and the record is saved so it shows up in Uploaded Files and All Documents.",
+      "AI reads the source in two passes — first listing every candidate value it can find, then validating each one before committing to a final answer — to avoid guessing at unclear text. Results appear below in Extracted Drawing Details, and the record is saved so it shows up in All Offers.",
   },
 
   extraction: {
@@ -721,6 +730,13 @@ export default {
   },
 
   offerDetails: {
+    // Powder offer rows (Work Place offer builder) - printed in Document
+    // Preview's price block like the KTL rows above.
+    artikelbezeichnung: "Item description:",
+    artikelnummer: "Customer item number:",
+    artikelnummerOsteks: "Osteks item number:",
+    losgroesse: "Lot size:",
+    preis: "Price:",
     title: "Offer details",
     teilebezeichnung: "Part Name:",
     enterTeilebezeichnung: "Enter Part Name",
@@ -777,6 +793,7 @@ export default {
     tabEmailImage: "Email + Image",
     csvFilename: "uploaded-files.csv",
     csvFileName: "File Name",
+    csvProcess: "KTL / Pulver",
     csvNorm: "Norm",
     csvCustomerName: "Customer Name",
     csvCustomerNumber: "Customer Number",
@@ -788,7 +805,7 @@ export default {
     csvUploadedDate: "Uploaded date",
     csvStatus: "Status",
     selectDateRange: "Select date range",
-    pageTitle: "Uploaded Files",
+    pageTitle: "All Offers",
     searchPlaceholder: "Search by file name, customer or number...",
     from: "From",
     to: "To",
@@ -802,6 +819,9 @@ export default {
     rows: "Rows:",
     export: "Export",
     colFileName: "File Name",
+    colProcess: "KTL / Pulver",
+    processKtl: "KTL",
+    processPulver: "Pulver",
     colNorm: "Norm",
     colCustomerName: "Customer Name",
     colCustomerNumber: "Customer Number",
@@ -813,11 +833,11 @@ export default {
     colUploadedDate: "Uploaded date",
     colStatus: "Status",
     colAction: "Action",
-    emptyNoDocuments: "No documents saved yet — upload a drawing and click Save in Work Place to add one here.",
-    emptyNoMatch: "No documents match the current search/filters",
+    emptyNoDocuments: "No offers saved yet — upload a drawing and click Save in KTL & Pulver Offer to add one here.",
+    emptyNoMatch: "No offers match the current search/filters",
     email: "Email",
     viewSpecification: "View specification details",
-    openInWorkspace: "Open in Workspace",
+    openInWorkspace: "Open offer",
     delete: "Delete",
     showingZero: "Showing 0 files",
     showingRange: "Showing {from} to {to} of {total} files",

@@ -234,7 +234,7 @@
 
   box-sizing: border-box;
 
-  padding: 78px 72px 90px;
+  padding: 78px 72px 110px;
 
   background: #ffffff;
 
@@ -256,6 +256,11 @@
    (so text wraps identically and heights measure true), but unbounded
    height and pulled out of the visible layout entirely. Never seen by the
    user; see DocPreview.jsx's pagination effect. */
+.dp-letterhead-small-measure {
+  display: flow-root;
+}
+
+
 .dp-page.dp-page--measure {
   position: absolute;
 
@@ -286,57 +291,64 @@
 
 /* =========================================
    LETTERHEAD
+   The company header, the same on every page
+   and in the Word file (buildDocx.js): grey
+   "OSTEKS GMBH" 20 pt over the 8 pt subline,
+   both lines starting at one left edge 146 mm
+   from the page's left side (19 mm margin +
+   127 mm), 11 mm from the top - as on the
+   company's letter template.
 ========================================= */
 
 .dp-letterhead {
   position: absolute;
 
-  top: 40px;
+  top: 44px;
 
-  right: 72px;
+  left: 552px;
 
-  text-align: right;
+  text-align: left;
+
+  white-space: nowrap;
+
+  color: #7f7f7f;
 }
 
 
+/* Pages 2+: the same header, but in the flow,
+   so the page-break measuring counts the room
+   it takes. The negative top margin lifts it
+   from the 78px page padding to the same 44px
+   as page 1; 480px = 552px - 72px padding. */
 .dp-letterhead--small {
   position: static;
 
-  text-align: right;
-
-  margin-bottom: 26px;
+  margin: -34px 0 26px 480px;
 }
 
 
 .dp-letterhead-company {
-  font-size: 20px;
+  font-size: 26.67px;
 
   font-weight: 400;
-
-  letter-spacing: 0.2px;
-
-  color: #1a1a1a;
-}
-
-
-.dp-letterhead-company--small {
-  font-size: 15px;
 }
 
 
 .dp-letterhead-sub {
-  font-size: 8px;
-
-  color: #1a1a1a;
-
-  margin-top: 1px;
+  font-size: 10.67px;
 }
 
 
+/* margin-top: the header reaches down to ~100px,
+   so page 1's text starts at 78 + 50 = 128px
+   (34 mm) - below the header, at the same
+   height as on pages 2+ and in the Word file. */
 .dp-return-address {
   font-size: 9px;
 
   text-decoration: underline;
+
+  margin-top: 50px;
 
   margin-bottom: 26px;
 }
@@ -509,23 +521,40 @@
 
 
 /* =========================================
-   PAGE NUMBER
+   FOOTER
+   The company footer of every page: three grey
+   blocks of left-aligned lines, spread over the
+   full width with equal gaps - company on the
+   left margin, contact / register in the middle,
+   bank ending on the right margin - 10 mm above
+   the bottom edge. Same as the Word file's footer
+   (buildDocx.js), so preview, PDF and Word match.
 ========================================= */
 
-.dp-page-number {
+.dp-footer {
   position: absolute;
 
-  bottom: 40px;
+  left: 72px;
 
-  left: 0;
+  right: 72px;
 
-  right: 0;
+  bottom: 38px;
 
-  text-align: center;
+  display: flex;
 
-  font-size: 11px;
+  justify-content: space-between;
 
-  color: #1a1a1a;
+  font-size: 10.7px;
+
+  line-height: 13px;
+
+  color: #7f7f7f;
+}
+
+.dp-footer-col {
+  white-space: nowrap;
+
+  text-align: left;
 }
 
 

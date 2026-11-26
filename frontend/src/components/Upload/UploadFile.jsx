@@ -71,6 +71,11 @@ const UploadFile = ({
   // dropping again before confirming, cleared entirely on Confirm or Cancel.
   const [pending, setPending] = useState(null);
 
+  // Drawings of the current batch whose extraction failed (e.g. a dropped
+  // connection to the AI) - { file, index, total }. "Try again" sends each
+  // one again, one at a time, into the same image slot (same batch index).
+  const [failedDrawings, setFailedDrawings] = useState([]);
+
   // The bottom-right progress card. `progressRef` holds the live model for
   // the drawing currently being extracted (fed real events by
   // extractDrawing below); `toast` is what actually renders, refreshed on a
@@ -127,6 +132,7 @@ const UploadFile = ({
       });
 
       setStatus("success");
+      setFailedDrawings((prev) => prev.filter((item) => item.index !== index));
       onExtractionResult?.(data.summary, data.meta, index);
       // 100% only now — the extracted details have just been applied to the
       // slot (onExtractionResult's synchronous part sets its extraction
@@ -139,6 +145,7 @@ const UploadFile = ({
       const isNetworkError = error instanceof ExtractionNetworkError;
       const message = isNetworkError ? t("upload.errorBackendUnreachable") : error.message;
       setStatus("error");
+      setFailedDrawings((prev) => [...prev.filter((item) => item.index !== index), { file: selectedFile, index, total }]);
       onExtractionError?.(message, index);
       setToast(buildToast("error", { errorMessage: message }));
     }
@@ -149,11 +156,22 @@ const UploadFile = ({
   // so a drawing's accuracy never depends on how many others were picked
   // alongside it.
   const processDrawingFiles = async (drawings) => {
+    setFailedDrawings([]);
     onBatchStart?.(drawings.length);
     for (let index = 0; index < drawings.length; index += 1) {
       setFile(drawings[index]);
       // eslint-disable-next-line no-await-in-loop
       await extractDrawing(drawings[index], index, drawings.length);
+    }
+  };
+
+  const retryFailedDrawings = async () => {
+    const retry = failedDrawings;
+    setFailedDrawings([]);
+    for (const item of retry) {
+      setFile(item.file);
+      // eslint-disable-next-line no-await-in-loop
+      await extractDrawing(item.file, item.index, item.total);
     }
   };
 
@@ -573,6 +591,11 @@ const UploadFile = ({
               </span>
 
               {t("upload.statusFailed")}
+              {failedDrawings.length > 0 && (
+                <button type="button" className="upload-retry" onClick={retryFailedDrawings}>
+                  {failedDrawings.length > 1 ? t("upload.retryFailedCount", { count: failedDrawings.length }) : t("upload.retryFailed")}
+                </button>
+              )}
             </div>
           ) : (
             <div className="uploaded-status uploaded-status--pending">

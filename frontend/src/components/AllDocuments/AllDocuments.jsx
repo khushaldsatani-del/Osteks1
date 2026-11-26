@@ -42,6 +42,10 @@ function getSortValue(row, field) {
   return 0;
 }
 
+// KTL or Powder - from the offer the builder saved; a record from before
+// the builder (no process stored) was always a KTL offer.
+const processOf = (row) => (row.offerProcess === "pulver" ? "pulver" : "ktl");
+
 const ROWS_PER_PAGE_OPTIONS = ["10", "15", "25", "50"].map((value) => ({ value, label: value }));
 
 // Categorizes a row into one of the four real upload paths this app
@@ -212,6 +216,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
   const handleExport = () => {
     const header = [
       t("allDocuments.csvFileName"),
+      t("allDocuments.csvProcess"),
       t("allDocuments.csvNorm"),
       t("allDocuments.csvCustomerName"),
       t("allDocuments.csvCustomerNumber"),
@@ -227,6 +232,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
       const total = row.pricePerStk * row.annualQuantity;
       return [
         row.fileName,
+        processOf(row) === "pulver" ? t("allDocuments.processPulver") : t("allDocuments.processKtl"),
         row.norm,
         row.customerName,
         row.customerNumber,
@@ -430,6 +436,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
               <tr>
                 <th className="alldocs-number-column">#</th>
                 <th>{t("allDocuments.colFileName")}</th>
+                <th>{t("allDocuments.colProcess")}</th>
                 <th>{t("allDocuments.colNorm")}</th>
                 <th>{t("allDocuments.colCustomerName")}</th>
                 <th>{t("allDocuments.colCustomerNumber")}</th>
@@ -447,7 +454,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="alldocs-table-empty">
+                  <td colSpan={14} className="alldocs-table-empty">
                     {records.length === 0
                       ? t("allDocuments.emptyNoDocuments")
                       : t("allDocuments.emptyNoMatch")}
@@ -466,6 +473,11 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                           <Icon size={11} />
                         </span>
                         {row.fileName}
+                      </td>
+                      <td>
+                        <span className={`alldocs-process alldocs-process--${processOf(row)}`}>
+                          {processOf(row) === "pulver" ? t("allDocuments.processPulver") : t("allDocuments.processKtl")}
+                        </span>
                       </td>
                       <td>{row.norm}</td>
                       <td>{row.customerName}</td>
@@ -564,7 +576,7 @@ const AllDocuments = ({ records = [], onUpdateStatus, onDelete, onOpenWorkspace 
                 length: Math.max(0, perPage - (pageRows.length === 0 ? 1 : pageRows.length)),
               }).map((_, index) => (
                 <tr key={`filler-${index}`} className="alldocs-table-filler-row">
-                  <td colSpan={13}>&nbsp;</td>
+                  <td colSpan={14}>&nbsp;</td>
                 </tr>
               ))}
             </tbody>

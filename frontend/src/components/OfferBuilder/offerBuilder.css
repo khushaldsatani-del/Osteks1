@@ -1,0 +1,1670 @@
+/* Work Place offer builder (KTL / Powder calculation and offer) - the
+   design of the approved offer prototype, every rule scoped under .ob so
+   nothing here reaches the rest of the app and nothing outside reaches in.
+   Teal #14b8a6 / #0f8a7c as everywhere in the app; the full Excel
+   calculation opens in a drawer. */
+
+.ob {
+  --teal: #14b8a6;
+  --teal-dark: #0f8a7c;
+  --teal-soft: #e1f7f3;
+  --teal-softer: #f0fbf9;
+  --ink: #1c2333;
+  --ink-2: #3f4755;
+  --muted: #667085;
+  --faint: #98a0ad;
+  --line: #e6e9f0;
+  --line-soft: #f0f2f6;
+  --page: #f4f6f9;
+  --amber-bg: #fef3c7;
+  --amber: #92400e;
+  --red: #dc2626;
+}
+
+.ob * {
+  box-sizing: border-box;
+}
+
+.ob {
+  font-family: "Inter", -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.ob button,
+.ob input,
+.ob textarea {
+  font-family: inherit;
+}
+
+/* ---------- the builder's own block on the Work Place page ---------- */
+
+.ob .page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* ---------- header ---------- */
+
+.ob .page-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.ob .page-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.ob .page-title h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ob .page-title p {
+  margin: 3px 0 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ob .page-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ob .customer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 260px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ob .customer-btn svg {
+  flex-shrink: 0;
+  color: var(--teal-dark);
+}
+
+.ob .customer-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ob .customer-btn em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.ob .customer-btn:hover {
+  border-color: var(--teal);
+}
+
+/* ---------- buttons ---------- */
+
+.ob .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ob .btn:hover {
+  border-color: var(--teal);
+  color: var(--teal-dark);
+}
+
+.ob .btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ob .btn--primary {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #ffffff;
+}
+
+.ob .btn--primary:hover {
+  background: var(--teal-dark);
+  color: #ffffff;
+}
+
+.ob .btn--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Save: quiet until it has something to say - teal once saved, red if
+   the database could not be reached */
+.ob .save-btn.is-saved {
+  border-color: var(--teal);
+  color: var(--teal-dark);
+}
+
+.ob .save-btn.is-error {
+  border-color: #fecaca;
+  color: var(--red);
+}
+
+.ob .save-btn:disabled {
+  cursor: progress;
+}
+
+.ob .spin {
+  animation: ob-spin 0.9s linear infinite;
+}
+
+@keyframes ob-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ob .btn--sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11.5px;
+}
+
+.ob .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ob .icon-btn:hover {
+  background: #ffffff;
+  color: var(--teal-dark);
+}
+
+.ob .icon-btn--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.ob .icon-btn--danger:hover {
+  background: #fdecec;
+  color: var(--red);
+}
+
+.ob .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--teal-dark);
+  cursor: pointer;
+}
+
+.ob .link-btn:hover {
+  text-decoration: underline;
+}
+
+/* ---------- segmented switch ---------- */
+
+.ob .seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #e9edf2;
+}
+
+.ob .seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ob .seg button:hover {
+  color: var(--ink);
+}
+
+.ob .seg button.is-on {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(20, 30, 55, 0.12);
+  color: var(--teal-dark);
+}
+
+.ob .seg--sm button {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+}
+
+.ob .seg--md button {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+}
+
+/* a Yes / No or D-KTL / N-KTL choice inside the form: as tall as an input */
+
+.ob .seg--field {
+  display: flex;
+  height: 36px;
+  padding: 3px;
+  border: 1px solid #e1e5ec;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.ob .seg--field button {
+  flex: 1;
+  height: 28px;
+  font-size: 12px;
+}
+
+.ob .seg--field button.is-on {
+  background: var(--teal-soft);
+  box-shadow: none;
+}
+
+/* ---------- part tabs ---------- */
+
+.ob .part-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ob .part-tabs-list {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ob .part-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  flex-shrink: 0;
+  max-width: 220px;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ob .part-tab:hover {
+  background: #ffffff;
+}
+
+.ob .part-tab.is-active {
+  border-color: var(--line);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(20, 30, 55, 0.06);
+}
+
+.ob .part-tab-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ob .part-tab.is-active .part-tab-name {
+  color: var(--ink);
+}
+
+.ob .part-tab-price {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--teal-dark);
+}
+
+.ob .part-tab-price.is-missing {
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.ob .part-tab--add {
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border: 1px dashed #cfd6e0;
+  color: var(--muted);
+}
+
+.ob .part-tabs-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ob .part-tabs-tools .link-btn {
+  margin-right: 6px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ---------- work area: form + price ---------- */
+
+.ob .workarea {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  align-items: start;
+  gap: 16px;
+}
+
+/* cards look like the Test Report cards */
+.ob .form-card,
+.ob .price-card {
+  border: 1px solid #e3e7ef;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow:
+    0 2px 8px rgba(20, 30, 55, 0.05),
+    0 8px 22px rgba(20, 30, 55, 0.05);
+}
+
+/* Work Place scrolls as one page, so the price stays in sight while the
+   form is filled in, instead of the form scrolling inside its own box. */
+.ob .price-card {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.ob .form-card {
+  padding: 4px 20px 20px;
+}
+
+.ob .fgroup {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.ob .fgroup-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+.ob .fgroup-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1c2333;
+}
+
+.ob .fgroup-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #e1f7f3;
+  color: #0f8a7c;
+}
+
+.ob .group-note {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.ob .fgroup-grid {
+  display: grid;
+  gap: 14px 16px;
+}
+
+.ob .fgroup-grid--1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ob .fgroup-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ob .fgroup-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ob .fld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ob .fld--wide {
+  grid-column: span 2;
+}
+
+.ob .fld-label {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  color: #626b7c;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ob .fld-box {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid #e1e5ec;
+  border-radius: 9px;
+  background: #ffffff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ob .fld-box:hover {
+  border-color: #c5cdd8;
+}
+
+.ob .fld-box:focus-within {
+  border-color: var(--teal);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.28);
+}
+
+.ob .fld-box input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  color: #262e3d;
+}
+
+.ob .fld-box input::placeholder {
+  color: #a4abb9;
+}
+
+.ob .fld-box select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px 0 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: #262e3d;
+  cursor: pointer;
+}
+
+/* a value the calculation cannot use (negative, or 0 where it divides) */
+.ob .fld-box.is-invalid {
+  border-color: #f2a3a3;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* calculated, not typed: same box, dashed edge, no fill */
+
+.ob .fld-box.is-readonly {
+  border-style: dashed;
+}
+
+.ob .fld-box.is-readonly input {
+  color: var(--ink-2);
+  cursor: default;
+}
+
+/* one result line inside the form, e.g. Pulver B29 */
+
+.ob .form-result {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.ob .form-result span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #626b7c;
+}
+
+.ob .form-result strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1c2333;
+  font-variant-numeric: tabular-nums;
+}
+
+.ob .fld-box--area {
+  align-items: stretch;
+  height: auto;
+}
+
+.ob .fld-box textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 72px;
+  padding: 9px 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #262e3d;
+  resize: vertical;
+}
+
+.ob .fld-box textarea::placeholder {
+  color: #a4abb9;
+}
+
+.ob .fld-unit {
+  padding: 0 12px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.ob .fld-hint {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.ob .hint-line {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--amber);
+}
+
+.ob .more {
+  padding-top: 20px;
+}
+
+.ob .more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ob .more-toggle svg {
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.ob .more.is-open .more-toggle svg {
+  transform: none;
+}
+
+.ob .more-toggle:hover {
+  color: var(--teal-dark);
+}
+
+.ob .more-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  font-size: 11px;
+  color: var(--teal-dark);
+}
+
+.ob .more .fgroup-grid {
+  margin-top: 18px;
+}
+
+/* price card */
+
+.ob .price-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+/* the calculated price: just a label and the number - no box */
+
+.ob .price-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ob .price-main > span {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.ob .price-main strong {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ob .price-main em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ob .price-main em.is-warn {
+  color: var(--amber);
+}
+
+.ob .price-main em.is-error {
+  color: var(--red);
+}
+
+.ob .price-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.ob .price-offer > span:first-child {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.ob .price-offer-box {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  border: 1.5px solid var(--teal);
+  border-radius: 11px;
+}
+
+.ob .price-offer-box:focus-within {
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+}
+
+.ob .price-offer-box input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 13px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ob .price-offer-box input::placeholder {
+  font-weight: 500;
+  color: #b4bac5;
+}
+
+.ob .price-offer-box span {
+  padding: 0 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ob .price-diff {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+
+
+.ob .price-lines {
+  margin: 20px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--line-soft);
+  list-style: none;
+}
+
+.ob .price-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.ob .price-lines li span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ob .price-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.ob .price-facts dt {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.ob .price-facts dd {
+  margin: 3px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ob .details-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 11px;
+  background: var(--teal-softer);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--teal-dark);
+  cursor: pointer;
+}
+
+.ob .details-btn:hover {
+  background: var(--teal-soft);
+}
+
+.ob .price-facts + .details-btn {
+  margin-top: 18px;
+}
+
+/* ---------- calculation details (drawer) ---------- */
+
+.ob .result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ob .result > .seg {
+  display: flex;
+}
+
+.ob .result > .seg button {
+  flex: 1;
+}
+
+.ob .crows {
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ob .crows--compact {
+  background: #fafbfd;
+}
+
+.ob .crow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12.5px;
+}
+
+.ob .crow:first-child {
+  border-top: none;
+}
+
+.ob .crow-label {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-2);
+}
+
+.ob .crow-cell,
+.ob .cellref,
+.ob .drawer-key em {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #f1f4f8;
+  font-family: "Consolas", "Courier New", monospace;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.ob .crow-share {
+  width: 58px;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.ob .crow-value {
+  min-width: 100px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.ob .crow.is-strong {
+  background: var(--teal-softer);
+}
+
+.ob .crow.is-strong .crow-label,
+.ob .crow.is-strong .crow-value {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ob .crow.is-muted .crow-label,
+.ob .crow.is-muted .crow-value {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.ob .crow--head {
+  min-height: 28px;
+  background: #f7f9fb;
+  font-size: 11px;
+}
+
+.ob .crow--head .crow-label,
+.ob .crow--head .crow-value {
+  font-weight: 600;
+  color: var(--faint);
+}
+
+/* clear space between titled blocks, so each reads as its own section */
+
+.ob .ksec + .ksec {
+  margin-top: 22px;
+}
+
+.ob .ksec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0 8px;
+}
+
+.ob .ksec-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ob .ksec-head span {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.ob .crows-gap {
+  height: 8px;
+  background: #f7f9fb;
+}
+
+/* ---------- layers: drawers, dialog, preview ---------- */
+
+.ob .layer {
+  position: fixed;
+  inset: 0;
+  /* above the app's sidebar (1000), its mobile menu (1200) and top bar (1300) */
+  z-index: 1400;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ob .layer--center {
+  align-items: center;
+  justify-content: center;
+}
+
+.ob .layer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.ob .drawer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(1180px, 94vw);
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -12px 0 32px rgba(15, 23, 42, 0.16);
+}
+
+.ob .drawer--narrow {
+  width: min(560px, 94vw);
+}
+
+.ob .drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ob .drawer-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.ob .drawer-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.ob .drawer-head > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.ob .drawer-key {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--teal-soft);
+  text-align: right;
+}
+
+.ob .drawer-key span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--teal-dark);
+}
+
+.ob .drawer-key strong {
+  font-size: 17px;
+  color: var(--teal-dark);
+}
+
+.ob .drawer-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.ob .drawer-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow: auto;
+}
+
+.ob .set-split {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 14px;
+}
+
+.ob .set-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ob .set-table th {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+  background: #f7f9fb;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.ob .set-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+
+.ob .set-table .r {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ob .set-table .muted {
+  color: var(--faint);
+}
+
+.ob .set-table tfoot td {
+  padding: 7px 8px;
+  background: #fafbfd;
+  font-weight: 600;
+}
+
+.ob .set-table tfoot tr.is-key td {
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  font-weight: 700;
+}
+
+/* empty space between the machine-hour rate and rows 25-27 */
+.ob .set-table tfoot tr.set-gap td {
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* rows 25-27: a block of their own - white, normal weight, framed by a
+   line above, the total row bold */
+.ob .set-table tfoot tr.is-per-unit td {
+  background: #ffffff;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.ob .set-table tfoot tr.set-gap + tr.is-per-unit td {
+  border-top: 1px solid var(--line);
+}
+
+.ob .set-table tfoot tr.is-per-unit.is-last td {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ob .set-side {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.ob .set-side h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+
+/* label / value pairs, five pairs per row */
+
+.ob .set-kv {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr) auto);
+  gap: 7px 10px;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+.ob .set-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: var(--amber-bg);
+  font-size: 12px;
+  color: var(--amber);
+}
+
+.ob .numcell {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ob .numcell input {
+  width: 100%;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid #e1e5ec;
+  border-radius: 7px;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ob .numcell input:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+
+.ob .numcell em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.ob .param-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+
+/* label | value | unit - fixed value and unit columns, so every box
+   in the list sits in the same place */
+.ob .param {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 52px;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: 1px solid #e3e7ef;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.ob .param-label {
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #262e3d;
+}
+
+.ob .param-label small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--amber);
+}
+
+.ob .param .numcell input {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+}
+
+.ob .param-unit {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* "KTL / Powder · Calculation": every value with its formula */
+.ob .formulas {
+  max-width: 1100px;
+}
+
+.ob .formulas-intro {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.ob .formulas-section + .formulas-section {
+  margin-top: 22px;
+}
+
+.ob .formulas-section h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ob .formulas-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #e3e7ef;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ob .formulas-rows li {
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding: 9px 14px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12.5px;
+}
+
+.ob .formulas-rows li:first-child {
+  border-top: none;
+}
+
+.ob .formulas-label {
+  font-weight: 600;
+  color: #262e3d;
+}
+
+.ob .formulas-formula {
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.ob .formulas-formula small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--amber);
+}
+
+.ob .formulas-rows li.is-strong {
+  background: var(--teal-softer);
+}
+
+.ob .formulas-rows li.is-strong .formulas-label,
+.ob .formulas-rows li.is-strong .formulas-formula {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ob .formulas-rows li.is-info .formulas-label {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .ob .formulas-rows li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+
+.ob .dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(1100px, 94vw);
+  max-height: 92vh;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.ob .dialog-body {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 22px;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow: auto;
+}
+
+.ob .dialog-col {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ob .dialog-col h4 {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ob .dialog .fields {
+  display: grid;
+  gap: 9px 12px;
+}
+
+.ob .dialog .fields--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ob .dialog-col textarea,
+.ob .spec-row input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #e1e5ec;
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.ob .dialog-col textarea:focus,
+.ob .spec-row input:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+
+.ob .dialog-col .fld-box textarea {
+  padding: 11px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  resize: none;
+}
+
+.ob .spec-row {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.ob .spec-row .spec-label {
+  font-weight: 600;
+}
+
+.ob .dialog-texts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: var(--teal-softer);
+  font-size: 12px;
+  color: var(--teal-dark);
+}
+
+.ob .dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.ob .warn-chip {
+  margin-left: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--amber-bg);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--amber);
+}
+
+/* laptop width: the sidebar leaves ~1030 px - tighter, still one screen */
+
+@media (max-width: 1360px) {
+
+  .ob .page-title p {
+    display: none;
+  }
+
+  .ob .workarea {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .ob .form-card {
+    padding: 4px 18px 18px;
+  }
+
+  .ob .customer-btn {
+    max-width: 180px;
+  }
+}
+
+/* low screens: tighter vertical rhythm */
+
+@media (max-height: 780px) {
+  .ob .price-main strong {
+    font-size: 26px;
+  }
+
+  .ob .price-card {
+    padding: 16px;
+  }
+
+  .ob .price-lines li {
+    padding: 3px 0;
+  }
+}
+
+/* ---------- responsive ----------
+   above 1180 px  sidebar beside the page (as in the real app)
+   1180 px        sidebar slides in from the left (menu button)
+   860 px         price card under the form, the page scrolls
+   560 px         phone: one field per row, full-screen drawers */
+
+@media (max-width: 860px) {
+  /* the page scrolls like a normal page; the cards grow with their content */
+
+
+  .ob .page-head {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .ob .page-title {
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .ob .page-title p {
+    display: block;
+    white-space: normal;
+  }
+
+  .ob .page-actions {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .ob .workarea {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ob .form-card,
+  .ob .price-card {
+    overflow: visible;
+  }
+
+  .ob .price-card {
+    position: static;
+    max-height: none;
+  }
+
+  .ob .form-card {
+    padding: 4px 18px 18px;
+  }
+
+  .ob .fgroup-grid--3,
+  .ob .fgroup-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ob .details-btn {
+    margin-top: 18px;
+  }
+
+  .ob .dialog-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ob .param-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ob .set-kv {
+    grid-template-columns: repeat(2, minmax(0, 1fr) auto);
+  }
+
+  .ob .drawer-tabs {
+    flex-wrap: wrap;
+  }
+
+  .ob .drawer-tabs .seg {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 560px) {
+
+  .ob .page-title h1 {
+    font-size: 18px;
+  }
+
+  /* KTL / Pulver gets its own full-width row */
+
+  .ob .page-head > .seg {
+    order: 3;
+    display: flex;
+    width: 100%;
+  }
+
+  .ob .page-head > .seg button {
+    flex: 1;
+  }
+
+  .ob .page-actions {
+    order: 4;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .ob .customer-btn {
+    flex: 1;
+    max-width: none;
+  }
+
+  /* "View offer" gets its own full-width row */
+
+  .ob .page-actions .btn--primary {
+    flex: 1 1 100%;
+  }
+
+  .ob .part-tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .ob .part-tabs-tools {
+    justify-content: flex-end;
+  }
+
+  .ob .form-card {
+    padding: 4px 18px 18px;
+  }
+
+  .ob .fgroup-grid--3,
+  .ob .fgroup-grid--4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ob .fld--wide {
+    grid-column: auto;
+  }
+
+  .ob .fgroup-head {
+    flex-wrap: wrap;
+  }
+
+  .ob .price-card {
+    padding: 18px 16px;
+  }
+
+  .ob .drawer,
+  .ob .drawer--narrow,
+  .ob .dialog {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .ob .drawer-head {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+
+  .ob .drawer-body {
+    padding: 14px 16px;
+  }
+
+  .ob .crow-share {
+    display: none;
+  }
+
+  .ob .spec-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* print / PDF: only the letter */
+
+/* the sheet's Summe / Summe pro Teil lines in the price card */
+
+.ob .price-lines li.is-strong {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.ob .price-lines li.is-strong span {
+  font-weight: 700;
+  color: var(--ink);
+}

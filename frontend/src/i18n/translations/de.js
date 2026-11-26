@@ -1,5 +1,11 @@
 // German dictionary — same key structure as en.js (must mirror it 1:1).
+import offerBuilder from "./offerBuilder.de";
+
+// "offerBuilder" holds the Work Place offer builder's texts (KTL / Powder
+// calculation and offer), kept in their own file for size.
 export default {
+  offerBuilder,
+
   common: {
     delete: "Löschen",
     close: "Schließen",
@@ -8,8 +14,9 @@ export default {
   },
 
   sidebar: {
-    workPlace: "Arbeitsplatz",
-    allDocuments: "Alle Dokumente",
+    offers: "Angebote",
+    workPlace: "KTL- & Pulverangebot",
+    allDocuments: "Alle Angebote",
     testReport: "Prüfbericht",
     testReportOverview: "Übersicht",
     testReportGenerate: "Bericht erstellen",
@@ -580,6 +587,8 @@ export default {
     errorExtractionFailed: "Extraktionsanfrage fehlgeschlagen ({status}).",
     errorBackendUnreachable: "Das Extraktions-Backend ist nicht erreichbar. Läuft es? Siehe backend/README.md.",
     errorNoEmailCalculationData: "In dieser E-Mail konnten keine Berechnungsdaten gefunden werden.",
+    retryFailed: "Erneut versuchen",
+    retryFailedCount: "Erneut versuchen ({count})",
   },
 
   uploadedFiles: {
@@ -610,7 +619,7 @@ export default {
       "Ist für diesen Datensatz keine Zeichnung ausgewählt, wird beim Bestätigen stattdessen die E-Mail selbst als Berechnungsquelle an die KI gesendet — sie liest Betreff, Nachrichtentext und eingebettete Bilder direkt, im gleichen Zwei-Durchgangs-Verfahren wie bei einer Zeichnung, und kann mehrere Teile erzeugen, wenn die E-Mail mehrere unterschiedliche Komponenten beschreibt.",
     row5Title: "Wie es weitergeht",
     row5Body:
-      "Die KI liest die Quelle in zwei Durchgängen — zunächst werden alle infrage kommenden Werte aufgelistet, dann wird jeder einzelne überprüft, bevor eine endgültige Antwort feststeht — um kein Raten bei unklarem Text zuzulassen. Die Ergebnisse erscheinen unten unter „Extrahierte Zeichnungsdetails“, und der Datensatz wird gespeichert, sodass er unter „Hochgeladene Dateien“ und „Alle Dokumente“ erscheint.",
+      "Die KI liest die Quelle in zwei Durchgängen — zunächst werden alle infrage kommenden Werte aufgelistet, dann wird jeder einzelne überprüft, bevor eine endgültige Antwort feststeht — um kein Raten bei unklarem Text zuzulassen. Die Ergebnisse erscheinen unten unter „Extrahierte Zeichnungsdetails“, und der Datensatz wird gespeichert, sodass er unter „Alle Angebote“ erscheint.",
   },
 
   extraction: {
@@ -718,6 +727,13 @@ export default {
   },
 
   offerDetails: {
+    // Powder offer rows (Work Place offer builder) - printed in Document
+    // Preview's price block like the KTL rows above.
+    artikelbezeichnung: "Artikelbezeichnung:",
+    artikelnummer: "Artikelnummer Kunde:",
+    artikelnummerOsteks: "Artikelnummer Osteks:",
+    losgroesse: "Losgröße:",
+    preis: "Preis:",
     title: "Angebotsdetails",
     teilebezeichnung: "Teilebezeichnung:",
     enterTeilebezeichnung: "Teilebezeichnung eingeben",
@@ -774,6 +790,7 @@ export default {
     tabEmailImage: "E-Mail + Bild",
     csvFilename: "hochgeladene-dateien.csv",
     csvFileName: "Dateiname",
+    csvProcess: "KTL / Pulver",
     csvNorm: "Norm",
     csvCustomerName: "Kundenname",
     csvCustomerNumber: "Kundennummer",
@@ -785,7 +802,7 @@ export default {
     csvUploadedDate: "Hochladedatum",
     csvStatus: "Status",
     selectDateRange: "Zeitraum auswählen",
-    pageTitle: "Hochgeladene Dateien",
+    pageTitle: "Alle Angebote",
     searchPlaceholder: "Suche nach Dateiname, Kunde oder Nummer...",
     from: "Von",
     to: "Bis",
@@ -799,6 +816,9 @@ export default {
     rows: "Zeilen:",
     export: "Exportieren",
     colFileName: "Dateiname",
+    colProcess: "KTL / Pulver",
+    processKtl: "KTL",
+    processPulver: "Pulver",
     colNorm: "Norm",
     colCustomerName: "Kundenname",
     colCustomerNumber: "Kundennummer",
@@ -811,11 +831,11 @@ export default {
     colStatus: "Status",
     colAction: "Aktion",
     emptyNoDocuments:
-      "Noch keine Dokumente gespeichert — laden Sie eine Zeichnung hoch und klicken Sie im Arbeitsplatz auf Speichern, um eines hinzuzufügen.",
-    emptyNoMatch: "Keine Dokumente entsprechen der aktuellen Suche/den Filtern",
+      "Noch keine Angebote gespeichert — laden Sie eine Zeichnung hoch und klicken Sie im KTL- & Pulverangebot auf Speichern, um eines hinzuzufügen.",
+    emptyNoMatch: "Keine Angebote entsprechen der aktuellen Suche/den Filtern",
     email: "E-Mail",
     viewSpecification: "Spezifikationsdetails anzeigen",
-    openInWorkspace: "Im Arbeitsplatz öffnen",
+    openInWorkspace: "Angebot öffnen",
     delete: "Löschen",
     showingZero: "0 Dateien werden angezeigt",
     showingRange: "{from} bis {to} von {total} Dateien werden angezeigt",

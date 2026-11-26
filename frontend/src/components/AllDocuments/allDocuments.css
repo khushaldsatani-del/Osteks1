@@ -623,6 +623,26 @@
 }
 
 
+/* KTL / Pulver - a small pill, teal for KTL, amber for Pulver */
+.alldocs-process {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.alldocs-process--ktl {
+  background: #e1f7f3;
+  color: #0f8a7c;
+}
+
+.alldocs-process--pulver {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .alldocs-filename-cell {
   display: flex;
 

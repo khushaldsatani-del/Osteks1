@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router";
 import { LoaderCircle, Menu, X } from "lucide-react";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Documents from "./pages/Documents";
@@ -35,6 +36,7 @@ import { listTestReports, deleteTestReport } from "./components/TestReport/testR
 import { listEightDReports, deleteEightDReport } from "./components/EightDReport/eightDReportsApi";
 import { useTranslation } from "./i18n/LanguageContext";
 import { BACKEND_URL } from "./config";
+import { idParam, pageFromPath, pathOf } from "./routes";
 import "./App.css";
 
 // Labels for the mobile top bar, which has to say which page is showing
@@ -58,6 +60,17 @@ const PAGE_TITLE_KEYS = {
   normLibrary: "sidebar.normLibrary",
 };
 
+// The sidebar section a sub-page belongs to, by its page id's start - for
+// the browser tab's name.
+const PAGE_SECTION_KEYS = [
+  ["workplace", "sidebar.offers"],
+  ["documents", "sidebar.offers"],
+  ["testReport", "sidebar.testReport"],
+  ["eightDReport", "sidebar.eightDReport"],
+  ["shift", "sidebar.shiftPlanning"],
+  ["production", "sidebar.productionView"],
+];
+
 // Shift Planning's sub-pages: sidebar page id -> the section ShiftPlanning
 // shows (see pages/ShiftPlanning.jsx).
 const SHIFT_PAGE_SECTIONS = {
@@ -78,25 +91,52 @@ const PRODUCTION_PAGE_SECTIONS = {
 
 function App() {
   const { t } = useTranslation();
-  const [currentPage, setCurrentPage] = useState("workplace");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // The page comes from the address (see routes.js), so every page has its
+  // own URL: refresh, Back / Forward and bookmarks all work. A saved record
+  // a page opens (a document in Work Place, a Test / 8D report) is part of
+  // the address too.
+  const route = pageFromPath(location.pathname);
+  const currentPage = route?.page ?? "workplace";
+  const params = route?.params ?? {};
+  const workspaceDocumentId = currentPage === "workplace" ? idParam(params.documentId) : null;
+  const openTestReportId = currentPage === "testReportGenerate" ? idParam(params.reportId) : null;
+  const openEightDReportId = currentPage === "eightDReportGenerate" ? idParam(params.reportId) : null;
+
+  // The Test / 8D wizards are keyed so a different report always starts a
+  // clean form. "Generate / Create Report" opens /…/new with its own
+  // `wizardKey`; after the first save the address becomes /…/<id> with the
+  // same key (onSaved below), so the form stays as it is - and a refresh
+  // or bookmark then opens the saved report.
+  const wizardKey = location.state?.wizardKey;
+  const testReportKey = wizardKey ?? String(openTestReportId ?? "new");
+  const eightDReportKey = wizardKey ?? String(openEightDReportId ?? "new");
 
   // Drives the off-canvas sidebar below 900px (see Sidebar.css). Always
   // false on desktop, where the sidebar is a permanent column and neither
   // this flag nor the menu button is reachable.
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Set when "Open in Workspace" is clicked from All Documents — tells
-  // Documents.jsx which saved record to hydrate instead of starting blank.
-  const [workspaceDocumentId, setWorkspaceDocumentId] = useState(null);
+  // Work Place is a single ongoing workspace with no "start a new one"
+  // concept: the document last opened there with "Open in Workspace" (All
+  // Documents) is opened again when Work Place is picked in the sidebar.
+  // Test / 8D Report differ on purpose - "Generate Report" in the sidebar
+  // always starts a fresh report (/test-report/new), the Overview's "Open"
+  // opens one (/test-report/<id>).
+  const [lastWorkspaceId, setLastWorkspaceId] = useState(null);
+  useEffect(() => {
+    if (workspaceDocumentId != null) setLastWorkspaceId(workspaceDocumentId);
+  }, [workspaceDocumentId]);
 
-  // Same pattern, one level down, for Test Report — set when Overview's
-  // "Open" button is clicked. Unlike workspaceDocumentId above (Work Place
-  // is a single ongoing workspace with no "start a new one" concept), Test
-  // Report Overview is a real multi-record list, so clicking "Generate
-  // Report" directly in the sidebar deliberately clears this back to null
-  // (see handleSelectItem below) rather than silently reopening whatever
-  // was last viewed — that's the "start from scratch" entry point.
-  const [openTestReportId, setOpenTestReportId] = useState(null);
+  // The browser tab names the page - with its section for sub-pages ("Test
+  // Report · Overview"), so tabs and bookmarks can be told apart.
+  useEffect(() => {
+    const section = PAGE_SECTION_KEYS.find(([prefix]) => currentPage.startsWith(prefix))?.[1];
+    const page = t(PAGE_TITLE_KEYS[currentPage] ?? "sidebar.workPlace");
+    document.title = `${section && t(section) !== page ? `${t(section)} · ` : ""}${page} · Osteks`;
+  }, [currentPage, t]);
 
   // Test Report Overview's saved-record list — same "lives in App so it
   // survives switching pages" reasoning as documentRecords below, backed
@@ -120,7 +160,6 @@ function App() {
   // Test Report records above (backend: services/eightd_reports_repo.py).
   const [eightDRecords, setEightDRecords] = useState([]);
   const [eightDLoading, setEightDLoading] = useState(true);
-  const [openEightDReportId, setOpenEightDReportId] = useState(null);
 
   const refreshEightDReports = useCallback(async () => {
     try {
@@ -161,14 +200,18 @@ function App() {
     return () => cancel(handle);
   }, []);
 
-  // Wraps Sidebar's plain onSelectItem — the only extra behavior needed is
-  // clearing openTestReportId when "Generate Report" is clicked directly
-  // (not via Overview's "Open"), so the sidebar entry always starts a
-  // fresh report rather than reopening the last one viewed.
+  // Sidebar (and Production View's "Go to Upload") pick a page by its id;
+  // it opens at its own address. Generate Report goes to /…/new, so it
+  // always starts fresh; Work Place reopens the last workspace document.
   const handleSelectItem = (pageId) => {
-    if (pageId === "testReportGenerate") setOpenTestReportId(null);
-    if (pageId === "eightDReportGenerate") setOpenEightDReportId(null);
-    setCurrentPage(pageId);
+    if (pageId === "workplace" && lastWorkspaceId != null) navigate(`/workplace/${lastWorkspaceId}`);
+    else if (pageId === "testReportGenerate" || pageId === "eightDReportGenerate") navigate(pathOf(pageId), { state: { wizardKey: `new-${Date.now()}` } });
+    else navigate(pathOf(pageId));
+  };
+
+  // A report saved for the first time gets its own address, in place of /…/new.
+  const showSavedReport = (base, openId, key) => (id) => {
+    if (id != null && openId == null) navigate(`${base}/${id}`, { replace: true, state: { wizardKey: key } });
   };
 
   // All Documents' saved-record list. Lives here (not in Documents.jsx)
@@ -236,46 +279,40 @@ function App() {
 
        <main className="main-content">
         <Suspense fallback={<PageLoading />}>
-        {currentPage === "documents" ? (
+        {!route ? (
+          // an unknown address goes back to Work Place
+          <Navigate to="/" replace />
+        ) : currentPage === "documents" ? (
           <AllDocuments
             records={documentRecords}
             onUpdateStatus={updateDocumentStatus}
             onDelete={deleteDocumentRecord}
-            onOpenWorkspace={(id) => {
-              setWorkspaceDocumentId(id);
-              setCurrentPage("workplace");
-            }}
+            onOpenWorkspace={(id) => navigate(`/workplace/${id}`)}
           />
         ) : currentPage === "testReportOverview" ? (
           <TestReportOverview
             records={testReportRecords}
             onDelete={deleteTestReportRecord}
-            onOpen={(id) => {
-              setOpenTestReportId(id);
-              setCurrentPage("testReportGenerate");
-            }}
+            onOpen={(id) => navigate(`/test-report/${id}`)}
           />
         ) : currentPage === "eightDReportOverview" ? (
           <EightDReportOverview
             records={eightDRecords}
             loading={eightDLoading}
             onDelete={deleteEightDRecord}
-            onOpen={(id) => {
-              setOpenEightDReportId(id);
-              setCurrentPage("eightDReportGenerate");
-            }}
-            onCreate={() => {
-              setOpenEightDReportId(null);
-              setCurrentPage("eightDReportGenerate");
-            }}
+            onOpen={(id) => navigate(`/8d-report/${id}`)}
+            onCreate={() => navigate("/8d-report/new", { state: { wizardKey: `new-${Date.now()}` } })}
           />
         ) : currentPage === "eightDReportGenerate" ? (
           // Keyed by the record being edited, so switching from one report
           // (or a fresh one) to another always starts the wizard clean.
           <EightDReport
-            key={openEightDReportId ?? "new"}
+            key={eightDReportKey}
             openReportId={openEightDReportId}
-            onSaved={refreshEightDReports}
+            onSaved={(id) => {
+              refreshEightDReports();
+              showSavedReport("/8d-report", openEightDReportId, eightDReportKey)(id);
+            }}
           />
         ) : SHIFT_PAGE_SECTIONS[currentPage] ? (
           <ShiftPlanning key={currentPage} section={SHIFT_PAGE_SECTIONS[currentPage]} />
@@ -284,7 +321,16 @@ function App() {
         ) : currentPage === "normLibrary" ? (
           <NormLibrary />
         ) : currentPage === "testReportGenerate" ? (
-          <TestReport openReportId={openTestReportId} onSaved={refreshTestReports} />
+          // Keyed like the 8D wizard: /test-report/new after an opened report
+          // starts a clean wizard instead of keeping that report's fields.
+          <TestReport
+            key={testReportKey}
+            openReportId={openTestReportId}
+            onSaved={(id) => {
+              refreshTestReports();
+              showSavedReport("/test-report", openTestReportId, testReportKey)(id);
+            }}
+          />
         ) : (
           <Documents
             onDocumentsChanged={refreshDocuments}

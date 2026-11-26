@@ -112,6 +112,13 @@ const CONTENT_DE = {
   PRICE_VALIDITY_LABEL: "Preisgültigkeit:",
 
   CLOSING_LINE: "Wir verweisen auf unsere Allgemeinen Verkaufsbedingungen.",
+
+  // Footer of every page - three columns, as on the company's letters.
+  FOOTER_COLUMNS: [
+    ["OSTEKS GmbH", "Am Gansberg 2", "09481 Elterlein", "Geschäftsführer: Henning Schlüter"],
+    ["Tel.: +49 37349 1340", "www.osteks.de", "Handelsregister Chemnitz, HRB 31097", "USt.-Id-Nr.: DE 245743130"],
+    ["Sachsen Bank", "IBAN DE90 6005 0101 0405 0278 53", "BIC SOLADEST600"],
+  ],
 };
 
 const CONTENT_EN = {
@@ -203,6 +210,13 @@ const CONTENT_EN = {
   PRICE_VALIDITY_LABEL: "Price validity:",
 
   CLOSING_LINE: "We refer you to our General Terms and Conditions of Sale.",
+
+  // Footer of every page - three columns, as on the company's letters.
+  FOOTER_COLUMNS: [
+    ["OSTEKS GmbH", "Am Gansberg 2", "09481 Elterlein", "Managing Director: Henning Schlüter"],
+    ["Phone: +49 37349 1340", "www.osteks.de", "Register: Chemnitz, HRB 31097", "VAT ID: DE 245743130"],
+    ["Sachsen Bank", "IBAN DE90 6005 0101 0405 0278 53", "BIC SOLADEST600"],
+  ],
 };
 
 // The letter's date line is always today's date, not a fixed sample value —

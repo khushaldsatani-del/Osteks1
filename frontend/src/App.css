@@ -79,6 +79,108 @@ body {
   min-width: 0;
 }
 
+/* Extracted Drawing Details sits beside Upload File (where Uploaded Files
+   used to be) at Upload File's height: `contain: size` keeps its own text
+   from making the row taller, and a long extraction scrolls inside the
+   card instead. The offer builder follows below. */
+.documents-page .upload-section .extraction-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+  margin-top: 0;
+  contain: size;
+}
+
+.documents-page .upload-section .extraction-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.documents-page .upload-section .extraction-text {
+  max-height: none;
+  overflow: visible;
+}
+
+.documents-page > .ob {
+  margin-top: 22px;
+}
+
+/* a background problem on the offer page (drawing not stored, offer not
+   found ...) - one closable line above the builder */
+.ob-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 10px 12px 10px 14px;
+  border: 1px solid #fcd9a8;
+  border-radius: 12px;
+  background: #fff8ec;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #7c3d0c;
+}
+
+.ob-notice span {
+  flex: 1;
+}
+
+.ob-notice button {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* the offer builder failed to render - shown instead of it */
+.ob-crash {
+  display: flex;
+  gap: 14px;
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid #f5c2c2;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #b42318;
+}
+
+.ob-crash h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #1c2333;
+}
+
+.ob-crash p {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3f4755;
+}
+
+.ob-crash-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ob-crash-actions button {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid #e3e7ef;
+  border-radius: 9px;
+  background: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ob-crash-actions button.is-primary {
+  border-color: #14b8a6;
+  background: #14b8a6;
+  color: #ffffff;
+}
+
 
 /* =========================================
    RESPONSIVE
