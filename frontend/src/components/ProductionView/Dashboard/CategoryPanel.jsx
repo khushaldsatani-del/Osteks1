@@ -7,19 +7,17 @@ import { CATEGORIES, formatAmount, formatPercent, sumOf } from "./backlogMath";
 // chips above it - variant="chips"). Each category toggles its series;
 // "All categories" turns every one back on; the last selected one can't be
 // turned off. Shares and values are for the active period - hovered,
-// pinned, or else the newest one - and the shares are of the SELECTED
-// categories' total, so two selected categories always add up to 100%.
+// pinned, or else the newest one - each an average per working day; the
+// shares are of the SELECTED categories' total, so two selected categories
+// always add up to 100%.
 
 const CategoryPanel = ({ variant = "panel", period, previous, periodLabel, periodRange, selected, pinned, onToggle, onSelectAll, onUnpin }) => {
   const { t, language } = useTranslation();
   const allSelected = selected.length === CATEGORIES.length;
   const total = sumOf(period, selected);
-  // Sums only compare when both periods add up the same number of days -
-  // a week still in progress (2 of 7 days) would always look like a drop.
-  const comparable = previous && period && previous.dayCount === period.dayCount;
-  const previousTotal = comparable ? sumOf(previous, selected) : null;
+  // Averages compare even when a week is still running (2 of 5 days).
+  const previousTotal = previous && period ? sumOf(previous, selected) : null;
   const change = previousTotal ? total / previousTotal - 1 : null;
-  const incomplete = period && previous && period.dayCount < previous.dayCount;
 
   const toggle = (key) => {
     if (selected.includes(key)) {
@@ -78,16 +76,13 @@ const CategoryPanel = ({ variant = "panel", period, previous, periodLabel, perio
           )}
         </div>
         <span className="bl-panel-period-range">{periodRange}</span>
-        {period && period.dayCount > 1 && (
-          <span className="bl-panel-period-range">{t("backlog.sumOfDays", { count: period.dayCount })}</span>
-        )}
+        {period && <span className="bl-panel-period-range">{t("backlog.averageOfDays", { count: period.dayCount })}</span>}
         <span className="bl-panel-total">{formatAmount(language, total)} T€</span>
         {change != null && Number.isFinite(change) && (
           <span className={`bl-change ${change > 0 ? "is-up" : change < 0 ? "is-down" : ""}`}>
             {change > 0 ? "▲" : change < 0 ? "▼" : "•"} {formatPercent(language, Math.abs(change), 1)} {t("backlog.vsPrevious")}
           </span>
         )}
-        {incomplete && <span className="bl-panel-period-range">{t("backlog.incomplete")}</span>}
       </div>
 
       <button type="button" className={`bl-all ${allSelected ? "is-active" : ""}`} onClick={onSelectAll}>

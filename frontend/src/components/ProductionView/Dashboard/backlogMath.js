@@ -1,9 +1,12 @@
 // Pure helpers for the backlog dashboard: grouping the daily values into
-// days / weeks / months, range presets, the y-axis scale and formatting.
+// weeks / months, range presets, the y-axis scale and formatting.
 //
-// A week's or month's value is the SUM of all its stored days, weekend
-// included (the user's choice, 20.10.2026) - so KW 42 = 12.10. + ... +
-// 18.10. Day view shows each working day on its own.
+// A week's or month's value is the AVERAGE of its working days (Mo-Fr)
+// that have a value - exactly what Excel's status bar shows when the day
+// cells of a week are selected (user's choice, 26.11.2026; replaced the
+// sum of all 7 days). Saturday/Sunday are left out (Sunday is only a copy
+// of Saturday). Single days are not charted: the real daily numbers are
+// in the workbook, the app shows only averages.
 
 export const CATEGORIES = [
   { key: "ktl", label: "KTL", color: "#7b93ff" },
@@ -12,7 +15,7 @@ export const CATEGORIES = [
 ];
 export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key);
 
-export const GRANULARITIES = ["day", "week", "month"];
+export const GRANULARITIES = ["week", "month"];
 export const RANGE_PRESETS = ["4w", "3m", "6m", "ytd", "all"];
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -36,33 +39,28 @@ export function isoWeek(date) {
 
 const mondayOf = (d) => addDays(d, -((d.getDay() + 6) % 7));
 
-// Saturdays and Sundays the workbook only copied from Friday. Day view
-// leaves them out (flat repeats); a Monday that happens to equal the
-// weekend is a real working day and stays.
-export const isWeekendCopy = (day) => {
-  const weekday = parseIso(day.date).getDay();
-  return day.carryForward && (weekday === 0 || weekday === 6);
-};
+const isWorkingDay = (date) => date.getDay() !== 0 && date.getDay() !== 6;
 
-// One bucket per day / ISO week / month. start/end are the calendar bounds
-// (for the "12.10. – 18.10." caption), dayCount how many stored days were
-// added up, lastDate the newest of them.
+// One bucket per ISO week / month, averaged over its working days with a
+// value. A week crossing two months stays whole in week view; month view
+// counts only the month's own days. start/end are the calendar bounds for
+// the caption (Mo-Fr for a week, 1st-last for a month), dayCount how many
+// working days were averaged, lastDate the newest of them. The total of
+// the categories' averages equals the average of the daily totals, because
+// the backend only sends days that have all three categories.
 export function groupDays(days, granularity) {
   const buckets = new Map();
   for (const day of days) {
-    if (granularity === "day" && isWeekendCopy(day)) continue;
     const date = parseIso(day.date);
+    if (!isWorkingDay(date)) continue;
     let key;
     let start;
     let end;
-    if (granularity === "day") {
-      key = day.date;
-      start = end = date;
-    } else if (granularity === "week") {
+    if (granularity === "week") {
       const { year, week } = isoWeek(date);
       key = `${year}-W${pad(week)}`;
       start = mondayOf(date);
-      end = addDays(start, 6);
+      end = addDays(start, 4);
     } else {
       key = `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
       start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -76,20 +74,24 @@ export function groupDays(days, granularity) {
     bucket.lastDate = date;
     buckets.set(key, bucket);
   }
-  return [...buckets.values()];
+  return [...buckets.values()].map((bucket) => ({
+    ...bucket,
+    ktl: bucket.ktl / bucket.dayCount,
+    pulver: bucket.pulver / bucket.dayCount,
+    schaeumen: bucket.schaeumen / bucket.dayCount,
+  }));
 }
 
 // The periods to chart for a range: whole weeks/months that overlap it, so
-// the first bar is never the sum of only part of its week just because of
-// where the range starts (the newest week stays partial until its days are
-// in the file).
+// the first bar is never the average of only part of its week just because
+// of where the range starts (the newest week stays partial until its days
+// are in the file).
 export function periodsInRange(days, granularity, from, to) {
   return groupDays(days, granularity).filter((p) => toIso(p.end) >= from && toIso(p.start) <= to);
 }
 
-// The view with no filter applied: the newest 7 days (working days - the
-// weekend copies are not counted), 5 calendar weeks or 5 months.
-export const DEFAULT_PERIOD_COUNT = { day: 7, week: 5, month: 5 };
+// The view with no filter applied: the newest 5 calendar weeks or 5 months.
+export const DEFAULT_PERIOD_COUNT = { week: 5, month: 5 };
 
 export function defaultView(days, granularity, lastIso) {
   const periods = groupDays(days, granularity).slice(-DEFAULT_PERIOD_COUNT[granularity]);
@@ -98,10 +100,6 @@ export function defaultView(days, granularity, lastIso) {
 
 export function periodLabel(period, granularity, language, withYear) {
   const locale = LOCALES[language] ?? LOCALES.EN;
-  if (granularity === "day") {
-    const d = period.start;
-    return withYear ? `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}` : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.`;
-  }
   if (granularity === "week") {
     const { year, week } = isoWeek(period.start);
     return withYear ? `KW ${pad(week)} '${String(year).slice(2)}` : `KW ${pad(week)}`;
@@ -113,10 +111,9 @@ export function periodLabel(period, granularity, language, withYear) {
 export const formatDots = (d, withYear = true) =>
   `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${withYear ? d.getFullYear() : ""}`;
 
-// "12.10. – 18.10.2026" for a week, "01.10. – 31.10.2026" for a month,
-// "19.10.2026" for a day.
-export function periodRange(period, granularity) {
-  if (granularity === "day") return formatDots(period.start);
+// "12.10. – 16.10.2026" for a week (Mo-Fr), "01.10. – 31.10.2026" for a
+// month.
+export function periodRange(period) {
   return `${formatDots(period.start, false)} – ${formatDots(period.end)}`;
 }
 

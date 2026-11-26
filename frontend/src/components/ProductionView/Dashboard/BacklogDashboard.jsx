@@ -11,7 +11,6 @@ import {
   GRANULARITIES,
   defaultView,
   formatDots,
-  toIso,
   periodsInRange,
   parseIso,
   periodLabel,
@@ -26,9 +25,10 @@ import "../productionView.css";
 //
 // Header: the range picker (presets + calendar, Apply / Clear filter - see
 // RangePicker.jsx). With no filter
-// the chart shows the default view - the newest 7 days / 5 weeks / 5
-// months for Day / Week / Month. Then the chart with its category panel,
-// and the values table.
+// the chart shows the default view - the newest 5 weeks / 5 months. Then
+// the chart with its category panel, and the values table. Every number is
+// a week's or month's average per working day (backlogMath.js); single
+// days are never shown - those are in the workbook itself.
 
 const Segmented = ({ options, value, onChange, labelOf, dark, ariaLabel }) => (
   <div className={`bl-seg ${dark ? "bl-seg--dark" : ""}`} role="group" aria-label={ariaLabel}>
@@ -44,9 +44,10 @@ const BacklogDashboard = ({ onNavigate }) => {
   const { t, language } = useTranslation();
   // shown at once from the last visit's copy, then refreshed (load())
   const [data, setData] = useState(() => cachedBacklog());
-  const [error, setError] = useState("");
-  // The filter the chart shows (null = default view: the newest 7 days /
-  // 5 weeks / 5 months). It is edited in RangePicker and only set on Apply.
+  // the failure itself, translated when shown, so it follows a language switch
+  const [error, setError] = useState(null);
+  // The filter the chart shows (null = default view: the newest 5 weeks /
+  // 5 months). It is edited in RangePicker and only set on Apply.
   const [applied, setApplied] = useState(null); // { preset, from, to }
   const [granularity, setGranularity] = useState("week");
   const [chartType, setChartType] = useState("bar");
@@ -54,18 +55,15 @@ const BacklogDashboard = ({ onNavigate }) => {
   const [hoverKey, setHoverKey] = useState(null);
   const [pinnedKey, setPinnedKey] = useState(null);
 
-  // stable, so the memoised table doesn't re-render on every hover
-  const unpin = useCallback(() => setPinnedKey(null), []);
-
   const load = useCallback(async () => {
-    setError("");
+    setError(null);
     try {
       const fresh = await getBacklog();
       // keep the same object when nothing changed, so the chart doesn't redraw
       setData((current) => (current && JSON.stringify(current) === JSON.stringify(fresh) ? current : fresh));
     } catch (err) {
       // with a cached copy on screen, a failed refresh isn't worth an error page
-      if (!cachedBacklog()) setError(importErrorMessage(t, err));
+      if (!cachedBacklog()) setError(err);
     }
   }, []);
 
@@ -90,23 +88,12 @@ const BacklogDashboard = ({ onNavigate }) => {
   );
 
   // A hovered or pinned period that's no longer in the chart (range or
-  // Day/Week/Month changed) is ignored - the panel falls back to the newest.
+  // Week/Month changed) is ignored - the panel falls back to the newest.
   const inChart = (key) => (periods.some((p) => p.key === key) ? key : null);
   const pinned = inChart(pinnedKey);
   const activeKey = inChart(hoverKey) ?? pinned;
   const activeIndex = activeKey != null ? periods.findIndex((p) => p.key === activeKey) : periods.length - 1;
   const activePeriod = periods[activeIndex];
-
-  // A clicked (pinned) week/month: its stored days, for the table. Hover
-  // alone never sets this.
-  const pinnedIndex = pinned != null ? periods.findIndex((p) => p.key === pinned) : -1;
-  const detail = useMemo(() => {
-    if (pinnedIndex < 0 || granularity === "day") return null;
-    const period = periods[pinnedIndex];
-    const from = toIso(period.start);
-    const to = toIso(period.end);
-    return { period, label: labels[pinnedIndex], days: data.days.filter((d) => d.date >= from && d.date <= to) };
-  }, [pinnedIndex, granularity, periods, labels, data]);
 
   const applyFilter = (filter) => {
     setApplied(filter);
@@ -122,7 +109,7 @@ const BacklogDashboard = ({ onNavigate }) => {
       <main className="sp-page">
         <p className="pv-banner pv-banner--error">
           <AlertTriangle size={16} />
-          <span>{error}</span>
+          <span>{importErrorMessage(t, error)}</span>
           <button type="button" className="pv-btn pv-btn--ghost pv-btn--small" onClick={load}>
             {t("backlog.retry")}
           </button>
@@ -163,7 +150,7 @@ const BacklogDashboard = ({ onNavigate }) => {
     period: activePeriod,
     previous: periods[activeIndex - 1],
     periodLabel: activePeriod ? labels[activeIndex] : "–",
-    periodRange: activePeriod ? periodRange(activePeriod, granularity) : "",
+    periodRange: activePeriod ? periodRange(activePeriod) : "",
     selected,
     pinned: pinned != null,
     onToggle: setSelected,
@@ -253,8 +240,6 @@ const BacklogDashboard = ({ onNavigate }) => {
         labels={labels}
         granularity={granularity}
         exportTitle={exportTitle}
-        detail={detail}
-        onCloseDetail={unpin}
       />
     </main>
   );

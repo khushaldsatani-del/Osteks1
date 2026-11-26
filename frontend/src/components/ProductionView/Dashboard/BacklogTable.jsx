@@ -1,17 +1,15 @@
-import React, { memo, useLayoutEffect, useState } from "react";
-import { ArrowLeft, ChevronDown, Download } from "lucide-react";
+import React, { memo, useState } from "react";
+import { ChevronDown, Download } from "lucide-react";
 import { useTranslation } from "../../../i18n/LanguageContext";
 import ShiftCard from "../../ShiftPlanning/shared/ShiftCard";
-import { CATEGORIES, formatAmount, formatDots, formatPercent, isWeekendCopy, parseIso, periodRange } from "./backlogMath";
+import { CATEGORIES, formatAmount, formatPercent, periodRange } from "./backlogMath";
 
 // The chart's numbers as a table, collapsed by default, with an Excel
 // export of exactly what is shown (exceljs is loaded only when Export is
-// used, like the Shift Plan export). Two modes:
-//   - all periods (newest first; each row the sum of its days, "Days" how
-//     many were added up);
-//   - one week/month's days, when a period is clicked (pinned) in the
-//     chart: each day of it in order, a total row that equals the bar, and
-//     "All periods" to go back. Hovering never changes the table.
+// used, like the Shift Plan export). One row per period, newest first:
+// each value the period's average per working day, "Working days" how
+// many were averaged. Single days are deliberately not listed - the real
+// daily numbers are in the workbook, the app shows only averages.
 
 const FONT = { name: "Arial", size: 10 };
 const BORDER = { style: "thin", color: { argb: "FFD5DAE3" } };
@@ -23,7 +21,7 @@ const withChange = (rows) =>
     return { ...row, change: prev && prev.total ? row.total / prev.total - 1 : null };
   });
 
-async function exportXlsx(rows, footer, t, title) {
+async function exportXlsx(rows, t, title) {
   const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet(t("backlog.sheetName"), { views: [{ state: "frozen", ySplit: 3 }] });
@@ -49,11 +47,10 @@ async function exportXlsx(rows, footer, t, title) {
       row.change == null ? "" : Math.round(row.change * 1000) / 1000,
     ]);
   rows.forEach(addRow);
-  if (footer) addRow({ ...footer, change: null }).font = { ...FONT, bold: true };
   const last = sheet.rowCount;
   for (let r = 3; r <= last; r += 1) {
     sheet.getRow(r).eachCell({ includeEmpty: true }, (cell, col) => {
-      cell.font = { ...FONT, bold: r === 3 || (footer && r === last) };
+      cell.font = { ...FONT, bold: r === 3 };
       cell.border = { top: BORDER, left: BORDER, bottom: BORDER, right: BORDER };
       if (r === 3) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDEBFF" } };
       if (r > 3 && col >= 4 && col <= 7) cell.numFmt = "#,##0";
@@ -72,60 +69,26 @@ async function exportXlsx(rows, footer, t, title) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const BacklogTable = ({ periods, labels, granularity, exportTitle, detail, onCloseDetail }) => {
+const BacklogTable = ({ periods, labels, exportTitle }) => {
   const { t, language } = useTranslation();
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  // a click on a week/month opens the table on its days (before paint, so
-  // it never flashes empty)
-  useLayoutEffect(() => {
-    if (detail) setOpen(true);
-  }, [detail?.period.key]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const locale = language === "DE" ? "de-DE" : "en-GB";
-  let rows;
-  let footer = null;
-  if (detail) {
-    rows = withChange(
-      detail.days.map((day) => {
-        const date = parseIso(day.date);
-        const weekday = date.toLocaleDateString(locale, { weekday: "short" }).replace(".", "");
-        return {
-          key: day.date,
-          label: `${weekday} ${formatDots(date, false)}`,
-          range: formatDots(date),
-          days: 1,
-          values: day,
-          total: sumRow(day),
-          copied: isWeekendCopy(day),
-        };
-      }),
-    );
-    footer = {
-      label: t("backlog.detailTotal", { period: detail.label }),
-      range: periodRange(detail.period, granularity),
-      days: detail.days.length,
-      values: detail.period,
-      total: sumRow(detail.period),
-    };
-  } else {
-    rows = withChange(
-      periods.map((period, i) => ({
-        key: period.key,
-        label: labels[i],
-        range: periodRange(period, granularity),
-        days: period.dayCount,
-        values: period,
-        total: sumRow(period),
-      })),
-    ).reverse();
-  }
+  const rows = withChange(
+    periods.map((period, i) => ({
+      key: period.key,
+      label: labels[i],
+      range: periodRange(period),
+      days: period.dayCount,
+      values: period,
+      total: sumRow(period),
+    })),
+  ).reverse();
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportXlsx(rows, footer, t, detail ? `${exportTitle} ${detail.label}` : exportTitle);
+      await exportXlsx(rows, t, exportTitle);
     } finally {
       setExporting(false);
     }
@@ -145,35 +108,21 @@ const BacklogTable = ({ periods, labels, granularity, exportTitle, detail, onClo
 
   return (
     <ShiftCard
-      className={`${open ? "" : "sp-card--collapsed"} ${detail ? "bl-table--detail" : ""}`}
+      className={open ? "" : "sp-card--collapsed"}
       heading={
         <button type="button" className="bl-collapse" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
           <ChevronDown size={16} className={open ? "is-open" : ""} />
           <span>
-            <span className="sp-card-title">
-              {detail ? t("backlog.detailTitle", { period: detail.label }) : t("backlog.tableTitle")}
-            </span>
-            <span className="sp-card-subtitle">
-              {detail
-                ? t("backlog.detailSubtitle", { range: periodRange(detail.period, granularity), count: detail.days.length })
-                : t("backlog.tableSubtitle", { count: rows.length })}
-            </span>
+            <span className="sp-card-title">{t("backlog.tableTitle")}</span>
+            <span className="sp-card-subtitle">{t("backlog.tableSubtitle", { count: rows.length })}</span>
           </span>
         </button>
       }
       actions={
-        <>
-          {detail && (
-            <button type="button" className="pv-btn pv-btn--ghost pv-btn--small" onClick={onCloseDetail}>
-              <ArrowLeft size={14} />
-              {t("backlog.allPeriods")}
-            </button>
-          )}
-          <button type="button" className="pv-btn pv-btn--ghost pv-btn--small" onClick={handleExport} disabled={exporting || rows.length === 0}>
-            <Download size={14} />
-            {t("backlog.export")}
-          </button>
-        </>
+        <button type="button" className="pv-btn pv-btn--ghost pv-btn--small" onClick={handleExport} disabled={exporting || rows.length === 0}>
+          <Download size={14} />
+          {t("backlog.export")}
+        </button>
       }
     >
       {open && (
@@ -181,7 +130,7 @@ const BacklogTable = ({ periods, labels, granularity, exportTitle, detail, onClo
           <table className="sp-table pv-table">
             <thead>
               <tr>
-                <th>{detail ? t("backlog.colDay") : t("backlog.colPeriod")}</th>
+                <th>{t("backlog.colPeriod")}</th>
                 <th>{t("backlog.colRange")}</th>
                 <th className="sp-num">{t("backlog.colDays")}</th>
                 {CATEGORIES.map((c) => (
@@ -190,16 +139,13 @@ const BacklogTable = ({ periods, labels, granularity, exportTitle, detail, onClo
                   </th>
                 ))}
                 <th className="sp-num">{t("backlog.colTotal")}</th>
-                <th className="sp-num">{detail ? t("backlog.colChangeDay") : t("backlog.colChange")}</th>
+                <th className="sp-num">{t("backlog.colChange")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.key} className={row.copied ? "bl-row-copied" : ""}>
-                  <td className="pv-strong">
-                    {row.label}
-                    {row.copied && <span className="bl-copy-tag">{t("backlog.copied")}</span>}
-                  </td>
+                <tr key={row.key}>
+                  <td className="pv-strong">{row.label}</td>
                   <td>{row.range}</td>
                   {cells(row)}
                   <td className={`sp-num ${row.change < 0 ? "sp-negative" : ""}`}>
@@ -208,16 +154,6 @@ const BacklogTable = ({ periods, labels, granularity, exportTitle, detail, onClo
                 </tr>
               ))}
             </tbody>
-            {footer && (
-              <tfoot>
-                <tr className="bl-row-total">
-                  <td>{footer.label}</td>
-                  <td>{footer.range}</td>
-                  {cells(footer)}
-                  <td />
-                </tr>
-              </tfoot>
-            )}
           </table>
         </div>
       )}
