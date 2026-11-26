@@ -16,6 +16,8 @@ export default {
   },
 
   sidebar: {
+    brandName: "OSTEKS",
+    brandSuffix: "GmbH",
     offers: "Offers",
     workPlace: "KTL & Pulver Offer",
     allDocuments: "All Offers",

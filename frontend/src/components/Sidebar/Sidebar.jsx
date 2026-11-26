@@ -137,36 +137,20 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
     },
   ];
 
-  // Accordion expand/collapse state, one entry per parent item id — a plain
-  // map rather than one bool per group (the previous shape, from when Test
-  // Report was the only accordion item) so any number of independent
-  // accordion groups works the same way without each one needing its own
-  // hand-written state/effect pair.
+  // Accordion: only ONE group is open at a time. Opening a group closes the
+  // one that was open before (even the group of the page being shown), and
+  // clicking an open group's title closes it again. On navigation the group
+  // of the new page opens and every other group closes - a top-level page
+  // like All Documents closes them all.
   const accordionItems = menuItems.filter((item) => item.children?.length);
   const isOnChildOf = (item) => item.children?.some((child) => child.id === activeItem) ?? false;
-  const [expandedGroups, setExpandedGroups] = useState(() =>
-    Object.fromEntries(accordionItems.map((item) => [item.id, isOnChildOf(item)]))
-  );
-  const isExpanded = (item) => expandedGroups[item.id] || isOnChildOf(item);
-  const toggleExpanded = (itemId) => setExpandedGroups((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
+  const groupOfActive = () => accordionItems.find(isOnChildOf)?.id ?? null;
+  const [openGroup, setOpenGroup] = useState(groupOfActive);
+  const isExpanded = (item) => openGroup === item.id;
+  const toggleExpanded = (itemId) => setOpenGroup((current) => (current === itemId ? null : itemId));
 
-  // Auto-close a submenu the moment navigation actually lands on a page
-  // that isn't one of its own children (e.g. All Documents) — only reacts
-  // to activeItem changing, not to the manual toggle above, so opening a
-  // menu to look at it (without picking a child yet) is never immediately
-  // undone by this same effect. Runs for every accordion group at once.
   useEffect(() => {
-    setExpandedGroups((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      accordionItems.forEach((item) => {
-        if (!isOnChildOf(item) && next[item.id]) {
-          next[item.id] = false;
-          changed = true;
-        }
-      });
-      return changed ? next : prev;
-    });
+    setOpenGroup(groupOfActive());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeItem]);
 
@@ -192,6 +176,17 @@ const Sidebar = ({ activeItem = "workplace", onSelectItem, open = false, onClose
       >
         <X size={19} />
       </button>
+
+      {/* Company name at the top left - a teal letter mark plus the name */}
+      <div className="sidebar-brand">
+        <span className="sidebar-brand-mark" aria-hidden="true">
+          O
+        </span>
+        <span className="sidebar-brand-text">
+          <span className="sidebar-brand-name">{t("sidebar.brandName")}</span>
+          <span className="sidebar-brand-suffix">{t("sidebar.brandSuffix")}</span>
+        </span>
+      </div>
 
       {/* =========================
           NAVIGATION
