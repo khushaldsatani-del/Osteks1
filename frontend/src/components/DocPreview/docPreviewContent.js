@@ -49,9 +49,10 @@ const CONTENT_DE = {
     "Nachstehend erhalten Sie unser Angebot, das wir nach Ihren Informationen erstellt haben.",
   ],
   // Used to build a live first intro line from Firma Information's
-  // "Anfragedatum" field — falls back to INTRO_LINES[0] above unchanged
-  // when that field isn't filled in.
+  // "Anfragedatum" field. Without one the line has no date at all — the
+  // sample's "16.07.2025" (INTRO_LINES[0]) used to print in real offers.
   INTRO_LINE1_PREFIX: "wir bedanken uns für Ihre Anfrage vom ",
+  INTRO_LINE1_NO_DATE: "wir bedanken uns für Ihre Anfrage.",
 
   // The "specification" block toggled by the With/Without Specification radios.
   SPEC_FIELD_ROWS: [
@@ -160,6 +161,7 @@ const CONTENT_EN = {
     "Please find below our offer, prepared according to the information you provided.",
   ],
   INTRO_LINE1_PREFIX: "thank you for your inquiry dated ",
+  INTRO_LINE1_NO_DATE: "thank you for your inquiry.",
 
   SPEC_FIELD_ROWS: [
     ["Coating:", ["Cathodic dip coating, black"]],

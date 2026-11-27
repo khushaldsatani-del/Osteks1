@@ -22,7 +22,7 @@ from services.memo import TTLCache
 from services.email_extraction import extract_calculation_from_email
 from services.email_processing import detect_email_kind, parse_email_buffer
 from services.kb_db import init_kb_schema
-from services.openai_client import describe_extraction_error, extract_drawing_info
+from services.openai_client import describe_extraction_error, extract_drawing_info, read_enquiry_from_email
 from services.file_processing import convert_to_image_pages, detect_file_kind
 from services.test_reports_db import init_test_reports_schema
 from services.eightd_reports_db import init_eightd_reports_schema
@@ -425,7 +425,7 @@ async def delete_document(document_id: int):
     return {"ok": True}
 
 
-# --- Emails (storage + link only — never sent to OpenAI or any AI) ---------
+# --- Emails (stored + linked without AI; only /enquiry below reads one) ----
 
 
 @app.post("/api/emails/upload")
@@ -471,6 +471,39 @@ async def get_email(email_id: int):
     if result is None:
         return JSONResponse(status_code=404, content={"error": "Email not found."})
     return result
+
+
+class EmailEnquiryRequest(BaseModel):
+    language: str = "de"
+
+
+# Work Place fills "Customer & offer" (company, contact person, address)
+# and each part's quantity from the stored enquiry email - the one place an
+# attached email is read by the AI (user's decision, 2026-11-27); storing
+# it stays AI-free. Only sender, recipients, subject and text are sent, no
+# attachments.
+@app.post("/api/emails/{email_id}/enquiry")
+async def read_email_enquiry(email_id: int, body: EmailEnquiryRequest):
+    email = await emails_repo.get_email(email_id)
+    if email is None:
+        return JSONResponse(status_code=404, content={"error": "Email not found."})
+    email_text = "\n".join(
+        [
+            f"Subject: {email.get('subject') or '(no subject)'}",
+            f"From: {email.get('from') or '(unknown sender)'}",
+            f"To: {email.get('to') or ''}",
+            f"Cc: {email.get('cc') or ''}",
+            f"Date: {email.get('date') or '(unknown date)'}",
+            "",
+            email.get("bodyText") or "(empty body)",
+        ]
+    )
+    try:
+        return await read_enquiry_from_email(email_text, "en" if body.language == "en" else "de")
+    except Exception as error:  # noqa: BLE001
+        print("Reading the enquiry email failed:", repr(error))
+        described = describe_extraction_error(error, "Could not read this email.")
+        return JSONResponse(status_code=502, content={"error": described["message"]})
 
 
 @app.delete("/api/emails/{email_id}")

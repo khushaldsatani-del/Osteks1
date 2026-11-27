@@ -133,7 +133,7 @@ const UploadFile = ({
 
       setStatus("success");
       setFailedDrawings((prev) => prev.filter((item) => item.index !== index));
-      onExtractionResult?.(data.summary, data.meta, index);
+      const handled = onExtractionResult?.(data.summary, data.meta, index);
       // 100% only now — the extracted details have just been applied to the
       // slot (onExtractionResult's synchronous part sets its extraction
       // state to "success"), so the bar hitting 100 and the details
@@ -141,6 +141,10 @@ const UploadFile = ({
       // simply carries on into the next one.
       model.finish();
       setToast(buildToast(index + 1 >= total ? "done" : "running"));
+      // The next drawing starts only once this one is fully handled - that
+      // can include the AI reading the attached email's customer, and AI
+      // requests run one at a time. Its own errors are handled there.
+      await Promise.resolve(handled).catch(() => {});
     } catch (error) {
       const isNetworkError = error instanceof ExtractionNetworkError;
       const message = isNetworkError ? t("upload.errorBackendUnreachable") : error.message;

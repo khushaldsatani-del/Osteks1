@@ -13,7 +13,7 @@ import { useOfferStore, priceForLetter } from "../components/OfferBuilder/state/
 import { emptyKtlPart, emptyOffer, emptyPulverPart, isUntouchedPart } from "../components/OfferBuilder/state/offerState";
 import { parseNum } from "../components/OfferBuilder/engine/format";
 import { partFromExtraction, layerFromKb, normOf } from "../components/OfferBuilder/state/fromExtraction";
-import { docPreviewInput, isUsedPart } from "../components/OfferBuilder/letters/offerLetter";
+import { addressOf, docPreviewInput, isUsedPart } from "../components/OfferBuilder/letters/offerLetter";
 import { useT } from "../components/OfferBuilder/i18n/languageContext";
 import { createTestReport, deleteTestReport, getTestReportByDocumentId } from "../components/TestReport/testReportsApi";
 import { CYCLE_DURATIONS } from "../components/TestReport/testReportConstants";
@@ -190,6 +190,8 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
       ...changes,
       extraction: { ...part.extraction, status: "success", summary, error: "", source: meta?.fileKind === "email" ? "email" : "image" },
     }));
+    // a later drawing of an upload whose email was already read
+    applyEmailQuantities(proc);
 
     const norm = parseOfferDetailsFields(summary).lackiervorschrift;
     const kbPromise = fetchKbSpecification(norm).then((result) => {
@@ -256,6 +258,7 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
     if (!stagedEmailFile || !createdId) return;
     setEmailStatus("linking");
     setEmailError("");
+    let emailId = null;
     try {
       const formData = new FormData();
       formData.append("email", stagedEmailFile);
@@ -265,6 +268,7 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
       if (!response.ok) throw new Error(data.error || "Could not attach this email.");
       setEmailStatus("linked");
       setEmailFile(null);
+      emailId = data.id;
       onDocumentsChanged?.();
       // the enquiry date comes from the email's own Date header - only
       // when it is still empty
@@ -274,6 +278,52 @@ const Documents = ({ onDocumentsChanged, openDocumentId, onTestReportCreated }) 
     } catch (err) {
       setEmailStatus("error");
       setEmailError(err.message || "Could not attach this email.");
+      return;
+    }
+    if (emailId) await readEnquiryEmail(proc, emailId, createdId);
+  };
+
+  // The quantities the enquiry email gives per part, kept for the offer
+  // record they were read for: drawings of the same upload that are read
+  // after the email get theirs as soon as their part number is known.
+  const emailQuantitiesRef = useRef(null);
+  const applyEmailQuantities = (proc) => {
+    const kept = emailQuantitiesRef.current;
+    if (!kept || kept.process !== proc || stateRef.current.offers[proc].documentId !== kept.documentId) return;
+    dispatch({ type: "emailQuantities", process: proc, quantities: kept.parts, single: kept.single });
+  };
+
+  // Company, contact person, address and each part's quantity from the
+  // stored email, read by the AI (the user's choice) - only into fields
+  // that are still empty, so nothing typed is overwritten. Awaited by the
+  // upload, so the next drawing waits: AI requests run one at a time.
+  const readEnquiryEmail = async (proc, emailId, documentId) => {
+    const isEmpty = () => {
+      const c = stateRef.current.offers[proc].customer;
+      return { company: !c.company?.trim(), person: !c.person?.trim(), address: !addressOf(c).trim() };
+    };
+    try {
+      const found = await jsonFetch(`${BACKEND_URL}/api/emails/${emailId}/enquiry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language }),
+      });
+      emailQuantitiesRef.current = {
+        process: proc,
+        documentId,
+        parts: Array.isArray(found?.parts) ? found.parts : [],
+        // one drawing in this upload: a single quantity in the email is its own
+        single: batchTargetsRef.current.length === 1,
+      };
+      applyEmailQuantities(proc);
+      // read again: the user may have typed while the AI was reading
+      const empty = isEmpty();
+      const fills = Object.fromEntries(["company", "person", "address"].filter((key) => empty[key] && found?.[key]).map((key) => [key, found[key]]));
+      if (!Object.keys(fills).length) return;
+      const customer = stateRef.current.offers[proc].customer;
+      dispatch({ type: "offerIn", process: proc, changes: { customer: { ...customer, ...fills } } });
+    } catch {
+      setNotice("customerNotRead");
     }
   };
 

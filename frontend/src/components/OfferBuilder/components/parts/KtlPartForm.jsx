@@ -1,27 +1,27 @@
 import React from "react";
 import FieldGroup from "../common/FieldGroup";
-import { Euro, Layers, MessageSquareText, Package, Ruler, SlidersHorizontal, Users } from "lucide-react";
 import Field from "../common/Field";
 import YesNo from "../common/YesNo";
 import Segmented from "../common/Segmented";
 import { num } from "../../engine/format";
 import { useT } from "../../i18n/languageContext";
+import { isAutoSurface, surfaceFromWeight } from "../../state/autoSurface";
 
 // The KTL part as one calm card: what the part is, its surface, how it is
-// coated, and the staff time - only what changes per part. Values that
-// keep their default (wage, time per carrier) sit under "Weitere Werte",
-// always shown (user's choice) above the remark.
+// coated, and the staff time - only what changes per part. Wage and time
+// per carrier keep their default unless typed in; they sit with the staff
+// values (the user merged "Weitere Werte" into "Personal & Takt").
 const KtlPartForm = ({ part, result, settings, onChange }) => {
   const { t } = useT();
   const set = (key) => (value) => onChange({ [key]: value });
   // a value the calculation cannot use (negative, or 0 where it divides)
   const bad = (key) => !!result.invalid?.includes(key);
   const pcs = t("units.pcs");
-  const changed = ["wagePerHour", "minutesPerCarrier"].filter((k) => part[k] != null && part[k] !== "").length;
+  const fromWeight = surfaceFromWeight("ktl", part, settings);
 
   return (
     <div className="form-card">
-      <FieldGroup title={t("box.part")} icon={Package}>
+      <FieldGroup title={t("box.part")}>
         <Field label={t("ktl.name")} value={part.name} onChange={set("name")} invalid={bad("name")} numeric={false} wide />
         <Field label={t("ktl.drawingNo")} value={part.drawingNo} onChange={set("drawingNo")} invalid={bad("drawingNo")} numeric={false} />
         <Field label={t("ktl.paintSpec")} value={part.paintSpec} onChange={set("paintSpec")} invalid={bad("paintSpec")} numeric={false} />
@@ -30,10 +30,12 @@ const KtlPartForm = ({ part, result, settings, onChange }) => {
       </FieldGroup>
 
       <FieldGroup
-        title={t("box.surface")} icon={Ruler}
+        title={t("box.surface")}
         aside={
-          result.areaFromWeight ? (
-            <button type="button" className="link-btn" onClick={() => onChange({ surfaceMm2: String(Math.round(result.areaFromWeight)) })}>
+          // the surface fills itself from the weight; the link is only
+          // offered when a typed-in surface differs from it
+          fromWeight != null && !isAutoSurface("ktl", part) && String(part.surfaceMm2 ?? "") !== fromWeight ? (
+            <button type="button" className="link-btn" onClick={() => onChange({ surfaceMm2: fromWeight, surfaceAuto: true })}>
               {t("form.useFromWeight", { value: `${num(result.areaFromWeight, 0)} mm²` })}
             </button>
           ) : null
@@ -51,7 +53,7 @@ const KtlPartForm = ({ part, result, settings, onChange }) => {
         <Field label={t("ktl.thickness")} cell="B14" unit="mm" value={part.thicknessMm} onChange={set("thicknessMm")} invalid={bad("thicknessMm")} />
       </FieldGroup>
 
-      <FieldGroup title={t("box.process")} icon={Layers} cols={4}>
+      <FieldGroup title={t("box.process")} cols={4}>
         <YesNo label={t("ktl.beizen")} cell="B8" value={part.beizen} onChange={set("beizen")} invalid={bad("beizen")} />
         <YesNo label={t("ktl.guss")} cell="B9" value={part.guss} onChange={set("guss")} invalid={bad("guss")} />
         <div className="fld" title="Excel: E21">
@@ -70,18 +72,9 @@ const KtlPartForm = ({ part, result, settings, onChange }) => {
         <Field label={t("ktl.masking")} cell="B10" value={part.maskingPoints} onChange={set("maskingPoints")} invalid={bad("maskingPoints")} />
       </FieldGroup>
 
-      <FieldGroup title={t("box.staff")} icon={Users}>
+      <FieldGroup title={t("box.staff")} cols={4}>
         <Field label={t("ktl.loadMinutes")} cell="B11" unit="min" value={part.loadMinutes} onChange={set("loadMinutes")} invalid={bad("loadMinutes")} />
         <Field label={t("ktl.workers")} cell="B12" value={part.workers} onChange={set("workers")} invalid={bad("workers")} />
-      </FieldGroup>
-      {(result.missing?.includes("loadMinutes") || result.missing?.includes("workers")) && <p className="hint-line">{t("ktl.noStaff")}</p>}
-
-      <FieldGroup
-        title={t("form.moreValues")}
-        icon={SlidersHorizontal}
-        cols={4}
-        aside={changed > 0 ? <span className="more-count">{t("form.changed", { n: changed })}</span> : null}
-      >
         <Field label={t("ktl.wage")} cell="B13" unit="€/h" value={part.wagePerHour ?? ""} placeholder={String(settings.wagePerHour)} onChange={set("wagePerHour")} invalid={bad("wagePerHour")} />
         <Field
           label={t("ktl.minutesPerCarrier")}
@@ -92,13 +85,14 @@ const KtlPartForm = ({ part, result, settings, onChange }) => {
           onChange={set("minutesPerCarrier")} invalid={bad("minutesPerCarrier")}
         />
       </FieldGroup>
+      {(result.missing?.includes("loadMinutes") || result.missing?.includes("workers")) && <p className="hint-line">{t("ktl.noStaff")}</p>}
 
-      <FieldGroup title={t("box.oneTime")} icon={Euro}>
+      <FieldGroup title={t("box.oneTime")}>
         <Field label={t("ktl.testCost")} unit="€" value={part.testCost ?? ""} onChange={set("testCost")} />
         <Field label={t("ktl.rackCost")} unit="€" value={part.rackCost ?? ""} onChange={set("rackCost")} />
       </FieldGroup>
 
-      <FieldGroup title={t("box.remark")} icon={MessageSquareText} cols={1}>
+      <FieldGroup title={t("box.remark")} cols={1}>
         <label className="fld" title="Excel: A35">
           <span className="fld-box fld-box--area">
             <textarea

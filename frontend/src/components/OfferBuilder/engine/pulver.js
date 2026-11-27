@@ -6,6 +6,11 @@ import { densityOf } from "./defaults";
 const div = (a, b) => (a == null || b == null || b === 0 ? null : a / b);
 const add = (...xs) => (xs.some((x) => x == null) ? null : xs.reduce((s, x) => s + x, 0));
 
+// B17: the surface (mm²) a sheet part of this weight, thickness and
+// material has - also what fills the surface field by itself
+// (state/autoSurface.js).
+export const pulverAreaFromWeight = (p, s) => div(num(p.weightG) * 2000, num(p.thicknessMm) * densityOf(p.material, s.densitySteel));
+
 export function calcPulver(p, s) {
   const qty = num(p.quantity); // B10
   const weightG = num(p.weightG); // B14
@@ -25,7 +30,7 @@ export function calcPulver(p, s) {
   const workers = numOr(p.workers, s.workers); // H18
   const wage = numOr(p.wagePerHour, s.wagePerHour); // H19
 
-  const areaFromWeight = div(weightG * 2000, thickness * density); // B17
+  const areaFromWeight = pulverAreaFromWeight(p, s); // B17
   // B25 = D25 = 1 / (part length + gap), exactly as the sheet: all
   // decimals count (0.0641 for a 15 m part), the form only shows two
   // (0.06). Rounding was tried and dropped - for long parts it moved the

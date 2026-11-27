@@ -1,5 +1,7 @@
 import { DEFAULT_SETTINGS } from "../engine/defaults";
 import { todayIso } from "../engine/format";
+import { withAutoSurface } from "./autoSurface";
+import { matchEmailQuantities } from "./emailQuantities";
 
 // One offer per process, each with its own parts, so switching KTL <-> Pulver
 // never loses what was typed in the other. The letter's texts are the
@@ -125,6 +127,14 @@ export const normalizeOffer = (process, raw) => {
   };
 };
 
+// New settings for one process; a changed steel density moves every
+// surface that follows the weight.
+const withSettings = (state, process, settings) => {
+  const o = state.offers[process];
+  const parts = o.parts.map((p) => (p.surfaceAuto === true ? withAutoSurface(process, p, settings) : p));
+  return { ...state, settings: { ...state.settings, [process]: settings }, offers: { ...state.offers, [process]: { ...o, parts } } };
+};
+
 const updateOffer = (state, fn) => ({
   ...state,
   offers: { ...state.offers, [state.process]: fn(state.offers[state.process]) },
@@ -154,10 +164,24 @@ export function reducer(state, action) {
       return updateOffer(state, (o) => ({ ...o, selectedId: action.id }));
     case "part": {
       // by id in either offer - an extraction may finish after the user
-      // switched between KTL and Powder; `changes` may be a function
-      const apply = (p) => (p.id === action.id ? { ...p, ...(typeof action.changes === "function" ? action.changes(p) : action.changes) } : p);
-      const offers = Object.fromEntries(Object.entries(state.offers).map(([key, o]) => [key, { ...o, parts: o.parts.map(apply) }]));
+      // switched between KTL and Powder; `changes` may be a function. The
+      // surface then follows weight and thickness (autoSurface.js).
+      const apply = (key) => (p) => {
+        if (p.id !== action.id) return p;
+        const changes = typeof action.changes === "function" ? action.changes(p) : action.changes;
+        return withAutoSurface(key, { ...p, ...changes }, state.settings[key], changes ?? {});
+      };
+      const offers = Object.fromEntries(Object.entries(state.offers).map(([key, o]) => [key, { ...o, parts: o.parts.map(apply(key)) }]));
       return { ...state, offers };
+    }
+    case "emailQuantities": {
+      // quantities the enquiry email gives per part - only into parts with
+      // no quantity yet, only where the part is clearly the one meant
+      const o = state.offers[action.process];
+      const found = matchEmailQuantities(o.parts, action.quantities, { single: action.single });
+      if (!found.size) return state;
+      const parts = o.parts.map((p) => (found.has(p.id) && !String(p.quantity ?? "").trim() ? { ...p, quantity: String(found.get(p.id)) } : p));
+      return { ...state, offers: { ...state.offers, [action.process]: { ...o, parts } } };
     }
     case "addPart": {
       const part = action.part ?? emptyPartOf(state.process);
@@ -190,9 +214,9 @@ export function reducer(state, action) {
         return { ...o, parts: keep, selectedId: keep[0].id };
       });
     case "settings":
-      return { ...state, settings: { ...state.settings, [action.process]: { ...state.settings[action.process], ...action.changes } } };
+      return withSettings(state, action.process, { ...state.settings[action.process], ...action.changes });
     case "resetSettings":
-      return { ...state, settings: { ...state.settings, [action.process]: structuredClone(DEFAULT_SETTINGS[action.process]) } };
+      return withSettings(state, action.process, structuredClone(DEFAULT_SETTINGS[action.process]));
     case "newOffer":
       // a new offer is a new record: both processes start empty
       return { ...state, offers: { ktl: emptyOffer("ktl"), pulver: emptyOffer("pulver") } };

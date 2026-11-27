@@ -72,6 +72,10 @@ const cachedTable = (s) => {
   return table;
 };
 
+// B16: the surface (mm²) a steel sheet part of this weight and thickness
+// has - also what fills the surface field by itself (state/autoSurface.js).
+export const ktlAreaFromWeight = (p, s) => div(num(p.weightG) * 2000, num(p.thicknessMm) * s.densitySteel);
+
 // One part. `p` is the part's inputs (B2 ... F5), `s` the KTL settings.
 export function calcKtl(p, s) {
   const table = cachedTable(s);
@@ -95,7 +99,7 @@ export function calcKtl(p, s) {
   const areaM2 = areaMm2 / 1_000_000; // C3
   const fit = areaMm2 ? Math.floor((carrierM2 * 100 * 100 * 100) / areaMm2) : null;
   const partsPerCarrier = fit == null ? null : fit > qty ? qty : fit; // B7
-  const areaFromWeight = div(weightG * 2000, thickness * s.densitySteel); // B16
+  const areaFromWeight = ktlAreaFromWeight(p, s); // B16
 
   // --- old calculation (column B) ---
   const basePrice = partsPerCarrier ? s.basePerCarrier / partsPerCarrier + s.basePerPart : null; // B25

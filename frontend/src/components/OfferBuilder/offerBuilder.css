@@ -637,14 +637,6 @@
   color: var(--amber);
 }
 
-.ob .more-count {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--teal-soft);
-  font-size: 11px;
-  color: var(--teal-dark);
-}
-
 /* price card */
 
 .ob .price-card {

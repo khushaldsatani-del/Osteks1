@@ -601,6 +601,7 @@ const en = {
   // what went wrong in the background (Work Place) and the crash guard
   notice: {
     drawingNotStored: "The drawing was read and filled in, but could not be stored (database not reachable). \"Save\" will still store the offer.",
+    customerNotRead: "The email was attached, but company, contact person, address and quantities could not be read from it - please fill them in yourself.",
     drawingLimit: "An offer can store at most 4 drawings – this one was filled in but not stored as a drawing.",
     offerNotFound: "This offer no longer exists (deleted in \"All Offers\"?). The offer you were working on stays open.",
     saveFailed: "The offer was not saved – the database could not be reached. Your entries are kept; please save again in a moment.",

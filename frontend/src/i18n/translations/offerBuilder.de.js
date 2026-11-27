@@ -600,6 +600,7 @@ const de = {
   // what went wrong in the background (Work Place) and the crash guard
   notice: {
     drawingNotStored: "Die Zeichnung wurde gelesen und eingetragen, konnte aber nicht gespeichert werden (Datenbank nicht erreichbar). Mit „Speichern“ wird das Angebot trotzdem gespeichert.",
+    customerNotRead: "Die E-Mail wurde angehängt, aber Firma, Ansprechpartner, Adresse und Mengen konnten nicht daraus gelesen werden – bitte selbst eintragen.",
     drawingLimit: "Ein Angebot kann höchstens 4 Zeichnungen speichern – diese wurde eingetragen, aber nicht als Zeichnung gespeichert.",
     offerNotFound: "Dieses Angebot gibt es nicht mehr (in „Alle Angebote“ gelöscht?). Das zuletzt bearbeitete Angebot bleibt geöffnet.",
     saveFailed: "Das Angebot wurde nicht gespeichert – die Datenbank war nicht erreichbar. Ihre Eingaben bleiben erhalten; bitte gleich erneut speichern.",

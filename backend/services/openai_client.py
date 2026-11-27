@@ -26,6 +26,7 @@ from prompts.email_extraction_prompt import (
     build_email_candidate_user_text,
     build_email_validation_user_text,
 )
+from prompts.email_enquiry_prompt import EMAIL_ENQUIRY_SYSTEM_PROMPT, build_email_enquiry_user_text
 from services.norm_text import normalize_ofl_designation
 
 _client: AsyncOpenAI | None = None
@@ -522,6 +523,75 @@ async def extract_calculation_from_email(email_text: str, images: list[dict], on
     print(f"OpenAI email stage 2 (validation) took {stage2_seconds}s")
     on_event({"type": "stage", "stage": 2, "state": "done", "seconds": stage2_seconds})
     return parts
+
+
+_ENQUIRY_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "company": {"type": "string"},
+        "person": {"type": "string"},
+        "address": {"type": "string"},
+        "parts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "drawingNo": {"type": "string"},
+                    "quantity": {"type": "integer"},
+                },
+                "required": ["name", "drawingNo", "quantity"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["company", "person", "address", "parts"],
+    "additionalProperties": False,
+}
+
+
+# The offer letter's recipient (company, contact person, address) and the
+# quantity per part from an enquiry email - one call. The configured
+# reasoning effort (as for drawings): tying each quantity to the right
+# part of 2-3 needs care.
+async def read_enquiry_from_email(email_text: str, language: str) -> dict:
+    client = _get_client()
+
+    async def call():
+        return await client.chat.completions.create(
+            model=_model_name(),
+            messages=[
+                {"role": "system", "content": EMAIL_ENQUIRY_SYSTEM_PROMPT},
+                {"role": "user", "content": build_email_enquiry_user_text(email_text, language)},
+            ],
+            reasoning_effort=_reasoning_effort(),
+            max_completion_tokens=_max_tokens_stage1(),
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "email_enquiry", "schema": _ENQUIRY_JSON_SCHEMA, "strict": True},
+            },
+        )
+
+    response = await _with_retry(call)
+    _log_usage("email enquiry", response)
+    if response.choices and response.choices[0].finish_reason == "length":
+        raise RuntimeError("Reading the email ran out of output tokens before finishing.")
+    raw = (response.choices[0].message.content or "").strip() if response.choices else ""
+    if not raw:
+        raise RuntimeError("Reading the email returned an empty response.")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Reading the email returned malformed JSON.") from error
+    parts = [
+        {"name": str(p.get("name") or "").strip(), "drawingNo": str(p.get("drawingNo") or "").strip(), "quantity": int(p.get("quantity") or 0)}
+        for p in data.get("parts") or []
+        if isinstance(p, dict)
+    ]
+    return {
+        **{key: str(data.get(key) or "").strip() for key in ("company", "person", "address")},
+        "parts": [p for p in parts if p["quantity"] > 0],
+    }
 
 
 # Translates a raw OpenAI/SDK error into one consistent user-facing

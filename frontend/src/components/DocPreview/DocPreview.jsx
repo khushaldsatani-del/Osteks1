@@ -138,6 +138,7 @@ const DocPreview = ({
     SALUTATION_PREFIX_FEMININE,
     INTRO_LINES,
     INTRO_LINE1_PREFIX,
+    INTRO_LINE1_NO_DATE,
     SPEC_FIELD_ROWS,
     PAGE1_DISCLAIMER,
     WITHOUT_SPEC_NOTE,
@@ -189,9 +190,7 @@ const DocPreview = ({
   const salutation = typedName ? `${salutationPrefix} ${typedName},` : SALUTATION;
 
   const enquiryDateFormatted = formatEnquiryDateDots(firmaInfo.enquiryDate);
-  const introLines = enquiryDateFormatted
-    ? [`${INTRO_LINE1_PREFIX}${enquiryDateFormatted}.`, INTRO_LINES[1]]
-    : INTRO_LINES;
+  const introLines = [enquiryDateFormatted ? `${INTRO_LINE1_PREFIX}${enquiryDateFormatted}.` : INTRO_LINE1_NO_DATE, INTRO_LINES[1]];
 
   const headingRows = [
     [HEADING_ROWS[0][0], firmaInfo.projectName?.trim() ? firmaInfo.projectName : HEADING_ROWS[0][1]],
