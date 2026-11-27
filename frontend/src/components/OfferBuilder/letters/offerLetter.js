@@ -77,21 +77,28 @@ const contentOverrides = (process, offer, language, t) => {
 };
 
 // One part's rows in Document Preview's price block. KTL uses the exact
-// row builder Offer Details used (same keys, same formatting); Powder lists
-// the rows of Angebot 32484-00014.
+// row builder Offer Details used (same keys, same formatting), so a part
+// with masking points also gets the old offer's "Preis Maskierung … / Stk"
+// line (the builder leaves it out at 0), and the one-time costs print with
+// "(einmalig)" when typed in; Powder lists the rows of Angebot 32484-00014.
 const partRows = (process, part, result, language) => {
   const price = priceForLetter(part, result);
   if (process === "ktl") {
+    const masking = result?.old?.maskingCost;
+    const oneTime = (value) => (parseNum(value) > 0 ? parseNum(value).toFixed(2) : "");
     return buildOfferDetailsRows(
       {
         teilebezeichnung: part.name ?? "",
         zeichnungsnummer: part.drawingNo ?? "",
         lackiervorschrift: part.paintSpec ?? "",
+        preisKorrosionsschutztests: oneTime(part.testCost),
+        gestellbaukosten: oneTime(part.rackCost),
       },
       {
         schichtdicke: part.layer ?? "",
         jahresmenge: qtyOf(part) ? String(Math.round(qtyOf(part))) : "",
         preisBeschichtung: price == null ? "" : price.toFixed(2),
+        preisMaskierung: masking > 0 ? masking.toFixed(2) : "",
       }
     );
   }

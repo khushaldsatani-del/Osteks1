@@ -1,6 +1,6 @@
 import React from "react";
 import FieldGroup from "../common/FieldGroup";
-import { Layers, MessageSquareText, Package, Ruler, SlidersHorizontal, Users } from "lucide-react";
+import { Euro, Layers, MessageSquareText, Package, Ruler, SlidersHorizontal, Users } from "lucide-react";
 import Field from "../common/Field";
 import YesNo from "../common/YesNo";
 import Segmented from "../common/Segmented";
@@ -91,6 +91,11 @@ const KtlPartForm = ({ part, result, settings, onChange }) => {
           placeholder={String(settings.minutesPerCarrier)}
           onChange={set("minutesPerCarrier")} invalid={bad("minutesPerCarrier")}
         />
+      </FieldGroup>
+
+      <FieldGroup title={t("box.oneTime")} icon={Euro}>
+        <Field label={t("ktl.testCost")} unit="€" value={part.testCost ?? ""} onChange={set("testCost")} />
+        <Field label={t("ktl.rackCost")} unit="€" value={part.rackCost ?? ""} onChange={set("rackCost")} />
       </FieldGroup>
 
       <FieldGroup title={t("box.remark")} icon={MessageSquareText} cols={1}>

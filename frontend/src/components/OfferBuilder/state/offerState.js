@@ -26,6 +26,10 @@ export const emptyKtlPart = () => ({
   workers: "", // B12
   paint: "D-KTL", // E21
   offerPrice: "", // B34
+  // one-time costs typed in per offer (not in the Excel sheet); printed
+  // in the letter only when set, like the old Offer Details form did
+  testCost: "", // Preis Korrosionsschutztests
+  rackCost: "", // Gestellbaukosten
   remark: "", // A35 - internal, not printed in the offer
 });
 
