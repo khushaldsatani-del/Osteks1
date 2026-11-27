@@ -637,46 +637,12 @@
   color: var(--amber);
 }
 
-.ob .more {
-  padding-top: 20px;
-}
-
-.ob .more-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  border: none;
-  background: none;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.ob .more-toggle svg {
-  transform: rotate(-90deg);
-  transition: transform 0.15s ease;
-}
-
-.ob .more.is-open .more-toggle svg {
-  transform: none;
-}
-
-.ob .more-toggle:hover {
-  color: var(--teal-dark);
-}
-
 .ob .more-count {
   padding: 1px 8px;
   border-radius: 999px;
   background: var(--teal-soft);
   font-size: 11px;
   color: var(--teal-dark);
-}
-
-.ob .more .fgroup-grid {
-  margin-top: 18px;
 }
 
 /* price card */

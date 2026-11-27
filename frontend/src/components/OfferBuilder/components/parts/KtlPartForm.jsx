@@ -1,16 +1,16 @@
 import React from "react";
 import FieldGroup from "../common/FieldGroup";
-import { Layers, MessageSquareText, Package, Ruler, Users } from "lucide-react";
+import { Layers, MessageSquareText, Package, Ruler, SlidersHorizontal, Users } from "lucide-react";
 import Field from "../common/Field";
 import YesNo from "../common/YesNo";
 import Segmented from "../common/Segmented";
-import MoreValues from "../common/MoreValues";
 import { num } from "../../engine/format";
 import { useT } from "../../i18n/languageContext";
 
 // The KTL part as one calm card: what the part is, its surface, how it is
 // coated, and the staff time - only what changes per part. Values that
-// keep their default (wage, time per carrier) are folded under "More".
+// keep their default (wage, time per carrier) sit under "Weitere Werte",
+// always shown (user's choice) above the remark.
 const KtlPartForm = ({ part, result, settings, onChange }) => {
   const { t } = useT();
   const set = (key) => (value) => onChange({ [key]: value });
@@ -76,6 +76,23 @@ const KtlPartForm = ({ part, result, settings, onChange }) => {
       </FieldGroup>
       {(result.missing?.includes("loadMinutes") || result.missing?.includes("workers")) && <p className="hint-line">{t("ktl.noStaff")}</p>}
 
+      <FieldGroup
+        title={t("form.moreValues")}
+        icon={SlidersHorizontal}
+        cols={4}
+        aside={changed > 0 ? <span className="more-count">{t("form.changed", { n: changed })}</span> : null}
+      >
+        <Field label={t("ktl.wage")} cell="B13" unit="€/h" value={part.wagePerHour ?? ""} placeholder={String(settings.wagePerHour)} onChange={set("wagePerHour")} invalid={bad("wagePerHour")} />
+        <Field
+          label={t("ktl.minutesPerCarrier")}
+          cell="F4"
+          unit="min"
+          value={part.minutesPerCarrier ?? ""}
+          placeholder={String(settings.minutesPerCarrier)}
+          onChange={set("minutesPerCarrier")} invalid={bad("minutesPerCarrier")}
+        />
+      </FieldGroup>
+
       <FieldGroup title={t("box.remark")} icon={MessageSquareText} cols={1}>
         <label className="fld" title="Excel: A35">
           <span className="fld-box fld-box--area">
@@ -89,18 +106,6 @@ const KtlPartForm = ({ part, result, settings, onChange }) => {
           </span>
         </label>
       </FieldGroup>
-
-      <MoreValues changed={changed}>
-        <Field label={t("ktl.wage")} cell="B13" unit="€/h" value={part.wagePerHour ?? ""} placeholder={String(settings.wagePerHour)} onChange={set("wagePerHour")} invalid={bad("wagePerHour")} />
-        <Field
-          label={t("ktl.minutesPerCarrier")}
-          cell="F4"
-          unit="min"
-          value={part.minutesPerCarrier ?? ""}
-          placeholder={String(settings.minutesPerCarrier)}
-          onChange={set("minutesPerCarrier")} invalid={bad("minutesPerCarrier")}
-        />
-      </MoreValues>
     </div>
   );
 };
